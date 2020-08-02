@@ -255,8 +255,8 @@ this.Modules = {
 
 	preparePath: function(aModule) {
 		if(typeof(aModule) != 'string') { return null; }
-		if(aModule.startsWith("resource://")) { return aModule; }
-		return "resource://"+objPathString+"/modules/"+aModule+".jsm";
+		if(aModule.startsWith("chrome://")) { return aModule; }
+		return "chrome://"+objPathString+"-resource/content/modules/"+aModule+".jsm";
 	}
 };
 

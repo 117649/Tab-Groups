@@ -101,7 +101,7 @@ this.Browsers = {
 			case 'domwindowopened':
 				callOnLoad(aWindow, () => {
 					if(aWindow.gBrowser) {
-						for(let tab of aWindow.gBrowser.mTabs) {
+						for(let tab of aWindow.gBrowser.tabs) {
 							this.handleEvent({ type: 'TabOpen', target: tab });
 						}
 						// The event can be TabOpen, TabClose, TabSelect, TabShow, TabHide, TabPinned, TabUnpinned and possibly more.
@@ -126,7 +126,7 @@ this.Browsers = {
 			case 'domwindowclosed':
 				if(aWindow.document.readyState == 'complete') {
 					if(aWindow.gBrowser) {
-						for(let tab of aWindow.gBrowser.mTabs) {
+						for(let tab of aWindow.gBrowser.tabs) {
 							tab.removeEventListener('TabRemotenessChange', this);
 							if(!tab.linkedBrowser.isRemoteBrowser) {
 								this.tabRemote(tab); // this removes the listeners, which is what we want to do

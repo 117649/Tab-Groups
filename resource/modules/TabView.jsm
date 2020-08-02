@@ -5,7 +5,7 @@
 // VERSION 1.1.23
 
 this.__defineGetter__('gBrowser', function() { return window.gBrowser; });
-this.__defineGetter__('gTabViewDeck', function() { return $('tab-view-deck'); });
+this.__defineGetter__('gTabViewDeck', function() { return $('body'); });
 this.__defineGetter__('gTaskbarTabGroup', function() { return window.gTaskbarTabGroup; });
 this.__defineGetter__('TabContextMenu', function() { return window.TabContextMenu; });
 this.__defineGetter__('goUpdateCommand', function() { return window.goUpdateCommand; });

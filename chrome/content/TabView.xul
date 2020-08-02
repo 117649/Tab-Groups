@@ -8,8 +8,8 @@
 <!DOCTYPE overlay [
   <!ENTITY % overlayDTD SYSTEM "chrome://tabgroups/locale/TabView.dtd">
   %overlayDTD;
-  <!ENTITY % browserDTD SYSTEM "chrome://browser/locale/browser.dtd">
-  %browserDTD;
+  <!-- <!ENTITY % browserDTD SYSTEM "chrome://browser/locale/browser.dtd">
+  %browserDTD; -->
 ]>
 
 <overlay id="TabView_overlay" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
@@ -37,28 +37,21 @@
 		<tooltip id="objName-tab-view-tooltip"/>
 
 		<menupopup id="objName-tabview-context-input">
-			<menuitem label="&undoCmd.label;"
-				accesskey="&undoCmd.accesskey;"
+			<menuitem data-lazy-l10n-id="text-action-undo"
 				command="cmd_undo"/>
-			<menuitem label="&redoCmd.label;"
-				accesskey="&redoCmd.accesskey;"
+			<menuitem data-lazy-l10n-id="text-action-redo"
 				command="cmd_redo"/>
 			<menuseparator/>
-			<menuitem label="&cutCmd.label;"
-				accesskey="&cutCmd.accesskey;"
+			<menuitem data-lazy-l10n-id="text-action-cut"
 				command="cmd_cut"/>
-			<menuitem label="&copyCmd.label;"
-				accesskey="&copyCmd.accesskey;"
+			<menuitem data-lazy-l10n-id="text-action-copy"
 				command="cmd_copy"/>
-			<menuitem label="&pasteCmd.label;"
-				accesskey="&pasteCmd.accesskey;"
+			<menuitem data-lazy-l10n-id="text-action-paste"
 				command="cmd_paste"/>
-			<menuitem label="&deleteCmd.label;"
-				accesskey="&deleteCmd.accesskey;"
+			<menuitem data-lazy-l10n-id="text-action-delete"
 				command="cmd_delete"/>
 			<menuseparator/>
-			<menuitem label="&selectAllCmd.label;"
-				accesskey="&selectAllCmd.accesskey;"
+			<menuitem data-lazy-l10n-id="text-action-select-all"
 				command="cmd_selectAll"/>
 		</menupopup>
 

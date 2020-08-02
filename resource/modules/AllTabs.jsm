@@ -12,7 +12,7 @@ this.Tabs = {
 
 	get all() {
 		// gBrowser.tabs is a NodeList, not an array
-		return Array.filter(gBrowser.tabs, function(tab) { return !tab.closing; });
+		return gBrowser.tabs.filter(function(tab) { return !tab.closing; });
 	},
 
 	get pinned() {
