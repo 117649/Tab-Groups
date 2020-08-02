@@ -97,6 +97,8 @@ function backupCurrentSession() {
 	Cu.import("resource:///modules/sessionstore/SessionStore.jsm", tmp);
 	let osfile = Cu.import("resource://gre/modules/osfile.jsm");
 
+	Cu.importGlobalProperties(['TextEncoder'])
+
 	let prefix = objName+'-update.js-';
 
 	// We can use the initTime as a seed/identifier to make sure every file has a unique name.
@@ -110,7 +112,7 @@ function backupCurrentSession() {
 	let filepath = osfile.OS.Path.join(backupsDir, filename);
 
 	let state = tmp.SessionStore.getCurrentState();
-	let saveState = (new osfile.TextEncoder()).encode(JSON.stringify(state));
+	let saveState = (new TextEncoder()).encode(JSON.stringify(state));
 
 	osfile.OS.File.open(filepath, { truncate: true }).then((ref) => {
 		ref.write(saveState).then(() => {

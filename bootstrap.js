@@ -151,13 +151,17 @@ function prepareObject(window, aName) {
 		// it's easier to reference more specific objects from within the modules for better control, only setting these two here because they're more generalized
 		window: window,
 		get document () { return window.document; },
-		$: function(id) { return window.document.getElementById(id); },
+		$: function(id) { return window.document.querySelector(id); },
 		$$: function(sel, parent = window.document) { return parent.querySelectorAll(sel); },
 		$ª: function(parent, anonid, anonattr = 'anonid') { return window.document.getAnonymousElementByAttribute(parent, anonattr, anonid); }
 	};
 
-	Services.scriptloader.loadSubScript("resource://"+objPathString+"/modules/utils/Modules.jsm", window[objectName]);
-	Services.scriptloader.loadSubScript("resource://"+objPathString+"/modules/utils/windowUtilsPreload.jsm", window[objectName]);
+	// Services.scriptloader.loadSubScript("resource://"+objPathString+"/modules/utils/Modules.jsm", window[objectName]);
+	// Services.scriptloader.loadSubScript("resource://"+objPathString+"/modules/utils/windowUtilsPreload.jsm", window[objectName]);
+	
+	Services.scriptloader.loadSubScript("chrome://"+objPathString+"-resource/content/modules/utils/Modules.jsm", window[objectName]);
+	Services.scriptloader.loadSubScript("chrome://"+objPathString+"-resource/content/modules/utils/windowUtilsPreload.jsm", window[objectName]);
+
 	window[objectName].Modules.load("utils/windowUtils");
 
 	setAttribute(window.document.documentElement, objectName+'_UUID', window[objectName]._UUID);
@@ -283,13 +287,18 @@ function startup(aData, aReason) {
 	});
 
 	// Set the default strings for the add-on
-	let alias = Services.io.newFileURI(AddonData.installPath);
-	let defaultsURI = ((AddonData.installPath.isDirectory()) ? alias.spec : 'jar:' + alias.spec + '!/')+'resource/defaults.js';
+	// let alias = Services.io.newFileURI(AddonData.installPath);
+	// let defaultsURI = ((AddonData.installPath.isDirectory()) ? alias.spec : 'jar:' + alias.spec + '!/')+'resource/defaults.js';
+
+	let defaultsURI = AddonData.resourceURI.spec+'resource/defaults.js';
 	Services.scriptloader.loadSubScript(defaultsURI, this);
 
 	// Get the utils.jsm module into our sandbox
-	Services.scriptloader.loadSubScript("resource://"+objPathString+"/modules/utils/Modules.jsm", this);
-	Services.scriptloader.loadSubScript("resource://"+objPathString+"/modules/utils/sandboxUtilsPreload.jsm", this);
+	// Services.scriptloader.loadSubScript("resource://"+objPathString+"/modules/utils/Modules.jsm", this);
+	// Services.scriptloader.loadSubScript("resource://"+objPathString+"/modules/utils/sandboxUtilsPreload.jsm", this);
+
+	Services.scriptloader.loadSubScript("chrome://"+objPathString+"-resource/content/modules/utils/Modules.jsm", this);
+	Services.scriptloader.loadSubScript("chrome://"+objPathString+"-resource/content/modules/utils/sandboxUtilsPreload.jsm", this);
 	Modules.load("utils/sandboxUtils");
 
 	if(typeof(startConditions) != 'function' || startConditions(aReason)) {

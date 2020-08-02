@@ -6,6 +6,13 @@
 Modules.UTILS = true;
 Modules.BASEUTILS = true;
 
+Components.utils.importGlobalProperties(['XMLHttpRequest']);
+ChromeUtils.defineModuleGetter(
+	this,
+	"Services",
+	"resource://gre/modules/Services.jsm"
+  );
+
 // xmlHttpRequest(url, callback, method) - aid for quickly using the nsIXMLHttpRequest interface
 //	url - (string) to send the request
 //	callback - (function) to be called after request is completed; expects callback(xmlhttp, e) where xmlhttp = xmlhttprequest return object and e = event object
@@ -19,13 +26,28 @@ this.xmlHttpRequest = function(url, callback, method = "GET") {
 		method = "GET";
 	}
 
-	var xmlhttp = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(Ci.nsIXMLHttpRequest);
+	// var xmlhttp = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(Ci.nsIXMLHttpRequest);
+	var xmlhttp = new this.window.XMLHttpRequest();
 	xmlhttp.open(method, url);
+
+	xmlhttp.overrideMimeType("application/xml");
+
 	if(json) {
 		xmlhttp.overrideMimeType("application/json");
 		xmlhttp.responseType = 'json';
 	}
 	xmlhttp.onreadystatechange = function(e) { callback(xmlhttp, e); };
+
+	try {
+		xmlhttp.channel.owner = Services.scriptSecurityManager.getSystemPrincipal();
+	  } catch (ex) {
+		// oconsole.error(
+		//   "Failed to set system principal while fetching overlay " + srcUrl
+		// );
+		xmlhttp.close();
+		throw new Error("Failed to set system principal");
+	  }
+
 	xmlhttp.send();
 	return xmlhttp;
 };

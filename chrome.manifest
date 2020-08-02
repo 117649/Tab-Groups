@@ -4,6 +4,8 @@
 
 content   tabgroups                    chrome/content/
 resource  tabgroups                    resource/
+content   tabgroups                    chrome/content/	contentaccessible=yes
+content   tabgroups-resource           resource/	contentaccessible=yes
 
 locale    tabgroups      en-US         chrome/locale/en-US/
 locale    tabgroups      cs            chrome/locale/cs/
