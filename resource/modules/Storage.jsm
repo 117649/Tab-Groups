@@ -15,13 +15,13 @@ this.Storage = {
 
 	// Saves the data for a single tab.
 	saveTab: function(tab, data) {
-		SessionStore.setTabValue(tab, this.kTabIdentifier, JSON.stringify(data));
+		SessionStore.setCustomTabValue(tab, this.kTabIdentifier, JSON.stringify(data));
 	},
 
 	// Load tab data from session store and return it.
 	getTabData: function(tab) {
 		try {
-			let tabData = SessionStore.getTabValue(tab, this.kTabIdentifier);
+			let tabData = SessionStore.getCustomTabValue(tab, this.kTabIdentifier);
 			if(tabData) {
 				return JSON.parse(tabData);
 			}
