@@ -1111,7 +1111,7 @@ this.UI = {
 			}
 			else {
 				// Assume the dimensions of the currently active tab for the screen ratio. This is what thumbnails will represent after all.
-				viewportRatio = gBrowser.mCurrentBrowser.clientWidth / gBrowser.mCurrentBrowser.clientHeight;
+				viewportRatio = gBrowser.selectedBrowser.clientWidth / gBrowser.selectedBrowser.clientHeight;
 			}
 
 			// Make sure the thumbnails don't become too stretched or too flat, they lose all their value if their contents can't be distinguished properly.
@@ -1182,7 +1182,7 @@ this.UI = {
 			dispatch(window, { type: "willshowtabview", cancelable: false });
 
 			// store tab strip smooth scroll value and disable it.
-			let tabStrip = gBrowser.tabContainer.mTabstrip;
+			let tabStrip = gBrowser.tabContainer.arrowScrollbox;
 			this._originalSmoothScroll = tabStrip.smoothScroll;
 			tabStrip.smoothScroll = false;
 
@@ -1285,7 +1285,7 @@ this.UI = {
 			gBrowser.selectedBrowser.focus();
 
 			gBrowser.updateTitlebar();
-			gBrowser.tabContainer.mTabstrip.smoothScroll = this._originalSmoothScroll;
+			gBrowser.tabContainer.arrowScrollbox.smoothScroll = this._originalSmoothScroll;
 
 			this._els.addSystemEventListener(gWindow.document, "keydown", gBrowser, false);
 		}

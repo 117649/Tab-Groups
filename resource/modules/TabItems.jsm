@@ -585,11 +585,11 @@ this.TabItem.prototype = {
 		UI.setActive(this);
 	},
 
-	updateLabels: Task.async(function* () {
+	updateLabels: async function() {
 		if(TabItems._tabsNeedingLabelsUpdate.has(this)) {
-			yield this._updateLabels();
+			await this._updateLabels();
 		}
-	}),
+	},
 
 	_updateLabels: function() {
 		TabItems._tabsNeedingLabelsUpdate.delete(this);
@@ -688,7 +688,7 @@ this.TabItem.prototype = {
 	},
 
 	// Updates the tabitem's canvas.
-	updateCanvas: Task.async(function* () {
+	updateCanvas: async function() {
 		TabItems.tabUpdated(this);
 
 		// The canvas is only created when it is needed.
@@ -696,12 +696,12 @@ this.TabItem.prototype = {
 			new TabCanvas(this);
 		}
 
-		let painted = yield this.tabCanvas.update();
+		let painted = await this.tabCanvas.update();
 		if(painted) {
 			this._sendToSubscribers("painted");
 			this.hideCachedThumb();
 		}
-	}),
+	},
 
 	getCanvasSize: function() {
 		let size = this.parent._lastTabSize;
@@ -711,12 +711,12 @@ this.TabItem.prototype = {
 	},
 
 	// Turns the canvas into an image and shows that instead.
-	destroyCanvas: Task.async(function* () {
+	destroyCanvas: async function() {
 		if(this.tabCanvas) {
-			yield this.tabCanvas.toImage();
+			await this.tabCanvas.toImage();
 			this.tabCanvas.destroy();
 		}
-	})
+	}
 };
 
 // Singleton for managing <TabItem>s
@@ -995,7 +995,7 @@ this.TabItems = {
 	// Takes in a xul:tab.
 	// Parameters:
 	//   tab - a xul tab to update
-	_update: Task.async(function* (tab) {
+	_update: async function(tab) {
 		try {
 			// ___ remove from waiting list now that we have no other early returns
 			this._tabsWaitingForUpdate.remove(tab);
@@ -1027,9 +1027,9 @@ this.TabItems = {
 				return;
 			}
 
-			let isComplete = yield this._isComplete(tab);
+			let isComplete = await this._isComplete(tab);
 			if(isComplete) {
-				yield tabItem.updateCanvas();
+				await tabItem.updateCanvas();
 			} else {
 				this._tabsWaitingForUpdate.push(tab);
 			}
@@ -1037,7 +1037,7 @@ this.TabItems = {
 		catch(ex) {
 			Cu.reportError(ex);
 		}
-	}),
+	},
 
 	shouldDeferPainting: function() {
 		return	this.isPaintingPaused()
@@ -1127,7 +1127,7 @@ this.TabItems = {
 
 	// This periodically checks for tabs waiting to be updated, and calls _update on them.
 	// Should only be called by startHeartbeat and resumePainting.
-	_checkHeartbeat: Task.async(function* () {
+	_checkHeartbeat: async function() {
 		if(this.isPaintingPaused()) {
 			// With tab view hidden, the heartbeat instead turns stale tabs canvas into images, and discards the canvas.
 			if(!UI.isTabViewVisible()) {
@@ -1138,7 +1138,7 @@ this.TabItems = {
 
 					let tabItem = this._staleTabs.peek();
 					this._staleTabs.remove(tabItem);
-					yield tabItem.destroyCanvas();
+					await tabItem.destroyCanvas();
 					if(tabItem.parent && tabItem.parent.stale) {
 						// It's likely it could have had a cached thumbnail (hidden leftover from disabling thumbs in a group).
 						tabItem.hideCachedThumb();
@@ -1176,7 +1176,7 @@ this.TabItems = {
 		while(accumTime < this._maxTimeForUpdating && items.length) {
 			then = now;
 
-			yield this._update(items.shift());
+			await this._update(items.shift());
 
 			// Maintain a simple average of time for each tabitem update
 			// We can use this as a base by which to delay things like tab zooming, so there aren't any hitches.
@@ -1192,7 +1192,7 @@ this.TabItems = {
 		while(accumTime < this._maxTimeForUpdating && items.length) {
 			then = now;
 
-			yield FavIcons._findDominantColor(items.shift());
+			await FavIcons._findDominantColor(items.shift());
 			newColors = true;
 
 			// Maintain a simple average of time for each favicon update
@@ -1210,7 +1210,7 @@ this.TabItems = {
 		if(this._tabsWaitingForUpdate.hasItems() || FavIcons._iconsNeedingColor.length) {
 			this.startHeartbeat();
 		}
-	}),
+	},
 
 	// Cached thumbs are created asynchronously, in a similar way to how canvases are painted above
 	// as to avoid locking up the browser during the first initialize of TabView where a lot of images would be loaded sequentially.
@@ -1566,7 +1566,7 @@ this.TabCanvas.prototype = {
 					let channelError = false;
 					let canvas = this.canvas;
 
-					Task.spawn(function* () {
+					(async function() {
 						try {
 							if(Services.vc.compare(Services.appinfo.version, "51.0a1") < 0) {
 								if(!aBrowser.isRemoteBrowser) {
@@ -1583,7 +1583,7 @@ this.TabCanvas.prototype = {
 									// see if this was an error response.
 									channelError = PageThumbUtils.isChannelErrorResponse(channel);
 								} else {
-									let resp = yield new Promise(resolve => {
+									let resp = await new Promise(resolve => {
 										let mm = aBrowser.messageManager;
 										let respName = "Browser:Thumbnail:GetOriginalURL:Response";
 										mm.addMessageListener(respName, function onResp(msg) {
@@ -1618,7 +1618,7 @@ this.TabCanvas.prototype = {
 		});
 	},
 
-	update: Task.async(function* () {
+	update:async function() {
 		// If this canvas has started to be destroyed, stop it, it's better to update it than to create a new one.
 		if(this.destroying) {
 			this.destroying.reject();
@@ -1639,7 +1639,7 @@ this.TabCanvas.prototype = {
 		let ctx = canvas.getContext('2d');
 
 		// We need to account for the size of the actual page when drawing its thumb, if it's smaller than the canvas we end up with black borders.
-		let contentSize = yield this.getContentSize();
+		let contentSize = await this.getContentSize();
 		let scaleX = 1;
 		let scaleY = 1;
 		if(size.x > contentSize.width && contentSize.width > 0) {
@@ -1704,7 +1704,7 @@ this.TabCanvas.prototype = {
 				resolve(painted);
 			});
 		});
-	}),
+	},
 
 	toImage: function() {
 		// This is the basis of this deferred object, with accessor methods for resolving and rejecting its promise.

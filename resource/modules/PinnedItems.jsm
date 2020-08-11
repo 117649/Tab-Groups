@@ -144,7 +144,7 @@ this.PinnedItems = {
 	},
 
 	// Update images of any apptab icons that point to passed in xultab
-	_updateIcon: Task.async(function* (tab) {
+	_updateIcon: async function (tab) {
 		// I don't think this can happen here, but leaving it in just for safety.
 		if(!tab.pinned) { return; }
 
@@ -176,7 +176,7 @@ this.PinnedItems = {
 				icon.style.backgroundImage = "url('"+iconUrl+"')";
 			}
 		});
-	}),
+	},
 
 	// Gets the fav icon url for app tab.
 	getFavIconUrl: function(tab, callback) {

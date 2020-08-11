@@ -5,7 +5,7 @@
 // VERSION 1.1.23
 
 this.__defineGetter__('gBrowser', function() { return window.gBrowser; });
-this.__defineGetter__('gTabViewDeck', function() { return $('body'); });
+this.__defineGetter__('gTabViewDeck', function() { return $$('body')[0]; });
 this.__defineGetter__('gTaskbarTabGroup', function() { return window.gTaskbarTabGroup; });
 this.__defineGetter__('TabContextMenu', function() { return window.TabContextMenu; });
 this.__defineGetter__('goUpdateCommand', function() { return window.goUpdateCommand; });
@@ -400,8 +400,9 @@ this.TabView = {
 		this._deck = gTabViewDeck;
 
 		// create the frame
-		this._iframe = document.createElement("iframe");
+		this._iframe = document.createXULElement("iframe");
 		this._iframe.id = objName+"-tab-view";
+		this._iframe.sandbox="allow-scripts allow-same-origin";
 		this._iframe.setAttribute("transparent", "true");
 		this._iframe.setAttribute("tooltip", this.kTooltipId);
 		this._iframe.flex = 1;

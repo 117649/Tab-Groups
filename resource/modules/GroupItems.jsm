@@ -3475,7 +3475,7 @@ this.GroupItems = {
 
 	// This periodically checks for group's thumbs waiting to be updated, and calls _updateThumb on them.
 	// Should only be called by startHeartbeat and resumePainting.
-	_checkHeartbeat: Task.async(function* () {
+	_checkHeartbeat: async function() {
 		// We follow the same rules as TabItems's tab thumbs hearbeat here; if they don't paint, we don't either.
 		if(TabItems.isPaintingPaused()) { return; }
 
@@ -3504,5 +3504,5 @@ this.GroupItems = {
 		if(this._thumbsNeedingUpdate.hasItems()) {
 			this.startHeartbeat();
 		}
-	})
+	}
 };

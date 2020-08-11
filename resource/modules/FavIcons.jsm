@@ -195,13 +195,13 @@ this.FavIcons = {
 
 	// Finding the dominant colors is controlled from inside TabItems' heartbeats, so both processes don't stack over one another.
 
-	_findDominantColor: Task.async(function* (iconUrl) {
+	_findDominantColor: async function(iconUrl) {
 		TabItems.paintingNow();
 
 		// Preloading on a separate thread prevents flooding the main thread with that task,
 		// which could become become the heaviest step in the process, especially in non-e10s.
 		// (loading the icon in the img can take 100x as long in the main process for some reason...)
-		let preloaded = yield this._preloadIcon(iconUrl);
+		let preloaded = await this._preloadIcon(iconUrl);
 		if(!preloaded) {
 			return false;
 		}
@@ -239,7 +239,7 @@ this.FavIcons = {
 			});
 			icon.src = iconUrl;
 		});
-	}),
+	},
 
 	_preloadIcon: function(iconUrl) {
 		return new Promise((resolve, reject) => {
