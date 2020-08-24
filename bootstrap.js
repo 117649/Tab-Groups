@@ -153,7 +153,7 @@ function prepareObject(window, aName) {
 		get document () { return window.document; },
 		$: function(id) { return window.document.getElementById(id); },
 		$$: function(sel, parent = window.document) { return parent.querySelectorAll(sel); },
-		$ª: function(parent, anonid, anonattr = 'anonid') { return window.document.getAnonymousElementByAttribute(parent, anonattr, anonid); }
+		$ª: function(parent, anonid, anonattr = 'id') { return [...window.document.getElementsByAttribute(anonattr,anonid)].filter(i => i.parentElement == parent); } 
 	};
 
 	// Services.scriptloader.loadSubScript("resource://"+objPathString+"/modules/utils/Modules.jsm", window[objectName]);

@@ -7,7 +7,8 @@
 /* tabview toolbar button */
 
 :-moz-any(toolbar, .widget-overflow-list) #tabGroups-tabview-button > .toolbarbutton-icon {
-	max-width: 18px;
+	/* max-width: 18px; */
+	padding: calc(var(--toolbarbutton-inner-padding) - 1px);
 }
 
 #nav-bar #tabGroups-tabview-button > .toolbarbutton-icon {
@@ -25,4 +26,8 @@
 	.tabGroups-icon {
 		list-style-image: url("chrome://tabgroups-os/skin/Toolbar-lunaSilver.png");
 	}
+}
+.findbar-button, toolbarbutton.bookmark-item:not(.subviewbutton), toolbar .toolbarbutton-1 > .toolbarbutton-icon, toolbar .toolbarbutton-1 > .toolbarbutton-text, toolbar .toolbarbutton-1 > .toolbarbutton-badge-stack {
+	padding: var(--toolbarbutton-inner-padding);
+	border-radius: var(--toolbarbutton-border-radius);
 }

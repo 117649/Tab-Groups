@@ -238,7 +238,7 @@ Modules.LOADMODULE = function() {
 
 	Messenger.listenAll('init', Messenger);
 	Services.ppmm.addMessageListener(Messenger.messageName('init'), Messenger);
-	Services.mm.loadFrameScript('resource://'+objPathString+'/defaultsContent.js?'+AddonData.initTime, true);
+	Services.mm.loadFrameScript('chrome://'+objPathString+'-resource/content/defaultsContent.js?'+AddonData.initTime, true);
 };
 
 Modules.UNLOADMODULE = function() {
@@ -247,6 +247,6 @@ Modules.UNLOADMODULE = function() {
 
 	Windows.callOnAll(Messenger.cleanWindow, 'navigator:browser');
 
-	Services.mm.removeDelayedFrameScript('resource://'+objPathString+'/defaultsContent.js?'+AddonData.initTime);
+	Services.mm.removeDelayedFrameScript('chrome://'+objPathString+'-resource/content/defaultsContent.js?'+AddonData.initTime);
 	Services.ppmm.broadcastAsyncMessage(Messenger.messageName('shutdown'));
 };

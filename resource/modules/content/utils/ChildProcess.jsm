@@ -228,8 +228,8 @@ var Frames = {
 				get Modules () {
 					this.ModulesLoaded = true;
 					delete this.Modules;
-					Services.scriptloader.loadSubScript("resource://"+objPathString+"/modules/utils/Modules.jsm", this);
-					Services.scriptloader.loadSubScript("resource://"+objPathString+"/modules/utils/windowUtilsPreload.jsm", this);
+					Services.scriptloader.loadSubScript("chrome://"+objPathString+"-resource/content/modules/utils/Modules.jsm", this);
+					Services.scriptloader.loadSubScript("chrome://"+objPathString+"-resource/content/modules/utils/windowUtilsPreload.jsm", this);
 					return this.Modules;
 				},
 
@@ -515,7 +515,7 @@ var ChildProcess = {
 			gModuleInSandbox = aModuleInSandbox;
 
 			try {
-				Services.scriptloader.loadSubScript("resource://"+aObjPathString+"/defaults.js", Scope);
+				Services.scriptloader.loadSubScript("chrome://"+aObjPathString+"-resource/content/defaults.js", Scope);
 			}
 			catch(ex) {
 				// We expect there to be a controlled error that stops execution of that script,
@@ -526,8 +526,8 @@ var ChildProcess = {
 			}
 
 			// and finally our add-on stuff begins
-			Services.scriptloader.loadSubScript("resource://"+objPathString+"/modules/utils/Modules.jsm", Scope);
-			Services.scriptloader.loadSubScript("resource://"+objPathString+"/modules/utils/sandboxUtilsPreload.jsm", Scope);
+			Services.scriptloader.loadSubScript("chrome://"+objPathString+"-resource/content/modules/utils/Modules.jsm", Scope);
+			Services.scriptloader.loadSubScript("chrome://"+objPathString+"-resource/content/modules/utils/sandboxUtilsPreload.jsm", Scope);
 
 			for(let msg of this.MESSAGES) {
 				this.listen(msg, this);

@@ -1,0 +1,119 @@
+<?xml version="1.0"?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<?xml-stylesheet href="chrome://tabgroups/skin/TabView.css" type="text/css"?>
+<?xml-stylesheet href="chrome://tabgroups-os/skin/TabView.css" type="text/css"?>
+<!DOCTYPE overlay [
+  <!ENTITY % overlayDTD SYSTEM "chrome://tabgroups/locale/TabView.dtd">
+  %overlayDTD;
+  <!-- <!ENTITY % browserDTD SYSTEM "chrome://browser/locale/browser.dtd">
+  %browserDTD; -->
+]>
+
+<overlay id="TabView_overlay" 
+			xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+			xmlns:html="http://www.w3.org/1999/xhtml">
+
+	<broadcasterset id="mainBroadcasterSet">
+		<broadcaster id="objName-tabviewGroupsNumber" groups="1"/>
+	</broadcasterset>
+
+	<menupopup id="tabContextMenu">
+		<menu id="objName-context_tabViewMenu"
+			label="&moveToGroup.label;"
+			accesskey="&moveToGroup.accesskey;"
+			insertbefore="context_openTabInWindow">
+
+			<menupopup id="objName-context_tabViewMenuPopup">
+				<menuseparator id="objName-context_tabViewNamedGroups" hidden="true"/>
+				<menuitem id="objName-context_tabViewNewGroup"
+					label="&moveToNewGroup.label;"
+					oncommand="objName.TabView.moveTabTo(TabContextMenu.contextTab, null);"/>
+			</menupopup>
+		</menu>
+	</menupopup>
+
+	<popupset id="mainPopupSet">
+		<tooltip id="objName-tab-view-tooltip"/>
+
+		<menupopup id="objName-tabview-context-input">
+			<menuitem data-lazy-l10n-id="text-action-undo"
+				command="cmd_undo"/>
+			<menuitem data-lazy-l10n-id="text-action-redo"
+				command="cmd_redo"/>
+			<menuseparator/>
+			<menuitem data-lazy-l10n-id="text-action-cut"
+				command="cmd_cut"/>
+			<menuitem data-lazy-l10n-id="text-action-copy"
+				command="cmd_copy"/>
+			<menuitem data-lazy-l10n-id="text-action-paste"
+				command="cmd_paste"/>
+			<menuitem data-lazy-l10n-id="text-action-delete"
+				command="cmd_delete"/>
+			<menuseparator/>
+			<menuitem data-lazy-l10n-id="text-action-select-all"
+				command="cmd_selectAll"/>
+		</menupopup>
+
+        <menupopup id="objName-tabview-context-group">
+            <menuitem id="objName-tabview-context-newtab"
+                label="&menuNewTab.label;"
+                accesskey="&menuNewTab.accesskey;"/>
+        </menupopup>
+	</popupset>
+
+	<menupopup id="alltabs-popup">
+		<menuitem id="objName-menu_tabview"
+			class="menuitem-iconic objName-icon"
+			key="objName-key_tabview"
+			label="&viewTabGroups.label;"
+			accesskey="&viewTabGroups.accesskey;"
+			command="objName:ToggleTabView"
+			observes="objName-tabviewGroupsNumber"
+			insertbefore="alltabs_undoCloseTab"/>
+	</menupopup>
+
+	<toolbarpalette id="BrowserToolbarPalette">
+		<toolbarbutton id="objName-tabview-button"
+			type="custom"
+			defaultArea="TabsToolbar"
+			class="toolbarbutton-1 chromeclass-toolbar-additional objName-icon"
+			label="&viewTabGroups.label;"
+			closemenu="none"
+			command="objName:CommandButton"
+			observes="objName-tabviewGroupsNumber"/>
+	</toolbarpalette>
+
+	<commandset id="mainCommandSet">
+		<command id="objName:ToggleTabView" oncommand="objName.TabView.toggle();"/>
+		<command id="objName:TabViewSettings" oncommand="objName.TabView.goToPreferences();"/>
+		<command id="objName:CommandButton" oncommand="objName.TabView.commandButton();"/>
+		<command id="objName:NextGroup" oncommand="objName.TabView.switchGroup(false);"/>
+		<command id="objName:PreviousGroup" oncommand="objName.TabView.switchGroup(true);"/>
+	</commandset>
+
+	<script>
+		<![CDATA[
+		document.body.id = "tabGroup-bodyTempId";
+		]]>
+	</script>
+
+	<html:body id="tabGroup-bodyTempId">
+		<deck flex="1" id="tab-view-deck" style="height: 100%;width: 100%;" selectedIndex="0">			
+	    	<vbox flex="1" id="browser-panel"></vbox>
+		</deck>
+	</html:body>
+
+	<script>
+		<![CDATA[
+		//console.log(this);
+		//console.log(Overlays);
+		//document.body.appendChild(document.getElementById("tab-view-deck"));
+		//this._OVERLAYS_tabGroups[0].appendChild(window,this._OVERLAYS_tabGroups[0].document.getElementById("tab-view-deck"),document.body)
+		document.body.removeAttribute('id');
+		window.gTabViewDeck = document.getElementById("tab-view-deck");
+		]]>
+	</script>
+</overlay>

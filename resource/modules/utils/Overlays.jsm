@@ -147,7 +147,7 @@ this.Overlays = {
 		});
 		Browsers.callOnAll((aWindow) => {
 			// at least for now I'm only overlaying xul documents
-			if((aWindow.document instanceof aWindow.XULDocument)) {
+			if((aWindow.document instanceof aWindow.XMLDocument)) {
 				this.scheduleUnOverlay(aWindow, path);
 			}
 		});
@@ -259,14 +259,14 @@ this.Overlays = {
 		// Only load overlays that belong to this add-on
 		if(aPath.startsWith("chrome://") && !aPath.startsWith("chrome://"+objPathString+"/")) { return null; }
 
-		return aPath.startsWith("chrome://") ? aPath : "chrome://"+objPathString+"/content/"+aPath+".xul";
+		return aPath.startsWith("chrome://") ? aPath : "chrome://"+objPathString+"/content/"+aPath+".xhtml";
 	},
 
 	observe: function(aSubject, aTopic) {
 		switch(aTopic) {
 			case 'pageshow':
 			case 'SidebarFocused':
-				if(!(aSubject.document instanceof aSubject.XULDocument)) { break; } // at least for now I'm only overlaying xul documents
+				if(!(aSubject.document instanceof aSubject.XMLDocument)) { break; } // at least for now I'm only overlaying xul documents
 				// no break; continue to 'domwindowopened'
 
 			case 'domwindowopened':
@@ -278,7 +278,7 @@ this.Overlays = {
 
 			case 'pagehide':
 			case 'SidebarUnloaded':
-				if(!(aSubject.document instanceof aSubject.XULDocument)) { break; } // at least for now I'm only overlaying xul documents
+				if(!(aSubject.document instanceof aSubject.XMLDocument)) { break; } // at least for now I'm only overlaying xul documents
 				aSubject.willClose = true;
 				this.unloadAll(aSubject);
 				break;
@@ -1022,6 +1022,18 @@ this.Overlays = {
 				}/* else {
 					aWindow.eval(overlayNode.textContent);
 				}*/
+				else if (overlayNode.textContent) {
+					console.log(`Loading eval'd script into ${aWindow.location}`);
+					try {
+					  let dataURL =
+						"data:application/javascript," + encodeURIComponent(overlayNode.textContent);
+					  // It would be great if we could have script errors show the right url, but for now
+					  // loadSubScript will have to do.
+					  Services.scriptloader.loadSubScript(dataURL, aWindow);
+					} catch (ex) {
+					  Cu.reportError(ex);
+					}
+				  }
 				continue;
 			}
 
@@ -1033,6 +1045,10 @@ this.Overlays = {
 				var toolboxes = aWindow.document.querySelectorAll('toolbox');
 				for(let toolbox of toolboxes) {
 					var palette = toolbox.palette;
+					if(toolbox == aWindow.gNavToolbox){
+						palette.id = "BrowserToolbarPalette";
+					}
+
 					if(palette
 					&& aWindow.gCustomizeMode._stowedPalette
 					&& aWindow.gCustomizeMode._stowedPalette.id == overlayNode.id
@@ -1850,6 +1866,8 @@ this.Overlays = {
 			catch(ex) { Cu.reportError(ex); }
 		}
 
+		!aWindow.Preferences ? Services.scriptloader.loadSubScript("chrome://global/content/preferencesBindings.js", aWindow):{};
+
 		for(let child of node.childNodes) {
 			if(!child.id) { continue; }
 
@@ -1859,6 +1877,7 @@ this.Overlays = {
 				for(let attr of child.attributes) {
 					pref.setAttribute(attr.name, attr.value);
 				}
+				aWindow.Preferences.add({ id: child.attributes.name.value, type: child.attributes.type.value });
 				preferences.appendChild(pref);
 
 				this.traceBack(aWindow, {
@@ -1878,6 +1897,12 @@ this.Overlays = {
 				pref.value = pref.valueFromPreferences;
 			}
 			try { pref.updateElements(); } catch(ex) {}
+
+			let prf = aWindow.Preferences.get(pref.getAttribute("name"));
+			if(prf.value === null) {
+				prf.value = prf.valueFromPreferences;
+			}
+			try { prf.updateElements(); } catch(ex) {}
 		}
 	},
 
@@ -2064,7 +2089,7 @@ Modules.UNLOADMODULE = function() {
 		Overlays.unloadAll(aWindow);
 	});
 	Browsers.callOnAll((aWindow) => {
-		if(!(aWindow.document instanceof aWindow.XULDocument)) { return; } // at least for now I'm only overlaying xul documents
+		if(!(aWindow.document instanceof aWindow.XMLDocument)) { return; } // at least for now I'm only overlaying xul documents
 		Overlays.unloadAll(aWindow);
 	});
 
