@@ -24,7 +24,7 @@ var ModuleInSandbox = {
 		if(!gSandbox) {
 			let systemPrincipal = Cc["@mozilla.org/systemprincipal;1"].createInstance(Ci.nsIPrincipal);
 			gSandbox = Cu.Sandbox(systemPrincipal, { freshZone: true, sandboxName: objPathString+"-ModuleInSandbox" });
-			Services.scriptloader.loadSubScript("resource://"+objPathString+"/modules/content/utils/ChildProcess.jsm", gSandbox);
+			Services.scriptloader.loadSubScript("chrome://"+objPathString+"-resource/content/modules/content/utils/ChildProcess.jsm", gSandbox);
 		}
 		gSandbox.ChildProcess.init(objPathString, aFrame, this);
 	},

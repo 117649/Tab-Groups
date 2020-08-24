@@ -151,7 +151,7 @@ this.Keysets = {
 		key.ctrlBox.hidden = !DARWIN;
 
 		for(let entry of this.fillCodes) {
-			let item = key.menu.ownerDocument.createElement('menuitem');
+			let item = key.menu.ownerDocument.createXULElement('menuitem');
 			item.setAttribute('value', entry[0]);
 			item.setAttribute('label', entry[1] || entry[0]);
 			key.menu.appendChild(item);

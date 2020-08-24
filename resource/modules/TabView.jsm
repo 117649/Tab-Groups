@@ -5,7 +5,7 @@
 // VERSION 1.1.23
 
 this.__defineGetter__('gBrowser', function() { return window.gBrowser; });
-this.__defineGetter__('gTabViewDeck', function() { return $$('body')[0]; });
+this.__defineGetter__('gTabViewDeck', function() { return window.gTabViewDeck; });
 this.__defineGetter__('gTaskbarTabGroup', function() { return window.gTaskbarTabGroup; });
 this.__defineGetter__('TabContextMenu', function() { return window.TabContextMenu; });
 this.__defineGetter__('goUpdateCommand', function() { return window.goUpdateCommand; });
@@ -896,11 +896,11 @@ Modules.LOADMODULE = function() {
 	Modules.load('AllTabs');
 	Modules.load('compatibilityFix/windowFixes');
 	Modules.load('CatchRules');
-	Overlays.overlayWindow(window, 'TabView', TabView);
+	Overlays.overlayWindow(window, 'OTabView', TabView);
 };
 
 Modules.UNLOADMODULE = function() {
-	Overlays.removeOverlayWindow(window, 'TabView');
+	Overlays.removeOverlayWindow(window, 'OTabView');
 	Modules.unload('CatchRules');
 	Modules.unload('AllTabs');
 	Modules.unload('compatibilityFix/windowFixes');

@@ -1027,7 +1027,7 @@ this.TabItems = {
 				return;
 			}
 
-			let isComplete = await this._isComplete(tab);
+			const isComplete = await this._isComplete(tab);
 			if(isComplete) {
 				await tabItem.updateCanvas();
 			} else {

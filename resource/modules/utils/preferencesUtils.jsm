@@ -16,7 +16,6 @@ XPCOMUtils.defineLazyGetter(this, "gWindow", function() {
 			.QueryInterface(Ci.nsIInterfaceRequestor)
 			.getInterface(Ci.nsIDOMWindow);
 });
-
 XPCOMUtils.defineLazyModuleGetter(this, "OS", "resource://gre/modules/osfile.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "FileUtils", "resource://gre/modules/FileUtils.jsm");
 XPCOMUtils.defineLazyGetter(this, "TextEncoder", () => { return Cu.import("resource://gre/modules/osfile.jsm").TextEncoder; });
@@ -112,7 +111,7 @@ this.dependsOn = {
 					dependency[1] = trim(dependency[1]);
 				}
 
-				let pref = $(dependency[0]);
+				let pref = window.Preferences.get($(dependency[0]).getAttribute('name')); 
 				if(!pref) {
 					Cu.reportError("Element of ID '"+dependency[0]+"' could not be found!");
 					return;
@@ -207,6 +206,8 @@ this.delayPreferences = {
 		Listeners.add(window, 'select', this);
 		Listeners.add(window, 'command', this);
 
+		!window.Preferences ? Services.scriptloader.loadSubScript("chrome://global/content/preferencesBindings.js", window):{};
+
 		var nodes = $$('[delayPreference]');
 		for(let node of nodes) {
 			// Scales aren't considered "editable elements" by the preference handlers unless they specifically have this attribute.
@@ -214,7 +215,9 @@ this.delayPreferences = {
 				setAttribute(node, "preference-editable", "true");
 			}
 
-			node._pref = $(node.getAttribute('delayPreference'));
+			// node._pref = $(node.getAttribute('delayPreference'));
+
+			node._pref = window.Preferences.get($(node.getAttribute('delayPreference')).getAttribute('name'));
 			node._pref.setElementValue(node);
 
 			// add this item (node) to the list of nodes to be updated when the preference changes, so it doesn't have to look up through the DOM every time
@@ -311,7 +314,7 @@ this.keys = {
 			done.add(id);
 
 			if(!node.firstChild) {
-				node.appendChild(document.createElement('menupopup'));
+				node.appendChild(document.createXULElement('menupopup'));
 			}
 
 			let key = {

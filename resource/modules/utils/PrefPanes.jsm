@@ -24,7 +24,7 @@ Modules.UTILS = true;
 //	(don't set) loadOnStartup - for internal use only, used to show the about pane when the add-on is updated
 // closeAll() - closes all the add-on's preferences tab
 this.PrefPanes = {
-	chromeUri: 'chrome://'+objPathString+'/content/utils/preferences.xul',
+	chromeUri: 'chrome://'+objPathString+'/content/utils/preferences.xhtml',
 	aboutUri: null,
 
 	get notifyUri () {
