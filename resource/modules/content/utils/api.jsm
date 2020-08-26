@@ -4,9 +4,11 @@
 
 // VERSION 1.1.1
 
+Cu.importGlobalProperties(['ChromeUtils']);
+
 this.api = {
 	// weak-refing the listener may or may not be necessary to prevent leaks of the sandbox during addon reload due to dangling listeners
-	QueryInterface: XPCOMUtils.generateQI([Ci.nsISupports, Ci.nsISupportsWeakReference, Ci.nsIDOMEventListener]),
+	QueryInterface: ChromeUtils.generateQI([Ci.nsISupports, Ci.nsISupportsWeakReference, Ci.nsIDOMEventListener]),
 
 	handleEvent: function(e) {
 		let doc = e.originalTarget;

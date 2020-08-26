@@ -6,6 +6,8 @@
 Modules.UTILS = true;
 Modules.BASEUTILS = true;
 
+var sss = Components.classes["@mozilla.org/content/style-sheet-service;1"].getService(Components.interfaces.nsIStyleSheetService);
+
 // Styles - handle loading and unloading of stylesheets in a quick and easy way
 // load(aName, aPath, isData, aType) - loads aPath css stylesheet with type AGENT_SHEET; if re-loading a stylesheet with the same name, it will only be re-loaded if aPath has changed
 //	aName - (string) to name the stylesheet object in sheets[]
@@ -29,6 +31,7 @@ Modules.BASEUTILS = true;
 // loaded(aName, aPath) - returns (int) with corresponding sheet index in sheets[] if aName or aPath has been loaded, returns (bool) false otherwise
 //	see unload()
 this.Styles = {
+	
 	sheets: new Set(),
 
 	load: function(aName, aPath, isData, aType) {
@@ -53,8 +56,8 @@ this.Styles = {
 		};
 		this.sheets.add(sheet);
 
-		if(!Services.stylesheet.sheetRegistered(sheet.uri, type)) {
-			try { Services.stylesheet.loadAndRegisterSheet(sheet.uri, type); }
+		if(!/* Services.stylesheet */sss.sheetRegistered(sheet.uri, type)) {
+			try { /* Services.stylesheet */sss.loadAndRegisterSheet(sheet.uri, type); }
 			catch(ex) { Cu.reportError(ex); }
 		}
 		return true;
@@ -77,8 +80,8 @@ this.Styles = {
 					return true;
 				}
 			}
-			if(Services.stylesheet.sheetRegistered(sheet.uri, sheet.type)) {
-				try { Services.stylesheet.unregisterSheet(sheet.uri, sheet.type); }
+			if(/* Services.stylesheet */sss.sheetRegistered(sheet.uri, sheet.type)) {
+				try { /* Services.stylesheet */sss.unregisterSheet(sheet.uri, sheet.type); }
 				catch(ex) { Cu.reportError(ex); }
 			}
 			return true;
@@ -133,7 +136,7 @@ this.Styles = {
 			case 'author':
 			case Services.stylesheet.AUTHOR_SHEET:
 			default:
-				return Services.stylesheet.AUTHOR_SHEET;
+				return Services.stylesheet.AGENT_SHEET;
 				break;
 		}
 

@@ -27,13 +27,17 @@ this.FavIcons = {
 
 	// Gets the "favicon link URI" for the given xul:tab, or null if unavailable.
 	getFavIconUrlForTab: function(tab, callback) {
-		this._isImageDocument(tab).then((isImageDoc) => {
-			if(isImageDoc) {
-				callback(tab.pinned ? tab.image : null);
-			} else {
-				this._getFavIconForNonImageDocument(tab, callback);
-			}
-		}).catch(() => {
+		// this._isImageDocument(tab).then((isImageDoc) => {
+		// 	if(isImageDoc) {
+		// 		callback(tab.pinned ? tab.image : null);
+		// 	} else {
+		// 		this._getFavIconForNonImageDocument(tab, callback);
+		// 	}
+		// }).catch(() => {
+		// 	callback(null);
+		// });
+
+		this._getFavIconForNonImageDocument(tab, callback).catch(() => {
 			callback(null);
 		});
 	},
@@ -225,7 +229,7 @@ this.FavIcons = {
 				let imageData = context.getImageData(0, 0, icon.height, icon.width);
 
 				// keep track of how many times a color appears in the image
-				let worker = new Worker('chrome://'+objPathString+'-resource/content/workers/findDominantColor.js');
+				let worker = new window.Worker('chrome://'+objPathString+'-resource/content/workers/findDominantColor.js');
 				worker.onmessage = (e) => {
 					if(e.data.iconUrl == iconUrl) {
 						let deferred = this.colors.get(iconUrl);
@@ -243,7 +247,7 @@ this.FavIcons = {
 
 	_preloadIcon: function(iconUrl) {
 		return new Promise((resolve, reject) => {
-			let worker = new Worker('chrome://'+objPathString+'-resource/content/workers/preloadIcon.js');
+			let worker = new window.Worker('chrome://'+objPathString+'-resource/content/workers/preloadIcon.js');
 			worker.onmessage = (e) => {
 				if(e.data.iconUrl == iconUrl) {
 					resolve(e.data.loaded);

@@ -5,6 +5,8 @@
 // VERSION 1.1.0
 Modules.UTILS = true;
 
+Cu.importGlobalProperties(['ChromeUtils']);
+
 // PrefPanes - handles the preferences tab and all its contents for the add-on
 // register(aPane, aModules) - registers a new preferences pane to be appended to the preferences tab
 //	aPane - (str) name of the pane, in the form of a aPane.xul overlay to be found in content
