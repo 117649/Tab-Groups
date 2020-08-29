@@ -7,13 +7,14 @@
 <?xml-stylesheet href="chrome://tabgroups-os/skin/quickAccess.css" type="text/css"?>
 <!DOCTYPE overlay SYSTEM "chrome://tabgroups/locale/TabView.dtd">
 
-<overlay id="quickAccess-overlay" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+<overlay id="quickAccess-overlay" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+								  xmlns:html="http://www.w3.org/1999/xhtml">
 
 	<popupset id="mainPopupSet">
 		<panel id="objName-quickaccess-panel"
 			type="arrow"
 			class="objName-quickaccess cui-widget-panel cui-widget-panelview cui-widget-panelWithFooter PanelUI-subView">
-			<textbox id="objName-quickaccess-panel-find" placeholder="&searchForTab.label;"/>
+			<html:input id="objName-quickaccess-panel-find" type="Search" placeholder="&searchForTab.label;"/>
 			<vbox id="objName-quickaccess-panel-contents" class="quickaccess-contents cui-widget-panelview PanelUI-subView" flex="1"/>
 			<hbox class="objName-quickaccess-panel-footer">
 				<toolbarbutton label="&manageTabGroups.label;"

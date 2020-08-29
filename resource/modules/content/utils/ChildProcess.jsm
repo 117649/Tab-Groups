@@ -209,7 +209,7 @@ var Frames = {
 	handleEvent: function(e) {
 		switch(e.type) {
 			case 'unload':
-				if(e.target instanceof Ci.nsIMessageListenerManager) {
+				if(e.target instanceof Ci.nsIMessageSender/* nsIMessageListenerManager */) {
 					e.target.unloaded = true;
 					this.delete(e.target);
 				}

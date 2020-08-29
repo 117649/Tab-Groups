@@ -136,7 +136,7 @@ this.Styles = {
 			case 'author':
 			case Services.stylesheet.AUTHOR_SHEET:
 			default:
-				return Services.stylesheet.AGENT_SHEET;
+				return Services.stylesheet.USER_SHEET;
 				break;
 		}
 

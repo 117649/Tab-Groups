@@ -1738,12 +1738,12 @@ this.Overlays = {
 
 	// this creates a temporary browser element in the main window; element defaults to 'browser' and type to 'chrome'
 	createBlankTempBrowser: function(aWindow, type, element) {
-		var newTemp = aWindow.document.createElement(element || 'browser');
+		var newTemp = aWindow.document.createXULElement(element || 'browser');
 		newTemp.collapsed = true;
 		setAttribute(newTemp, 'type', type || 'chrome');
 		setAttribute(newTemp, 'src', 'about:blank');
 		aWindow.document.documentElement.appendChild(newTemp);
-		newTemp.docShell.createAboutBlankContentViewer(null);
+		newTemp.docShell.createAboutBlankContentViewer(null,Services.scriptSecurityManager.getSystemPrincipal());
 		return newTemp;
 	},
 

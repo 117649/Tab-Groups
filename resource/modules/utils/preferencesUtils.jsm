@@ -207,6 +207,7 @@ this.delayPreferences = {
 		Listeners.add(window, 'command', this);
 
 		!window.Preferences ? Services.scriptloader.loadSubScript("chrome://global/content/preferencesBindings.js", window):{};
+		window.Preferences._instantApplyForceEnabled  = true;
 
 		var nodes = $$('[delayPreference]');
 		for(let node of nodes) {
