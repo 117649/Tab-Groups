@@ -9,12 +9,26 @@
 	min-height: 175px;
 }
 
-.tabGroups-quickaccess .panel-arrowcontent {
+.tabGroups-quickaccess .panel-arrowcontent,
+.tabGroups-quickaccess::part(arrowcontent) {
 	-moz-box-orient: vertical;
 }
 
-.tabGroups-quickaccess textbox {
+.tabGroups-quickaccess textbox,
+.tabGroups-quickaccess search-textbox {
 	margin-bottom: 8px;
+}
+
+#tabGroups-quickaccess-panel-find:focus-within {
+    border-color: var(--toolbar-field-focus-border-color);
+}
+
+#tabGroups-quickaccess-panel-find {
+    border: solid 1px var(--lwt-toolbar-field-border-color, hsla(240,5%,5%,.25));
+    margin-bottom: 8px;
+    background-color: transparent;
+    color: inherit;
+    height: 28px;
 }
 
 .tabGroups-quickaccess .loading {

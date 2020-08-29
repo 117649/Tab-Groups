@@ -230,7 +230,7 @@ this.quickAccess = {
 	},
 
 	_createGroupItem: function(groupItem, makeActive) {
-		let container = document.createElement('hbox');
+		let container = document.createXULElement('hbox');
 		container.classList.add('quickaccess-button');
 		container.classList.add('quickaccess-groupbutton');
 		container.setAttribute('tooltiptext', Strings.get('TabView', 'switchToGroupTooltip'));
@@ -242,12 +242,12 @@ this.quickAccess = {
 			this.focusItem(container);
 		}
 
-		let button = document.createElement('toolbarbutton');
+		let button = document.createXULElement('toolbarbutton');
 		button.setAttribute('flex', '1');
 		button.setAttribute('label', groupItem.getTitle(true));
 		container.appendChild(button);
 
-		let tabs = document.createElement('toolbarbutton');
+		let tabs = document.createXULElement('toolbarbutton');
 		tabs.classList.add('quickaccess-tabsbutton');
 		tabs.setAttribute('label', Strings.get('TabView', 'tabs', [ [ '$tabs', groupItem.children.length ] ], groupItem.children.length));
 		tabs.setAttribute('tooltiptext', Strings.get('TabView', 'viewTabsInGroupTooltip'));
@@ -361,7 +361,7 @@ this.quickAccess = {
 	},
 
 	_createTabButton: function(item) {
-		let button = document.createElement('toolbarbutton');
+		let button = document.createXULElement('toolbarbutton');
 		button.classList.add('quickaccess-button');
 
 		button.handleEvent = function(e) {
@@ -389,14 +389,15 @@ this.quickAccess = {
 	},
 
 	_createLabel: function(str) {
-		let label = document.createElement('label');
+		let label = document.createXULElement('label');
 		label.classList.add('quickaccess-grouplabel');
 		label.setAttribute('value', str);
+		// label.textContent = str;
 		return label;
 	},
 
 	_addSeparator: function() {
-		let separator = document.createElement('toolbarseparator');
+		let separator = document.createXULElement('toolbarseparator');
 		this.contents.appendChild(separator);
 	},
 

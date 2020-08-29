@@ -224,6 +224,16 @@ this.UI = {
 				break;
 
 			case 'mousedown': {
+				if(this.isTabViewVisible() 
+					&& e.target.className == "close"
+					&& e.target.title == "Close tab") {
+					// just closed the selected tab in the TabView interface.
+					if(this._currentTab == e.target.parentElement.parentElement._item.tab) {
+						this._closedSelectedTabInTabView = true;
+					}
+					break;
+				}
+
 				// target == GroupItems.workSpace
 				let focused = $$(":focus");
 				if(focused.length > 0) {
