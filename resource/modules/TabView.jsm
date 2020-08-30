@@ -400,7 +400,7 @@ this.TabView = {
 		this._deck = gTabViewDeck;
 
 		// create the frame
-		this._iframe = document.createXULElement("iframe");
+		this._iframe = document.createElement("iframe");
 		this._iframe.id = objName+"-tab-view";
 		this._iframe.sandbox="allow-scripts allow-same-origin";
 		this._iframe.setAttribute("transparent", "true");

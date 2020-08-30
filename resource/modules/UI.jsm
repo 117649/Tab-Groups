@@ -231,7 +231,15 @@ this.UI = {
 					if(this._currentTab == e.target.parentElement.parentElement._item.tab) {
 						this._closedSelectedTabInTabView = true;
 					}
-					break;
+				}
+
+				if(this.isTabViewVisible() 
+					&& e.target.className == "close"
+					&& e.target.title == "Close group") {
+					// just closed the selected tab in the TabView interface.
+					if(e.target.parentElement.parentElement._item.children.find(t=>t.tab == this._currentTab)) {
+						this._closedSelectedTabInTabView = true;
+					}
 				}
 
 				// target == GroupItems.workSpace
