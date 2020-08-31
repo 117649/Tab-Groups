@@ -1,4 +1,6 @@
 # Tab Groups
+Fixed for FF dev up to 81!! Its runing and buggy but its working at least!!
+
 Reimplementation of Firefox Tab Groups (Panorama) as an add-on. Find more information and get the latest version at https://addons.mozilla.org/firefox/addon/tab-groups-panorama/
 
 ## Localization
