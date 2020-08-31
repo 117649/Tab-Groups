@@ -148,6 +148,9 @@ this.GroupItem = function(listOfEls, options = {}) {
 	this.title.addEventListener('blur', this.title);
 
 	this.closeButton.handleEvent = (e) => {
+		if ( UI._currentTab._tabViewTabItem.container._item.parent.closeButton2 == e.target)
+			UI._closedSelectedTabInTabView = true;
+
 		// click
 		e.preventDefault();
 		e.stopPropagation();

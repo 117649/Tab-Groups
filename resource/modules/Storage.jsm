@@ -102,7 +102,7 @@ this.Storage = {
 	// Generic routine for saving data to a window.
 	saveData: function(win, id, data) {
 		try {
-			SessionStore.setWindowValue(win, id, JSON.stringify(data));
+			SessionStore.setCustomWindowValue(win, id, JSON.stringify(data));
 		}
 		catch(ex) {}
 	},
@@ -110,7 +110,7 @@ this.Storage = {
 	// Generic routine for reading data from a window.
 	readData: function(win, id) {
 		try {
-			let data = SessionStore.getWindowValue(win, id);
+			let data = SessionStore.getCustomWindowValue(win, id);
 			if(data) {
 				return JSON.parse(data);
 			}
