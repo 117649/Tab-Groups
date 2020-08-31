@@ -94,14 +94,8 @@
         <command id="objName:PreviousGroup" oncommand="objName.TabView.switchGroup(true);"/>
     </commandset>
 
-    <!-- <script>
-        <![CDATA[
-        document.body.id = "tabGroup-bodyTempId";
-        ]]>
-    </script> -->
-
     <html id="main-window">
-        <deck flex="1" id="tab-view-deck" style="height: 100%; width: 100%; position: absolute; top: 0px; z-index: -1; opacity: 0;" selectedIndex="0" >			
+        <deck flex="1" id="tab-view-deck" style="height: 100%; width: 100%; position: fixed; top: 0px; left: 0px; right: 0px; z-index: -1; opacity: 0;" selectedIndex="0" >			
             <vbox flex="1" id="browser-panel"></vbox>
         </deck>
         <html:style id="tabGroup-iframestyle">
@@ -118,9 +112,9 @@
             window.gTabViewDeck = document.getElementById("tab-view-deck");
             window.gTabViewDeck.onselect=async _=>{
         		let x = gTabViewDeck.selectedPanel == document.querySelector('#browser-panel');
-                gTabViewDeck.style.zIndex = x ? -1 : '';
-                gTabViewDeck.style.opacity = x ? 0 : '';
-                document.body.style.opacity = x ? '' : 0;
+                gTabViewDeck.style.zIndex = x ? -1 : null;
+                gTabViewDeck.style.opacity = x ? 0 : null;
+                document.body.style.opacity = x ? null : 0;
         	};
         ]]>
     </script>

@@ -224,22 +224,10 @@ this.UI = {
 				break;
 
 			case 'mousedown': {
-				if(this.isTabViewVisible() 
-					&& e.target.className == "close"
-					&& e.target.title == "Close tab") {
-					// just closed the selected tab in the TabView interface.
-					if(this._currentTab == e.target.parentElement.parentElement._item.tab) {
-						this._closedSelectedTabInTabView = true;
-					}
-				}
-
-				if(this.isTabViewVisible() 
-					&& e.target.className == "close"
-					&& e.target.title == "Close group") {
-					// just closed the selected tab in the TabView interface.
-					if(e.target.parentElement.parentElement._item.children.find(t=>t.tab == this._currentTab)) {
-						this._closedSelectedTabInTabView = true;
-					}
+				if(this.isTabViewVisible() && (
+					(this._currentTab._tabViewTabItem.closeBtn == e.target)||
+					(this._currentTab._tabViewTabItem.container._item.parent.closeButton == e.target))) {
+					this._closedSelectedTabInTabView = true;
 				}
 
 				// target == GroupItems.workSpace

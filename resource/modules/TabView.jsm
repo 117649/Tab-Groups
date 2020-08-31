@@ -229,7 +229,7 @@ this.TabView = {
 		if(!window.toolbar.visible || this._initialized) { return; }
 
 		try {
-			data = SessionStore.getWindowValue(window, Storage.kGroupsIdentifier);
+			data = SessionStore.getCustomWindowValue(window, Storage.kGroupsIdentifier);
 			if(data) {
 				data = JSON.parse(data);
 				this.updateGroupNumberBroadcaster(data.totalNumber || 1);
