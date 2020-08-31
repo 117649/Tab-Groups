@@ -1,5 +1,8 @@
-# Tab Groups
 Fixed for FF dev up to 81!! Its runing and buggy but its kicking at least!!
+You need install this first for it to run: https://github.com/117649/firefox-scripts/tree/master/extensions/bootstrapLoader
+DO NOT INSTALL TAHT AND USE THE USER SCRIPT METHOD WITH EXTENSION AT SAME TIME WHICH WILL CAUSE A DOUBLE LOAD OF THE ADDON AND EFFECTIVELY DE-LOAD THIS ADDON.
+
+# Tab Groups
 
 Reimplementation of Firefox Tab Groups (Panorama) as an add-on. Find more information and get the latest version at https://addons.mozilla.org/firefox/addon/tab-groups-panorama/
 
