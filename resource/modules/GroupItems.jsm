@@ -3411,8 +3411,8 @@ this.GroupItems = {
 			sscode += '\
 				@-moz-document url("'+document.baseURI+'") {\n\
 					html['+objName+'_UUID="'+_UUID+'"] body.grid .groupItem[row="'+type+'"] {\n\
-						width: '+width+'px;\n\
-						height: '+height+'px;\n\
+						width: '+width+'px !important;\n\
+						height: '+height+'px !important;\n\
 					}\n\
 				}';
 
