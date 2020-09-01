@@ -1197,7 +1197,7 @@ this.UI = {
 			}
 
 			gTabViewDeck.selectedPanel = gTabViewFrame;
-			gWindow.TabsInTitlebar.allowedBy("tabview-open", false);
+			if(!gWindow.fullScreen) gWindow.TabsInTitlebar.allowedBy("tabview-open", false);
 			window.focus();
 
 			gBrowser.updateTitlebar();
