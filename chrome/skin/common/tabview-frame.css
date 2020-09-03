@@ -659,6 +659,8 @@ body:not(.grid) .groupItem:not(.phantom) {
 	overflow: hidden;
 	/* leave space for titlebar and for its own margin */
 	height: calc(100% - var(--group-titlebar-height) - var(--group-contents-top-margin));
+	overflow-x: hidden;
+	overflow-y: auto;
 }
 
 .groupItem.stackedGroup .contents {
@@ -672,8 +674,6 @@ body:not(.grid) .groupItem:not(.phantom) {
 	display: flex;
 	flex-wrap: wrap;
 	align-content: flex-start;
-	overflow-x: hidden;
-	overflow-y: auto;
 }
 
 .groupItem.stackedGroup .tab-container {

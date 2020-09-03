@@ -462,6 +462,9 @@ this.GroupItem.prototype = {
 			bounds.width -= UICache.groupBorderWidth;
 		} else {
 			bounds = new Rect((UI.classic) ? this.bounds : this._gridBounds);
+
+			bounds.width = this.tabContainer.getBoundingClientRect().width;
+
 			bounds.width -= UICache.groupBorderWidth *2;
 			bounds.height -= UICache.groupBorderWidth *2;
 		}
@@ -482,7 +485,11 @@ this.GroupItem.prototype = {
 	// Returns a copy of the Item's bounds as a <Rect>.
 	getBounds: function(options = {}) {
 		if(options.real) {
-			return this.$container.bounds();
+			// return this.$container.bounds();
+
+			let b = this.$container.bounds();
+			b.width = this.tabContainer.getBoundingClientRect().width;
+			return b;
 		}
 
 		// There are no top and left properties in grid mode, because it uses a flexbox to place the groups there.
@@ -1834,19 +1841,19 @@ this.GroupItem.prototype = {
 				}\n\
 				html['+objName+'_UUID="'+_UUID+'"] #group'+this.id+' .tab-container:not([columns="1"]) .tab.space-before,\n\
 				html['+objName+'_UUID="'+_UUID+'"] .expandedTray[group="'+this.id+'"] .tab-container:not([columns="1"]) .tab.space-before {\n\
-					-moz-margin-start: '+spaceWidth+'px;\n\
+					margin-inline-start: '+spaceWidth+'px !important;\n\
 				}\n\
 				html['+objName+'_UUID="'+_UUID+'"] #group'+this.id+' .tab-container:not([columns="1"]) .tab.space-after,\n\
 				html['+objName+'_UUID="'+_UUID+'"] .expandedTray[group="'+this.id+'"] .tab-container:not([columns="1"]) .tab.space-after {\n\
-					-moz-margin-end: '+spaceWidth+'px;\n\
+					margin-inline-end: '+spaceWidth+'px !important;\n\
 				}\n\
 				html['+objName+'_UUID="'+_UUID+'"] #group'+this.id+' .tab-container[columns="1"] .tab.space-before,\n\
 				html['+objName+'_UUID="'+_UUID+'"] .expandedTray[group="'+this.id+'"] .tab-container[columns="1"] .tab.space-before {\n\
-					margin-top: '+spaceHeight+'px;\n\
+					margin-top: '+spaceHeight+'px !important;\n\
 				}\n\
 				html['+objName+'_UUID="'+_UUID+'"] #group'+this.id+' .tab-container[columns="1"] .tab.space-after,\n\
 				html['+objName+'_UUID="'+_UUID+'"] .expandedTray[group="'+this.id+'"] .tab-container[columns="1"] .tab.space-after {\n\
-					margin-bottom: '+spaceHeight+'px;\n\
+					margin-bottom: '+spaceHeight+'px !important;\n\
 				}\n';
 
 		if(favIconSize) {

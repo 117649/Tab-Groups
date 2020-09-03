@@ -900,11 +900,21 @@ this.TabDrag.prototype = {
 		if(this.sibling) {
 			this.sibling.container.classList.remove('space-before');
 			this.sibling.container.classList.remove('space-after');
+
+			let sibling = this.sibling;
+			aSync(() => {
+				sibling.parent.arrange();
+			}, 50);
 		}
 
 		this.sibling = siblingToBe;
 		if(this.sibling) {
 			this.sibling.container.classList.add('space-'+dir);
+
+			let sibling = this.sibling;
+			aSync(() => {
+				sibling.parent.arrange();
+			}, 50);
 		}
 	},
 
