@@ -216,6 +216,8 @@ this.GroupItem = function(listOfEls, options = {}) {
 	if(options.focusTitle) {
 		this.focusTitle();
 	}
+
+	this.contents.addEventListener('overflow',e=>{this.arrange()});
 };
 
 this.GroupItem.prototype = {
