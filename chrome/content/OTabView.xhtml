@@ -126,6 +126,14 @@
                 gTabViewDeck.style.zIndex = x ? -1 : null;
                 gTabViewDeck.style.opacity = x ? 0 : null;
                 document.body.style.opacity = x ? null : 0;
+                
+                try{
+                    gBrowser.tabContainer.removeAttributeNode(gBrowser.tabContainer.getAttributeNode("overflow"));
+                    gBrowser.tabContainer.arrowScrollbox.removeAttributeNode(gBrowser.tabContainer.arrowScrollbox.getAttributeNode("overflowing"));
+                }
+                catch(ex){
+                    //console.log(ex);
+                }// force clear the overflow state on tabContainer some how fixed it stuck on after group switch
         	};
         ]]>
     </script>
