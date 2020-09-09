@@ -185,3 +185,9 @@ checkbox.highlight,
 radio.highlight {
 	-moz-appearance: none;
 }
+
+[collapsed="true"] {
+	border: none;
+	padding: 0 !important;
+	margin: 0;
+}

@@ -18,8 +18,10 @@ XPCOMUtils.defineLazyGetter(this, "gWindow", function() {
 });
 XPCOMUtils.defineLazyModuleGetter(this, "OS", "resource://gre/modules/osfile.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "FileUtils", "resource://gre/modules/FileUtils.jsm");
-XPCOMUtils.defineLazyGetter(this, "TextEncoder", () => { return Cu.import("resource://gre/modules/osfile.jsm").TextEncoder; });
-XPCOMUtils.defineLazyGetter(this, "TextDecoder", () => { return Cu.import("resource://gre/modules/osfile.jsm").TextDecoder; });
+// XPCOMUtils.defineLazyGetter(this, "TextEncoder", () => { return Cu.import("resource://gre/modules/osfile.jsm").TextEncoder; });
+// XPCOMUtils.defineLazyGetter(this, "TextDecoder", () => { return Cu.import("resource://gre/modules/osfile.jsm").TextDecoder; });
+Cu.importGlobalProperties(['TextEncoder']);
+Cu.importGlobalProperties(['TextDecoder']);
 
 // dependsOn - object that adds a dependson attribute functionality to xul preference elements.
 // Just add the attribute to the desired xul element and let the script do its thing. dependson accepts comma-separated or semicolon-separated strings in the following format:
@@ -712,16 +714,16 @@ this.helptext = {
 
 		if(LTR) {
 			// try to open the helptext at the end of the prefPane element (about where the header underline ends)
-			x = (this.prefPane.boxObject.x +this.prefPane.boxObject.width) - (target.boxObject.x +target.boxObject.width);
+			x = (this.prefPane.getBoundingClientRect().x +this.prefPane.getBoundingClientRect().width) - (target.getBoundingClientRect().x +target.getBoundingClientRect().width);
 
 			// but whenever possible don't show the helptext outside of the tab's boundaries, in case the window isn't wide enough
-			free = (this.main.boxObject.x +this.main.boxObject.width) - (this.prefPane.boxObject.x +this.prefPane.boxObject.width);
+			free = (this.main.getBoundingClientRect().x +this.main.getBoundingClientRect().width) - (this.prefPane.getBoundingClientRect().x +this.prefPane.getBoundingClientRect().width);
 		}
 		else {
 			// same thing except reversed on the left for RTL layouts
-			x = target.boxObject.x -this.prefPane.boxObject.x;
+			x = target.getBoundingClientRect().x -this.prefPane.getBoundingClientRect().x;
 
-			free = this.prefPane.boxObject.x -this.main.boxObject.x;
+			free = this.prefPane.getBoundingClientRect().x -this.main.getBoundingClientRect().x;
 		}
 
 		if(free < this.kPanelWidth) {

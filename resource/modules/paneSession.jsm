@@ -544,7 +544,7 @@ this.paneSession = {
 	createBackupEntry: function(aPath, aName, aDate, aWhere) {
 		let date = new Date(aDate).toLocaleString();
 
-		let item = document.createElement('menuitem');
+		let item = document.createXULElement('menuitem');
 		item.setAttribute('label', Strings.get('options', aName, [ [ '$date', date ] ]));
 		item._date = aDate;
 		item.handleEvent = (e) => {
