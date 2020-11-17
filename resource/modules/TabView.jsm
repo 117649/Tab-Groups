@@ -557,7 +557,7 @@ this.TabView = {
 	},
 
 	_createGroupMenuItem: function(groupItem) {
-		let menuItem = document.createElement("menuitem");
+		let menuItem = document.createXULElement("menuitem");
 		let title = this.getGroupTitle(groupItem);
 
 		menuItem.groupId = groupItem.id;
