@@ -1045,9 +1045,9 @@ this.Overlays = {
 				var toolboxes = aWindow.document.querySelectorAll('toolbox');
 				for(let toolbox of toolboxes) {
 					var palette = toolbox.palette;
-					if(toolbox == aWindow.gNavToolbox){
-						palette.id = "BrowserToolbarPalette";
-					}
+					// if(toolbox == aWindow.gNavToolbox){
+					// 	palette.id = "BrowserToolbarPalette";
+					// }
 
 					if(palette
 					&& aWindow.gCustomizeMode._stowedPalette
@@ -1056,7 +1056,7 @@ this.Overlays = {
 						palette = aWindow.gCustomizeMode._stowedPalette;
 					}
 
-					if(palette && palette.id == overlayNode.id) {
+					if(palette && (palette.id == overlayNode.id || (overlayNode.id == "BrowserToolbarPalette" && toolbox == aWindow.gNavToolbox))) {
 						buttons_loop: for(let button of overlayNode.childNodes) {
 							if(button.id) {
 								var existButton = aWindow.document.getElementById(button.id);
