@@ -1126,7 +1126,7 @@ this.Overlays = {
 				// Load children of the overlayed node
 				this.loadInto(aWindow, overlayNode);
 			}
-			else if(overlayNode.parentNode.nodeName != 'overlay') {
+			else if(overlayNode.parentNode.nodeName != 'overlay' || overlayNode.hasAttribute("insertafter") || overlayNode.hasAttribute("insertbefore")) {
 				var node = aWindow.document.importNode(overlayNode, true);
 
 				// We need to register the customization area before we append the node
@@ -1482,9 +1482,9 @@ this.Overlays = {
 						if(id == '') { continue; }
 						if(id == node.id) { continue; } // this is just stupid of course...
 
-						for(let c of parent.childNodes) {
+						for(let c of parent ? parent.childNodes : [aWindow.document.getElementById(id)]) {
 							if(c.id == id) {
-								return this.insertBefore(aWindow, node, parent, c);
+								return this.insertBefore(aWindow, node, parent || aWindow.document.getElementById(id).parentNode, c);
 							}
 						}
 					}
@@ -1497,9 +1497,9 @@ this.Overlays = {
 						if(id == '') { continue; }
 						if(id == node.id) { continue; } // this is just stupid of course...
 
-						for(let c of parent.childNodes) {
+						for(let c of parent ? parent.childNodes : [aWindow.document.getElementById(id)]) {
 							if(c.id == id) {
-								return this.insertBefore(aWindow, node, parent, c.nextSibling);
+								return this.insertBefore(aWindow, node, parent || aWindow.document.getElementById(id).parentNode, c.nextSibling);
 							}
 						}
 					}

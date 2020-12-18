@@ -16,7 +16,9 @@
             xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
             xmlns:html="http://www.w3.org/1999/xhtml">
 
-    <broadcasterset id="mainBroadcasterSet">
+    <script type="application/javascript" src="chrome://tabgroups/content/broadcaster.js"/>
+
+    <broadcasterset id="mainBroadcasterSet" insertafter="mainKeyset">
         <broadcaster id="objName-tabviewGroupsNumber" groups="1"/>
     </broadcasterset>
 
@@ -82,7 +84,7 @@
             class="toolbarbutton-1 chromeclass-toolbar-additional objName-icon"
             label="&viewTabGroups.label;"
             closemenu="none"
-            oncommand="objName.TabView.commandButton();"
+            command="objName:CommandButton"
             observes="objName-tabviewGroupsNumber"/>
     </toolbarpalette>
 
