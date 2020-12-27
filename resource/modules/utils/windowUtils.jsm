@@ -34,9 +34,9 @@ if(Services.vc.compare(Services.appinfo.version, "47.0a1") >= 0) {
 		if(window.gCustomizeMode._handler.isCustomizing() || window.gCustomizeMode._handler.isEnteringCustomizeMode) { return true; }
 
 		// this means that the window is still opening and the first tab will open customize mode
-		if(window.gBrowser.mCurrentBrowser
-		&& window.gBrowser.mCurrentBrowser.__SS_restore_data
-		&& window.gBrowser.mCurrentBrowser.__SS_restore_data.url == 'about:customizing') {
+		if(window.gBrowser._selectedTab
+		&& window.gBrowser._selectedTab.__SS_restore_data
+		&& window.gBrowser._selectedTab.__SS_restore_data.url == 'about:customizing') {
 			return true;
 		}
 
