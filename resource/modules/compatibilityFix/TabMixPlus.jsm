@@ -85,7 +85,7 @@ this.TabMixPlus = {
 								box-shadow: 0 0 2px '+style.textColor+';\n\
 							}\n\
 							.groupItem:not(.thumbing) .tab-container:not(.noThumbs):not(.onlyIcons) .tab[pending] .tab-thumb-container {\n\
-								border-color: '+style.textColor+';\n\
+								border-color: '+style.textColor+' !important;\n\
 							}\n\
 							.groupItem:not(.thumbing) .tab-container:not(.onlyIcons) .tab[pending] .favicon-container {\n\
 								background-color: '+style.textColor+';\n\
@@ -129,10 +129,10 @@ this.TabMixPlus = {
 								box-shadow: 0 0 2px '+style.textColor+';\n\
 							}\n\
 							.groupItem:not(.thumbing) .tab-container:not(.noThumbs):not(.onlyIcons) .tab'+unloadedSelector+'[unread] .tab-thumb-container {\n\
-								border-color: '+style.textColor+';\n\
+								border-color: '+style.textColor+' !important;\n\
 							}\n\
 							.groupItem:not(.thumbing) .tab-container:not(.onlyIcons) .tab'+unloadedSelector+'[unread] .favicon-container {\n\
-								background-color: '+style.textColor+';\n\
+								background-color: '+style.textColor+' !important;\n\
 							}\n\
 							.groupItem:not(.thumbing) .tab-container.onlyIcons .tab[unread] .favicon-container {\n\
 								border-color: '+style.textColor+' !important;\n\
@@ -148,17 +148,17 @@ this.TabMixPlus = {
 
 		sscode += '\
 				.tab-container:not(.noThumbs):not(.onlyIcons) .tab:not(.stacked):-moz-any('+bothSelectors+') .favicon-container {\n\
-					top: 0;\n\
-					width: 27px;\n\
-					height: 27px;\n\
+					top: 0 !important;\n\
+					width: 27px !important;\n\
+					height: 27px !important;\n\
 				}\n\
 				.tab-container:not(.noThumbs):not(.onlyIcons) .tab:not(.stacked):-moz-any('+bothSelectors+') .favicon-container:-moz-locale-dir(ltr) {\n\
-					left: 0;\n\
-					border-bottom-right-radius: 0.4em;\n\
+					left: 0 !important;\n\
+					border-bottom-right-radius: 0.4em !important;\n\
 				}\n\
 				.tab-container:not(.noThumbs):not(.onlyIcons) .tab:not(.stacked):-moz-any('+bothSelectors+') .favicon-container:-moz-locale-dir(rtl) {\n\
-					right: 0;\n\
-					border-bottom-left-radius: 0.4em;\n\
+					right: 0 !important;\n\
+					border-bottom-left-radius: 0.4em !important;\n\
 				}\n\
 				.tab-container:not(.noThumbs):not(.onlyIcons) .tab:not(.stacked):-moz-any('+bothSelectors+') .favicon {\n\
 					position: relative;\n\
