@@ -88,7 +88,7 @@ this.TabMixPlus = {
 								border-color: '+style.textColor+' !important;\n\
 							}\n\
 							.groupItem:not(.thumbing) .tab-container:not(.onlyIcons) .tab[pending] .favicon-container {\n\
-								background-color: '+style.textColor+';\n\
+								background-color: '+style.textColor+' !important;\n\
 							}\n\
 							.groupItem:not(.thumbing) .tab-container.onlyIcons .tab[pending] .favicon-container {\n\
 								border-color: '+style.textColor+' !important;\n\
