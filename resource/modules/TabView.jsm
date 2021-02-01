@@ -170,6 +170,7 @@ this.TabView = {
 
 			case 'aftercustomization':
 				this.setButtonLabel(false);
+				this.button.removeAttribute("disabled");
 				break;
 		}
 	},
