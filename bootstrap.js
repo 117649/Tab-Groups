@@ -334,19 +334,6 @@ async function startup(aData, aReason) {
 			}, 500);
 		}
 	}
-
-	// let documentObserver = {
-	// 	observe(document) {
-	// 	  if (document.createXULElement && typeof tabGroups == 'undefined') {
-	// 		Services.scriptloader.loadSubScript(defaultsURI, this);
-	// 		Services.scriptloader.loadSubScript("chrome://"+objPathString+"-resource/content/modules/utils/Modules.jsm", this);
-	// 		Services.scriptloader.loadSubScript("chrome://"+objPathString+"-resource/content/modules/utils/sandboxUtilsPreload.jsm", this);
-	// 		Modules.load("utils/sandboxUtils");
-	// 		continueStartup(4);
-	// 	  }
-	// 	}
-	//   };
-	// Services.obs.addObserver(documentObserver, "chrome-document-loaded");
 }
 
 function shutdown(aData, aReason) {
