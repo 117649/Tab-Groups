@@ -149,6 +149,10 @@ function backupCurrentSession() {
 	});
 }
 
+async function onInstall(aData) {
+	(await AddonManager.getAddonByID(`${aData.id}`)).__AddonInternal__.signedState = AddonManager.SIGNEDSTATE_NOT_REQUIRED;
+}
+
 function onStartup() {
 	// If this is the first startup after installing or updating the add-on, make a backup of the session, just in case.
 	if(STARTED == ADDON_INSTALL || STARTED == ADDON_UPGRADE || STARTED == ADDON_DOWNGRADE) {

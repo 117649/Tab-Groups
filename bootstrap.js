@@ -287,16 +287,10 @@ async function startup(aData, aReason) {
 	});
 
 	// Set the default strings for the add-on
-	// let alias = Services.io.newFileURI(AddonData.installPath);
-	// let defaultsURI = ((AddonData.installPath.isDirectory()) ? alias.spec : 'jar:' + alias.spec + '!/')+'resource/defaults.js';
-
 	let defaultsURI = AddonData.resourceURI.spec+'resource/defaults.js';
 	Services.scriptloader.loadSubScript(defaultsURI, this);
 
 	// Get the utils.jsm module into our sandbox
-	// Services.scriptloader.loadSubScript("resource://"+objPathString+"/modules/utils/Modules.jsm", this);
-	// Services.scriptloader.loadSubScript("resource://"+objPathString+"/modules/utils/sandboxUtilsPreload.jsm", this);
-
 	Services.scriptloader.loadSubScript("chrome://"+objPathString+"-resource/content/modules/utils/Modules.jsm", this);
 	Services.scriptloader.loadSubScript("chrome://"+objPathString+"-resource/content/modules/utils/sandboxUtilsPreload.jsm", this);
 	Modules.load("utils/sandboxUtils");
@@ -366,6 +360,10 @@ function shutdown(aData, aReason) {
 }
 
 function install(aData, aReason) {
+	// Set the default strings for the add-on
+	let defaultsURI = aData.resourceURI.spec+'resource/defaults.js';
+	Services.scriptloader.loadSubScript(defaultsURI, this);
+
 	if(typeof(onInstall) == 'function') {
 		onInstall(aData, aReason);
 	}
