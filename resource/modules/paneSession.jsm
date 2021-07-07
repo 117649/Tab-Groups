@@ -885,7 +885,7 @@ this.paneSession = {
 		tabData.extData[Storage.kTabIdentifier] = JSON.stringify(tabData._tabData);
 		delete tabData._tabData;
 
-		let tab = win.gBrowser.addTab("about:blank", { skipAnimation: true, forceNotRemote: true, });
+		let tab = win.gBrowser.addTrustedTab("about:blank", { skipAnimation: true, forceNotRemote: true, triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal()});
 		Storage._scope.SessionStoreInternal.restoreTab(tab, tabData);
 	},
 

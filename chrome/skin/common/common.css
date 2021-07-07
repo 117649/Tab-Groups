@@ -416,7 +416,7 @@ xul|button[type="menu"] > xul|menupopup xul|menu,
 xul|button[type="menu"] > xul|menupopup xul|menuitem {
   -moz-appearance: none;
   font-size: 1em;
-  color: var(--in-content-text-color);
+  /* color: var(--in-content-text-color); */
   padding-top: 0.2em;
   padding-bottom: 0.2em;
   padding-inline-start: 10px;
