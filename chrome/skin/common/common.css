@@ -269,7 +269,7 @@ xul|button[type="menu"] > xul|*.button-box > xul|*.button-menu-dropmarker {
   height: 16px;
   border: none;
   background-color: transparent;
-  list-style-image: url("chrome://global/skin/in-content/dropdown.svg");
+  list-style-image: url("chrome://global/skin/icons/arrow-dropdown-16.svg");
   -moz-context-properties: fill;
   fill: -moz-DialogText;
 }
@@ -617,7 +617,7 @@ xul|radio:not([disabled="true"]):hover > xul|*.radio-check {
 }
 
 xul|*.radio-check[selected] {
-  list-style-image: url("chrome://global/skin/in-content/radio.svg");
+  list-style-image: url("chrome://global/skin/icons/radio.svg");
   -moz-context-properties: fill;
   fill: #2292d0;
 }
