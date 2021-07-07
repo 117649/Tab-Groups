@@ -111,7 +111,7 @@
 				<radiogroup delayPreference="pref-stackTabs"
 					jump="stackTabs"
 					dependson="pref-showThumbs"
-					onsyncfrompreference="return document.getElementById(this.getAttribute('delayPreference')).value ? 'stack' : 'list';"
+					onsyncfrompreference="return this._pref.value ? 'stack' : 'list';"
 					onsynctopreference="return this.value == 'stack';">
 					<hbox>
 						<radio label="&opt.stackTabs.label;"

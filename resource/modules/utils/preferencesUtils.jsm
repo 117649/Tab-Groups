@@ -221,6 +221,16 @@ this.delayPreferences = {
 			// node._pref = $(node.getAttribute('delayPreference'));
 
 			node._pref = window.Preferences.get($(node.getAttribute('delayPreference')).getAttribute('name'));
+			if(node.hasAttribute("onsyncfrompreference")) {
+				let f = new Function("document",
+				node.getAttribute("onsyncfrompreference"));
+				window.Preferences.addSyncFromPrefListener(node, x=>f.call(x,x.getRootNode()));
+			}
+			if(node.hasAttribute("onsynctopreference")) {
+				let f = new Function("document",
+				node.getAttribute("onsynctopreference"));
+				window.Preferences.addSyncToPrefListener(node, x=>f.call(x,x.getRootNode()));
+			}
 			node._pref.setElementValue(node);
 
 			// add this item (node) to the list of nodes to be updated when the preference changes, so it doesn't have to look up through the DOM every time
@@ -284,6 +294,9 @@ this.delayPreferences = {
 				node._timer.handler();
 				delete node._timer;
 			}
+
+			window.Preferences.removeSyncFromPrefListener(node);
+			window.Preferences.removeSyncToPrefListener(node);
 
 			delete node._pref._updateItems;
 			delete node._pref;
