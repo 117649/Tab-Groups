@@ -1,4 +1,4 @@
-Fixed for FF dev up to 83!! Its runing and buggy but its kicking at least!!
+Fixed for FF dev up to 90!! Its runing and buggy but its kicking at least!!
 
 You need install this first for it to run: [userChromeJS](https://github.com/xiaoxiaoflood/firefox-scripts) or [bootstrapLoader](https://github.com/xiaoxiaoflood/firefox-scripts/tree/master/extensions/bootstrapLoader)
 
