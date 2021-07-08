@@ -175,7 +175,7 @@ async function onStartup(aData) {
 	Windows.register(startAddon, 'domwindowopened', 'navigator:browser');
 
 	try {
-		Services.prefs.getBoolPref("extensions." + objPathString + ".hide_warring") ?
+		Services.prefs.getBoolPref("extensions." + objPathString + ".hide_warning") ?
 			(await AddonManager.getAddonByID(`${aData.id}`)).__AddonInternal__.signedState = AddonManager.SIGNEDSTATE_NOT_REQUIRED
 			: (await AddonManager.getAddonByID(`${aData.id}`)).__AddonInternal__.signedState === AddonManager.SIGNEDSTATE_NOT_REQUIRED ? (await AddonManager.getAddonByID(`${aData.id}`)).__AddonInternal__.signedState = AddonManager.SIGNEDSTATE_MISSING : '';
 	} catch (error) { }
