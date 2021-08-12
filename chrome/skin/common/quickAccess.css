@@ -11,7 +11,8 @@
  }
  
  .tabGroups-quickaccess .panel-arrowcontent,
- .tabGroups-quickaccess::part(arrowcontent) {
+ .tabGroups-quickaccess::part(arrowcontent),
+ .tabGroups-quickaccess::part(content) {
 	 -moz-box-orient: vertical;
  }
  
