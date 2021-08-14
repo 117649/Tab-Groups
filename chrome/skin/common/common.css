@@ -261,18 +261,18 @@ xul|menulist > xul|*.menulist-label-box > xul|*.menulist-icon[src] {
 }
 
 xul|button[type="menu"] > xul|*.button-box > xul|*.button-menu-dropmarker {
-  -moz-appearance: none;
-  margin: 1px 0;
+  /*   -moz-appearance: none; */
+  /*   margin: 1px 0; */
   margin-inline-start: 10px;
-  padding: 0;
-  width: 10px;
+  /*   padding: 0; */
+  /*   width: 10px; */
   height: 16px;
-  border: none;
+  /*   border: none; */
   background-color: transparent;
-  list-style-image: url("chrome://global/skin/icons/arrow-dropdown-16.svg");
-  -moz-context-properties: fill;
+  /*   list-style-image: url("chrome://global/skin/icons/arrow-dropdown-16.svg"); */
+  /*   -moz-context-properties: fill; */
   fill: -moz-DialogText;
-}
+} 
 
 xul|*.help-button {
   min-width: 16px;
@@ -567,12 +567,12 @@ html|input[type="checkbox"]:not(:disabled):hover {
   border-color: var(--in-content-border-focus);
 }
 
-xul|*.checkbox-check[checked] {
+/* xul|*.checkbox-check[checked] {
   list-style-image: url("chrome://global/skin/icons/check.svg");
   -moz-context-properties: fill, stroke;
   fill: #2292d0;
   stroke: none;
-}
+} */
 
 html|input[type="checkbox"]:checked {
   background-image: url("chrome://global/skin/icons/check.svg"), linear-gradient(#fff, rgba(255,255,255,0.8));
