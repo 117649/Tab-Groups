@@ -13,6 +13,7 @@ this.TabMixPlus = {
 
 	init: function() {
 		let defaults = Services.prefs.getDefaultBranch("extensions.tabmix.");
+		const insertAfterCurrent = Services.prefs.getBoolPref("browser.tabs.insertAfterCurrent");
 		Prefs.setDefaults({
 			unloadedTab: defaults.getBoolPref("unloadedTab"),
 			unreadTab: defaults.getBoolPref("unreadTab"),
@@ -23,7 +24,7 @@ this.TabMixPlus = {
 			["loadOnNewTab.type"]: defaults.getIntPref("loadOnNewTab.type"),
 
 			// This is to make sure tabs are created in the appropriate order when importing from backups.
-			openTabNext: defaults.getBoolPref("openTabNext")
+			openTabNext: insertAfterCurrent
 		}, 'tabmix');
 
 		Prefs.listen("unloadedTab", this);
