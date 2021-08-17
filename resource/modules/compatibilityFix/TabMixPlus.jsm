@@ -13,7 +13,7 @@ this.TabMixPlus = {
 
 	init: function() {
 		let defaults = Services.prefs.getDefaultBranch("extensions.tabmix.");
-		const insertAfterCurrent = Services.prefs.getBoolPref("browser.tabs.insertAfterCurrent");
+		let insertAfterCurrent = Services.prefs.getBoolPref("browser.tabs.insertAfterCurrent");
 		Prefs.setDefaults({
 			unloadedTab: defaults.getBoolPref("unloadedTab"),
 			unreadTab: defaults.getBoolPref("unreadTab"),
@@ -54,8 +54,8 @@ this.TabMixPlus = {
 		let sscode = '@-moz-document url("chrome://'+objPathString+'/content/tabview.xhtml") {\n';
 
 		if(Prefs.unloadedTab) {
-			bothSelectors += '[pending]';
-			unloadedSelector = ':not([pending])';
+			bothSelectors += '[unloaded]';
+			unloadedSelector = ':not([unloaded])';
 			if(Prefs.unreadTab) {
 				bothSelectors += ',';
 			}
@@ -65,7 +65,7 @@ this.TabMixPlus = {
 			try {
 				let style = JSON.parse(Prefs["styles.unloadedTab"]);
 				if(style.italic || style.bold || style.underline || style.text) {
-					sscode += '.tab[pending] .tab-label {\n';
+					sscode += '.tab[unloaded] .tab-label {\n';
 					if(style.italic) {
 						sscode += 'font-style: italic;\n';
 					}
@@ -82,16 +82,16 @@ this.TabMixPlus = {
 
 					if(style.text) {
 						sscode += '\
-							.groupItem:not(.thumbing) .tab-container:not(.noThumbs):not(.onlyIcons) .tab[pending] .thumb {\n\
+							.groupItem:not(.thumbing) .tab-container:not(.noThumbs):not(.onlyIcons) .tab[unloaded] .thumb {\n\
 								box-shadow: 0 0 2px '+style.textColor+';\n\
 							}\n\
-							.groupItem:not(.thumbing) .tab-container:not(.noThumbs):not(.onlyIcons) .tab[pending] .tab-thumb-container {\n\
+							.groupItem:not(.thumbing) .tab-container:not(.noThumbs):not(.onlyIcons) .tab[unloaded] .tab-thumb-container {\n\
 								border-color: '+style.textColor+' !important;\n\
 							}\n\
-							.groupItem:not(.thumbing) .tab-container:not(.onlyIcons) .tab[pending] .favicon-container {\n\
+							.groupItem:not(.thumbing) .tab-container:not(.onlyIcons) .tab[unloaded] .favicon-container {\n\
 								background-color: '+style.textColor+' !important;\n\
 							}\n\
-							.groupItem:not(.thumbing) .tab-container.onlyIcons .tab[pending] .favicon-container {\n\
+							.groupItem:not(.thumbing) .tab-container.onlyIcons .tab[unloaded] .favicon-container {\n\
 								border-color: '+style.textColor+' !important;\n\
 								box-shadow: inset 0 0 1px '+style.textColor+', 0 0 2px '+style.textColor+' !important;\n\
 							}\n';

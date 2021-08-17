@@ -51,7 +51,7 @@ this.TabItem = function(tab, options = {}) {
 	this.container.addEventListener('dragover', this);
 	this.container.addEventListener('dragenter', this);
 	Watchers.addAttributeWatcher(this.tab, [
-		"busy", "progress", "soundplaying", "muted", "pending", "tabmix_pending", "tabmix_tabState", "protected"
+		"busy", "progress", "soundplaying", "muted", "tabmix_tabState", "protected"
 	], this, false, false);
 
 	TabItems.register(this);
@@ -304,8 +304,6 @@ this.TabItem.prototype = {
 				this.updateAudio();
 				break;
 
-			case "pending":
-			case "tabmix_pending":
 			case "tabmix_tabState":
 			case "protected":
 				this.updateAttributes();
@@ -389,7 +387,7 @@ this.TabItem.prototype = {
 		this.container.removeEventListener('dragstart', this, true);
 		this.container.removeEventListener('dragover', this);
 		this.container.removeEventListener('dragenter', this);
-		Watchers.removeAttributeWatcher(this.tab, [ "busy", "progress", "soundplaying", "muted", "pending", "tabmix_pending", "tabmix_tabState" ], this, false, false);
+		Watchers.removeAttributeWatcher(this.tab, [ "busy", "progress", "soundplaying", "muted", "tabmix_tabState" ], this, false, false);
 		this.container.remove();
 
 		delete this.tab._tabViewTabItem;
@@ -685,7 +683,7 @@ this.TabItem.prototype = {
 	},
 
 	updateAttributes: function() {
-		toggleAttribute(this.container, "pending", this.tab.hasAttribute("pending") || this.tab.hasAttribute("tabmix_pending"));
+		toggleAttribute(this.container, "unloaded", this.tab.getAttribute("tabmix_tabState") == "unloaded");
 		toggleAttribute(this.container, "unread", this.tab.getAttribute("tabmix_tabState") == "unread");
 		toggleAttribute(this.container, "protected", this.tab.hasAttribute("protected"));
 	},
