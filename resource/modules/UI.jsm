@@ -225,8 +225,8 @@ this.UI = {
 
 			case 'mousedown': {
 				if(this.isTabViewVisible() && (
-					(this._currentTab._tabViewTabItem.closeBtn == e.target)||
-					(this._currentTab._tabViewTabItem.container._item.parent.closeButton == e.target))) {
+					(this?._currentTab?._tabViewTabItem.closeBtn == e.target)||
+					(this?._currentTab?._tabViewTabItem.container._item.parent.closeButton == e.target))) {
 					this._closedSelectedTabInTabView = true;
 				}
 
