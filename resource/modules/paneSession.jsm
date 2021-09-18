@@ -878,14 +878,41 @@ this.paneSession = {
 		this.importfinishedNotice.scrollIntoView();
 	},
 
-	restoreTab: function(win, tabData) {
+	restoreTab: async function(win, tabData) {
 		if(!tabData.extData) {
 			tabData.extData = {};
 		}
 		tabData.extData[Storage.kTabIdentifier] = JSON.stringify(tabData._tabData);
 		delete tabData._tabData;
 
-		let tab = win.gBrowser.addTrustedTab("about:blank", { skipAnimation: true, forceNotRemote: true, triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal()});
+		let tab = win.gBrowser.addTrustedTab("about:blank", { skipAnimation: true, forceNotRemote: true });
+
+		function base64EncodeString(aString) {
+			let stream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
+				Ci.nsIStringInputStream
+			);
+			stream.setData(aString, aString.length);
+			let encoder = Cc["@mozilla.org/scriptablebase64encoder;1"].createInstance(
+				Ci.nsIScriptableBase64Encoder
+			);
+			return encoder.encodeToString(stream, aString.length);
+		}
+
+		let LOCAL_PROTOCOLS = ["chrome:", "about:", "resource:", "data:"];
+    	if (tabData?.image && !LOCAL_PROTOCOLS.some(protocol => tabData?.image.startsWith(protocol))){
+			let favicon;
+			let faviconContents;
+			try {
+				favicon = await PlacesUtils.promiseFaviconData(tabData.image); 
+				faviconContents =
+					"data:image/png;base64," +
+					base64EncodeString(String.fromCharCode.apply(String, favicon.data))
+			} catch (ex) {
+				Cu.reportError("Unexpected Error trying to fetch icon data");
+			};
+			tabData.image = faviconContents;
+		}
+
 		Storage._scope.SessionStoreInternal.restoreTab(tab, tabData);
 	},
 
@@ -957,7 +984,7 @@ this.paneSession = {
 						if(gWindow.Tabmix) {
 							browser.tabmix_allowLoad = true;
 						}
-						browser.loadURI("about:blank");
+						browser.loadURI("about:blank",{triggeringPrincipal: browser.contentPrincipal});
 					}
 				}
 

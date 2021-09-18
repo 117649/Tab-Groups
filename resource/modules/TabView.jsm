@@ -664,7 +664,7 @@ this.TabView = {
 	},
 
 	openTab: function(url) {
-		return gBrowser.loadOneTab(url);
+		return gBrowser.loadOneTab(url, {triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal()});
 	},
 
 	moveTabTo: function(tab, groupItemId, focusIfSelected) {
