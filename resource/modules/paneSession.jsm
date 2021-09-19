@@ -794,7 +794,7 @@ this.paneSession = {
 		});
 	},
 
-	importSelected: function() {
+	importSelected: async function() {
 		let importGroups = treeView.data.filter(function(item, idx) { return treeView.isContainer(idx) && item.checked !== false; });
 
 		// no items are selected, no-op
@@ -853,10 +853,10 @@ this.paneSession = {
 				// force these tabs hidden, since they belong to newly creative (inactive) groups
 				delete tab._tab.pinned;
 				tab._tab.hidden = true;
-
-				this.restoreTab(gWindow, tab._tab);
 			}
 		}
+		let P = importGroups.flatMap(x=>x.tabs).map(tab=>this.restoreTab(gWindow, tab._tab));
+		await Promise.all(P);
 
 		// don't forget to insert back the updated data
 		Storage.saveGroupItemsData(gWindow, {
