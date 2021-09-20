@@ -855,8 +855,7 @@ this.paneSession = {
 				tab._tab.hidden = true;
 			}
 		}
-		let P = importGroups.flatMap(x=>x.tabs).map(tab=>this.restoreTab(gWindow, tab._tab));
-		await Promise.all(P);
+		await Promise.all(importGroups.flatMap(x=>x.tabs).map(tab=>this.restoreTab(gWindow, tab._tab)));
 
 		// don't forget to insert back the updated data
 		Storage.saveGroupItemsData(gWindow, {
