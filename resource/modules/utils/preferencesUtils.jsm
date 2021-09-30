@@ -1019,6 +1019,8 @@ this.controllers = {
 			// I don't think this would trigger any change events when assigning the same value, but didn't feel like testing...
 			if(state[pref] != Prefs[pref]) {
 				Prefs[pref] = state[pref];
+				let node = $$(`[delayPreference=pref-${pref}]`)[0];
+				if(node) node._pref.setElementValue(node);
 			}
 		}
 
