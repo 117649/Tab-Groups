@@ -756,7 +756,7 @@ this.helptext = {
 
 	hide: function() {
 		Timers.init('closeHelpText', () => {
-			if(this.panel.state == 'closed') { return; }
+			if(!this.panel||this.panel.state == 'closed') { return; }
 
 			this.panel.hidePopup();
 		}, 250);
@@ -1041,36 +1041,26 @@ this.controllers = {
 			}
 			let save = (new TextEncoder()).encode(JSON.stringify(list));
 
-			OS.File.open(aFile.path, { truncate: true }).then(function(ref) {
-				ref.write(save).then(function() {
-					ref.close();
-				});
-			});
+			window.IOUtils.write(aFile.path, save);
 		});
 	},
 
 	import: function() {
-		this.showFilePicker(Ci.nsIFilePicker.modeOpen, null, function(aFile) {
-			OS.File.open(aFile.path, { read: true }).then(function(ref) {
-				ref.read().then(function(saved) {
-					ref.close();
+		this.showFilePicker(Ci.nsIFilePicker.modeOpen, null, async function(aFile) {
+			try {
+				let list = await window.IOUtils.readJSON(aFile.path);
+				if(!list[objName]) { return; }
 
-					try {
-						let list = JSON.parse((new TextDecoder()).decode(saved));
-						if(!list[objName]) { return; }
-
-						for(let pref in prefList) {
-							if(pref in list) {
-								Prefs[pref] = list[pref];
-							} else {
-								Prefs.reset(pref);
-							}
-						}
+				for(let pref in prefList) {
+					if(pref in list) {
+						Prefs[pref] = list[pref];
+					} else {
+						Prefs.reset(pref);
 					}
-					// this doesn't really matter, for the user an invalid file will seem like it no-ops
-					catch(ex) { Cu.reportError(ex); }
-				});
-			});
+				}
+			}
+			// this doesn't really matter, for the user an invalid file will seem like it no-ops
+			catch(ex) { Cu.reportError(ex); }
 		});
 	},
 

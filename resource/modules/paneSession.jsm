@@ -35,12 +35,12 @@ this.paneSession = {
 	RDFService: null,
 
 	// backups are placed in profileDir/sessionstore-backups folder by default, where all other session-related backups are saved
-	get backupsPath() {
+	get backupsPath() { return (async ()=>{
 		delete this.backupsPath;
-		let profileDir = OS.Constants.Path.profileDir;
-		this.backupsPath = OS.Path.join(profileDir, "sessionstore-backups");
+		let profileDir = await window.PathUtils.getProfileDir();
+		this.backupsPath = window.PathUtils.join(profileDir, "sessionstore-backups");
 		return this.backupsPath;
-	},
+	})()},
 
 	get alldataCheckbox() { return $('paneSession-backup-alldata'); },
 	get alldata() { return this.alldataCheckbox.checked; },
@@ -131,6 +131,7 @@ this.paneSession = {
 		Listeners.add(this.tabList, 'keydown', this, true);
 		Listeners.add(this.tabList, 'click', this);
 		Listeners.add(this.tabList, 'dblclick', this);
+		this.backupsPath;
 	},
 
 	uninit: function() {
@@ -239,23 +240,19 @@ this.paneSession = {
 				save = (new TextEncoder()).encode(JSON.stringify(saveData));
 			}
 
-			OS.File.open(aFile.path, { truncate: true }).then((ref) => {
-				ref.write(save).then(() => {
-					ref.close();
-
-					// Load the newly created file in the Restore Tab Groups block,
-					// so that the user can confirm all the tabs and groups were backed up properly.
-					// We read from the newly created file so that we're sure to show the info that was actually saved,
-					// and not the info that's still in memory.
-					this.loadSessionFile(aFile, false);
-				});
+			window.IOUtils.write(aFile.path, save).then(() => {
+				// Load the newly created file in the Restore Tab Groups block,
+				// so that the user can confirm all the tabs and groups were backed up properly.
+				// We read from the newly created file so that we're sure to show the info that was actually saved,
+				// and not the info that's still in memory.
+				this.loadSessionFile(aFile, false);
 			});
 		}, this.backupsPath);
 	},
 
 	// If at any point this fails, it simply doesn't add the corresponding item to the menu
 	// (if it fails here it's unlikely it will work when actually loading groups from these files anyway).
-	buildBackupsMenu: function() {
+	buildBackupsMenu: async function() {
 		// Reject any pending tasks, we'll reschedule these ops again.
 		// There's no need to clear afterwards, rejecting the promise removes it from the Set.
 		for(let deferred of this._deferredPromises) {
@@ -275,15 +272,15 @@ this.paneSession = {
 			child = next;
 		}
 
-		let profileDir = OS.Constants.Path.profileDir;
+		let profileDir = await window.PathUtils.getProfileDir();
 
 		if(Services.vc.compare(Services.appinfo.version, "52.0a1") < 0) {
 			// if Firefox created its migration backup when it updated to 45, we can add an item to load it directly,
 			// so users can import back their groups from that point easily
 			this.deferredPromise((deferred) => {
 				// the migration backup is placed in the profile folder
-				let path = OS.Path.join(profileDir, "tabgroups-session-backup.json");
-				OS.File.exists(path).then((exists) => {
+				let path = window.PathUtils.join(profileDir, "tabgroups-session-backup.json");
+				window.IOUtils.exists(path).then((exists) => {
 					if(exists) {
 						this.checkRecoveryFile(deferred, path, 'groupsMigrationBackup', 'upgrade');
 					}
@@ -296,58 +293,49 @@ this.paneSession = {
 
 		// iterate through all files in sessionstore-backups folder and add an item for each (valid) one
 		let iterator;
-		let iterating;
 		try {
-			iterator = new OS.File.DirectoryIterator(this.backupsPath);
-			iterating = iterator.forEach((file) => {
+			iterator = await window.IOUtils.getChildren(this.backupsPath);
+			iterator.forEach((file) => {
 				// a copy of the current session, for crash-protection
-				if(this.filenames.recovery.test(file.name)) {
+				if(this.filenames.recovery.test(window.PathUtils.filename(file))) {
 					this.deferredPromise((deferred) => {
-						this.checkRecoveryFile(deferred, file.path, 'sessionRecovery', 'recovery');
+						this.checkRecoveryFile(deferred, file, 'sessionRecovery', 'recovery');
 					});
 				}
 				// another crash-protection of the current session
-				else if(this.filenames.recoveryBackup.test(file.name)) {
+				else if(this.filenames.recoveryBackup.test(window.PathUtils.filename(file))) {
 					this.deferredPromise((deferred) => {
-						this.checkRecoveryFile(deferred, file.path, 'recoveryBackup', 'recovery');
+						this.checkRecoveryFile(deferred, file, 'recoveryBackup', 'recovery');
 					});
 				}
 				// the previous session
-				else if(this.filenames.previous.test(file.name)) {
+				else if(this.filenames.previous.test(window.PathUtils.filename(file))) {
 					this.deferredPromise((deferred) => {
-						this.checkRecoveryFile(deferred, file.path, 'previousSession', 'recovery');
+						this.checkRecoveryFile(deferred, file, 'previousSession', 'recovery');
 					});
 				}
 				// backups made when Firefox updates itself
-				else if(this.filenames.upgrade.test(file.name)) {
+				else if(this.filenames.upgrade.test(window.PathUtils.filename(file))) {
 					this.deferredPromise((deferred) => {
-						this.checkRecoveryFile(deferred, file.path, 'upgradeBackup', 'upgrade');
+						this.checkRecoveryFile(deferred, file, 'upgradeBackup', 'upgrade');
 					});
 				}
 				// backups created when the add-on is updated
-				else if(this.filenames.update.test(file.name)) {
+				else if(this.filenames.update.test(window.PathUtils.filename(file))) {
 					this.deferredPromise((deferred) => {
-						this.checkRecoveryFile(deferred, file.path, 'addonUpdateBackup', 'upgrade');
+						this.checkRecoveryFile(deferred, file, 'addonUpdateBackup', 'upgrade');
 					});
 				}
 				// this could be one of the backups manually created by the user, try to load it and see if we recognize it
-				else if(this.filenames.manual.test(file.name)) {
+				else if(this.filenames.manual.test(window.PathUtils.filename(file))) {
 					this.deferredPromise((deferred) => {
-						this.checkRecoveryFile(deferred, file.path, 'manualBackup', 'manual');
+						this.checkRecoveryFile(deferred, file, 'manualBackup', 'manual');
 					});
 				}
 			});
 		}
 		catch(ex) {
 			exn = exn || ex;
-		}
-		finally {
-			if(iterating) {
-				iterating.then(
-					function() { iterator.close(); },
-					function(reason) { iterator.close(); throw reason; }
-				);
-			}
 		}
 
 		// Let's look for Session Manager's session backups as well, since we can also import from those.
@@ -363,14 +351,14 @@ this.paneSession = {
 				let smdir = this.SessionIo.getSessionDir();
 				let smsessions = this.SessionIo.getSessions();
 				for(let session of smsessions) {
-					let path = OS.Path.join(smdir.path, session.fileName);
+					let path = window.PathUtils.join(smdir.path, session.fileName);
 					this.checkSessionManagerFile(session, path);
 				}
 			}
 		});
 
 		// Let's look for Tab Mix Plus's sessions and try to import from those as well.
-		AddonManager.getAddonByID('{dc572301-7619-498c-a57d-39143191b318}', (addon) => {
+		AddonManager.getAddonByID('{dc572301-7619-498c-a57d-39143191b318}', async (addon) => {
 			if(addon && addon.isActive) {
 				if(!this.TabmixSessionManager) {
 					this.TabmixSessionManager = gWindow.TabmixSessionManager;
@@ -379,26 +367,17 @@ this.paneSession = {
 				}
 
 				let tmpiterator;
-				let tmpiterating;
-				let tmpdir = OS.Path.join(profileDir, "sessionbackups");
+				let tmpdir = window.PathUtils.join(profileDir, "sessionbackups");
 				try {
-					tmpiterator = new OS.File.DirectoryIterator(tmpdir);
-					tmpiterating = tmpiterator.forEach((file) => {
-						if(this.filenames.tabMixPlus.test(file.name)) {
+					tmpiterator = await window.IOUtils.getChildren(tmpdir);
+					tmpiterator.forEach((file) => {
+						if(this.filenames.tabMixPlus.test(window.PathUtils.filename(file))) {
 							this.checkTabMixPlusFile(file);
 						}
 					});
 				}
 				catch(ex) {
 					exn = exn || ex;
-				}
-				finally {
-					if(tmpiterating) {
-						tmpiterating.then(
-							function() { tmpiterator.close(); },
-							function(reason) { tmpiterator.close(); throw reason; }
-						);
-					}
 				}
 			}
 		});
@@ -438,15 +417,9 @@ this.paneSession = {
 		return deferred;
 	},
 
-	checkRecoveryFile: function(aDeferred, aPath, aName, aWhere) {
-		OS.File.open(aPath, { read: true }).then((ref) => {
-			ref.read().then((savedState) => {
-				ref.close();
-
-				let state = JSON.parse((new TextDecoder()).decode(savedState));
-				this.verifyState(aDeferred, state, aPath, aName, aWhere);
-			});
-		});
+	checkRecoveryFile: async function(aDeferred, aPath, aName, aWhere) {
+		let state = await window.IOUtils.readJSON(aPath);
+		this.verifyState(aDeferred, state, aPath, aName, aWhere);
 	},
 
 	checkSessionManagerFile: function(session, path) {
@@ -465,7 +438,7 @@ this.paneSession = {
 		try {
 			tmpDATASource = this.TabmixSessionManager.DATASource;
 
-			let path = OS.Path.toFileURI(aFile.path);
+			let path = window.PathUtils.toFileURI(aFile);
 			this.TabmixSessionManager.DATASource = this.RDFService.GetDataSourceBlocking(path);
 
 			// Each TMP file can hold several sessions.
@@ -603,25 +576,22 @@ this.paneSession = {
 			return;
 		}
 
-		OS.File.open(aFile.path || aFile, { read: true }).then((ref) => {
-			ref.read().then((savedState) => {
-				ref.close();
+		window.IOUtils.read(aFile.path || aFile).then((savedState) => {
 
-				this.manualAction = aManualAction;
+			this.manualAction = aManualAction;
 
-				let state;
-				try {
-					state = this.getStateForData(savedState);
-				}
-				catch(ex) {
-					Cu.reportError(ex);
+			let state;
+			try {
+				state = this.getStateForData(savedState);
+			}
+			catch(ex) {
+				Cu.reportError(ex);
 
-					this.invalidNotice.hidden = false;
-					this.tabList.hidden = true;
-					return;
-				}
-				this.readState(state);
-			});
+				this.invalidNotice.hidden = false;
+				this.tabList.hidden = true;
+				return;
+			}
+			this.readState(state);
 		});
 	},
 

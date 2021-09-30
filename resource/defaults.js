@@ -92,10 +92,10 @@ function stopAddon(window) {
 }
 
 // Don't rely on other modules being loaded here, make sure this can do the backup by itself.
-function backupCurrentSession() {
+async function backupCurrentSession() {
 	let tmp = {};
 	Cu.import("resource:///modules/sessionstore/SessionStore.jsm", tmp);
-	let osfile = Cu.import("resource://gre/modules/osfile.jsm");
+	let window = Windows.getEnumerator('navigator:browser').getNext()
 
 	Cu.importGlobalProperties(['TextEncoder'])
 
@@ -107,45 +107,35 @@ function backupCurrentSession() {
 	let filename = prefix + AddonData.initTime;
 
 	// This is the folder where the automated backups created by Firefox upgrades are saved.
-	let profileDir = osfile.OS.Constants.Path.profileDir;
-	let backupsDir = osfile.OS.Path.join(profileDir, "sessionstore-backups");
-	let filepath = osfile.OS.Path.join(backupsDir, filename);
+	let profileDir = await window.PathUtils.getProfileDir();
+	let backupsDir = window.PathUtils.join(profileDir, "sessionstore-backups");
+	let filepath = window.PathUtils.join(backupsDir, filename);
 
 	let state = tmp.SessionStore.getCurrentState();
 	let saveState = (new TextEncoder()).encode(JSON.stringify(state));
-
-	osfile.OS.File.open(filepath, { truncate: true }).then((ref) => {
-		ref.write(saveState).then(() => {
-			ref.close();
-
-			// Don't keep backups indefinitely, follow the same rules as Firefox does, keep a limited number and rotate them out.
-			let existingBackups = [];
-			let iterator = new osfile.OS.File.DirectoryIterator(backupsDir);
-			iterating = iterator.forEach((file) => {
-				// a copy of the current session, for crash-protection
-				if (file.name.startsWith(prefix)) {
-					let val = parseInt(file.name.substr(prefix.length));
-					existingBackups.push(val);
-				}
-			});
-			iterating.then(
-				function () {
-					iterator.close();
-					let max = Services.prefs.getIntPref('browser.sessionstore.upgradeBackup.maxUpgradeBackups');
-					if (existingBackups.length > max) {
-						// keep the most recently created files
-						existingBackups.sort(function (a, b) { return b - a; });
-						let toRemove = existingBackups.splice(3);
-						for (let seed of toRemove) {
-							let name = prefix + seed;
-							let path = osfile.OS.Path.join(backupsDir, name);
-							osfile.OS.File.remove(path);
-						}
-					}
-				},
-				function (reason) { iterator.close(); throw reason; }
-			);
+	window.IOUtils.write(filepath, saveState).then(async () => {
+		// Don't keep backups indefinitely, follow the same rules as Firefox does, keep a limited number and rotate them out.
+		let existingBackups = [];
+		let iterator = await window.IOUtils.getChildren(backupsDir);
+		iterator.forEach((file) => {
+			// a copy of the current session, for crash-protection
+			if (window.PathUtils.filename(file).startsWith(prefix)) {
+				let val = parseInt(window.PathUtils.filename(file).substr(prefix.length));
+				existingBackups.push(val);
+			}
 		});
+
+		let max = Services.prefs.getIntPref('browser.sessionstore.upgradeBackup.maxUpgradeBackups');
+		if (existingBackups.length > max) {
+			// keep the most recently created files
+			existingBackups.sort(function (a, b) { return b - a; });
+			let toRemove = existingBackups.splice(3);
+			for (let seed of toRemove) {
+				let name = prefix + seed;
+				let path = window.PathUtils.join(backupsDir, name);
+				window.IOUtils.remove(path);
+			}
+		}
 	});
 }
 
