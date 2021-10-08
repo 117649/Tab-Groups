@@ -35,6 +35,7 @@ this.Tabs = {
 		return gBrowser.selectedTab;
 	},
 	set selected(tab) {
+		if(!gBrowser.getBrowserForTab(tab).frameLoader) gBrowser.getBrowserForTab(tab).frameLoader = {remoteTab: null};
 		return gBrowser.selectedTab = tab;
 	},
 

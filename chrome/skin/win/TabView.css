@@ -27,7 +27,3 @@
 		list-style-image: url("chrome://tabgroups-os/skin/Toolbar-lunaSilver.png");
 	}
 }
-.findbar-button, toolbarbutton.bookmark-item:not(.subviewbutton), toolbar .toolbarbutton-1 > .toolbarbutton-icon, toolbar .toolbarbutton-1 > .toolbarbutton-text, toolbar .toolbarbutton-1 > .toolbarbutton-badge-stack {
-	padding: var(--toolbarbutton-inner-padding);
-	border-radius: var(--toolbarbutton-border-radius);
-}

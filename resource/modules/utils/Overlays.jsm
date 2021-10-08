@@ -692,18 +692,18 @@ this.Overlays = {
 							var widget = CustomizableUI.getWidget(action.node.id);
 							if(widget && widget.provider == CustomizableUI.PROVIDER_API) {
 								// see note below (on createWidget)
-								var placement = CustomizableUI.getPlacementOfWidget(action.node.id, aWindow);
-								var areaType = (placement) ? CustomizableUI.getAreaType(placement.area) : null;
-								if(areaType == CustomizableUI.TYPE_TOOLBAR) {
-									this.tempAppendAllToolbars(aWindow, placement.area);
-								}
+								// var placement = CustomizableUI.getPlacementOfWidget(action.node.id, aWindow);
+								// var areaType = (placement) ? CustomizableUI.getAreaType(placement.area) : null;
+								// if(areaType == CustomizableUI.TYPE_TOOLBAR) {
+								// 	this.tempAppendAllToolbars(aWindow, placement.area);
+								// }
 
 								try { CustomizableUI.destroyWidget(action.node.id); }
 								catch(ex) { Cu.reportError(ex); }
 
-								if(areaType == CustomizableUI.TYPE_TOOLBAR) {
-									this.tempRestoreAllToolbars(aWindow, placement.area);
-								}
+								// if(areaType == CustomizableUI.TYPE_TOOLBAR) {
+								// 	this.tempRestoreAllToolbars(aWindow, placement.area);
+								// }
 							}
 						}
 						break;
@@ -758,12 +758,12 @@ this.Overlays = {
 
 							if(CustomizableUI.getAreaType(action.node.id)) {
 								// see note in runRegisterToolbar(), we need this in all toolbars as well
-								this.tempAppendAllToolbars(aWindow, action.node.id);
+								// this.tempAppendAllToolbars(aWindow, action.node.id);
 
 								try { CustomizableUI.unregisterArea(action.node.id); }
 								catch(ex) { Cu.reportError(ex); }
 
-								this.tempRestoreAllToolbars(aWindow, action.node.id);
+								// this.tempRestoreAllToolbars(aWindow, action.node.id);
 							}
 						}
 						break;
@@ -1924,44 +1924,44 @@ this.Overlays = {
 		if(!widget || widget.provider != CustomizableUI.PROVIDER_API) {
 			// this needs the binding applied on the toolbar in order for the widget to be immediatelly placed there,
 			// and since its placements won't be restored until it's created, we have to search for it in all existing areas
-			var areaId = null;
-			var areas = CustomizableUI.areas;
-			for(let area of areas) {
-				// this will throw if called too early for an area whose placements have not been fetched yet,
-				// it's ok because once they are, the widget will be placed in it anyway
-				try { var inArea = CustomizableUI.getWidgetIdsInArea(area); }
-				catch(ex) { continue; }
+			// var areaId = null;
+			// var areas = CustomizableUI.areas;
+			// for(let area of areas) {
+			// 	// this will throw if called too early for an area whose placements have not been fetched yet,
+			// 	// it's ok because once they are, the widget will be placed in it anyway
+			// 	try { var inArea = CustomizableUI.getWidgetIdsInArea(area); }
+			// 	catch(ex) { continue; }
 
-				if(inArea.indexOf(id) > -1) {
-					if(CustomizableUI.getAreaType(area) != CustomizableUI.TYPE_TOOLBAR) { break; }
+			// 	if(inArea.indexOf(id) > -1) {
+			// 		if(CustomizableUI.getAreaType(area) != CustomizableUI.TYPE_TOOLBAR) { break; }
 
-					areaId = area;
-					this.tempAppendAllToolbars(aWindow, area);
-					break;
-				}
-			}
+			// 		areaId = area;
+			// 		this.tempAppendAllToolbars(aWindow, area);
+			// 		break;
+			// 	}
+			// }
 
 			try { CustomizableUI.createWidget(this.getWidgetData(aWindow, node, palette)); }
 			catch(ex) { Cu.reportError(ex); }
 
-			if(areaId) {
-				this.tempRestoreAllToolbars(aWindow, areaId);
-			}
+			// if(areaId) {
+			// 	this.tempRestoreAllToolbars(aWindow, areaId);
+			// }
 		}
 
 		else {
-			var placement = CustomizableUI.getPlacementOfWidget(id, aWindow);
-			var areaNode = (placement) ? aWindow.document.getElementById(placement.area) : null;
-			if(areaNode && areaNode.nodeName == 'toolbar' && !areaNode._init) {
-				this.tempAppendToolbar(aWindow, areaNode);
-			}
+			// var placement = CustomizableUI.getPlacementOfWidget(id, aWindow);
+			// var areaNode = (placement) ? aWindow.document.getElementById(placement.area) : null;
+			// if(areaNode && areaNode.nodeName == 'toolbar' && !areaNode._init) {
+			// 	this.tempAppendToolbar(aWindow, areaNode);
+			// }
 
 			try { CustomizableUI.ensureWidgetPlacedInWindow(id, aWindow); }
 			catch(ex) { Cu.reportError(ex); }
 
-			if(areaNode) {
-				this.tempRestoreToolbar(areaNode);
-			}
+			// if(areaNode) {
+			// 	this.tempRestoreToolbar(areaNode);
+			// }
 		}
 
 		this.traceBack(aWindow, {
