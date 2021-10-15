@@ -1070,7 +1070,7 @@ this.controllers = {
 		let fileExt = '.json';
 		let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
 		fp.defaultExtension = 'json';
-		fp.appendFilter('JSON data', '*.json');
+		fp.appendFilter('JSON data', '*.json; *.jsonlz4; *.baklz4');
 
 		if(path) {
 			fp.displayDirectory = new FileUtils.File(path);
