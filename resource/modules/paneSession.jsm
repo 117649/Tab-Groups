@@ -15,9 +15,9 @@ this.paneSession = {
 	},
 
 	filenames: {
-		previous: /^previous.js$/,
-		recovery: /^recovery.js$/,
-		recoveryBackup: /^recovery.bak$/,
+		previous: /^previous.jsonlz4$/,
+		recovery: /^recovery.jsonlz4$/,
+		recoveryBackup: /^recovery.baklz4$/,
 		upgrade: /^upgrade.js-[0-9]{14}$/,
 		tabMixPlus: /^tabmix_sessions-[0-9]{4}-[0-9]{2}-[0-9]{2}.rdf$/,
 		manual: /^tabGroups-manual-[0-9]{8}-[0-9]{6}.json$/,
@@ -418,7 +418,7 @@ this.paneSession = {
 	},
 
 	checkRecoveryFile: async function(aDeferred, aPath, aName, aWhere) {
-		let state = await window.IOUtils.readJSON(aPath);
+		let state = await window.IOUtils.readJSON(aPath, aPath.endsWith("lz4") ? { decompress: true } : null);
 		this.verifyState(aDeferred, state, aPath, aName, aWhere);
 	},
 
@@ -576,7 +576,8 @@ this.paneSession = {
 			return;
 		}
 
-		window.IOUtils.read(aFile.path || aFile).then((savedState) => {
+		let p = aFile.path || aFile;
+		window.IOUtils.read(p, p.endsWith("lz4") ? { decompress: true } : null).then((savedState) => {
 
 			this.manualAction = aManualAction;
 
