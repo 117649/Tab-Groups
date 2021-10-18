@@ -438,6 +438,21 @@ this.UI = {
 				if(!tab.pinned && this.isTabViewVisible() && !this._storageBusyCount) {
 					this._lastOpenedTab = tab;
 				}
+
+			case 'TabMove':
+				if(!tab.pinned && GroupItems.size) {
+					let groupItem = tab._tabViewTabItem && tab._tabViewTabItem.parent;
+					if(!groupItem) {
+						groupItem = GroupItems.getActiveGroupItem();
+					}
+					if(groupItem) {
+						if(!this.isTabViewVisible() || this._isChangingVisibility) {
+							this.setReorderTabItemsOnShow(groupItem);
+						} else {
+							groupItem.reorderTabItemsBasedOnTabOrder();
+						}
+					}
+				}
 				break;
 
 			case 'TabClose': {
@@ -479,21 +494,6 @@ this.UI = {
 				}
 				break;
 			}
-			case 'TabMove':
-				if(!tab.pinned && GroupItems.size) {
-					let groupItem = tab._tabViewTabItem && tab._tabViewTabItem.parent;
-					if(!groupItem) {
-						groupItem = GroupItems.getActiveGroupItem();
-					}
-					if(groupItem) {
-						if(!this.isTabViewVisible() || this._isChangingVisibility) {
-							this.setReorderTabItemsOnShow(groupItem);
-						} else {
-							groupItem.reorderTabItemsBasedOnTabOrder();
-						}
-					}
-				}
-				break;
 
 			case 'TabSelect':
 				this.onTabSelect(tab);
