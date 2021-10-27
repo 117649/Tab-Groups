@@ -19,7 +19,7 @@ Modules.BASEUTILS = true;
 //	(optional) aType -
 //		(string) one of 'agent', 'user', or 'author'; or (int) one of Services.stylesheet.***_SHEET constants;
 //		for details see https://developer.mozilla.org/en-US/docs/Mozilla/Tech/XPCOM/Reference/Interface/nsIStyleSheetService
-//		defaults to Services.stylesheet.AUTHOR_SHEET, which is takes effect after the others in the CSS cascade
+//		defaults to Services.stylesheet.USER_SHEET, which is takes effect before the others in the CSS cascade
 // unload(aName, aPath, isData) - unloads aPath css stylesheet
 //	(optional) aPath
 //	see load()
@@ -129,12 +129,12 @@ this.Styles = {
 				break;
 			case 'user':
 			case Services.stylesheet.USER_SHEET:
+			default:
 				return Services.stylesheet.USER_SHEET;
 				break;
 			case 'author':
 			case Services.stylesheet.AUTHOR_SHEET:
-			default:
-				return Services.stylesheet.USER_SHEET;
+				return Services.stylesheet.AUTHOR_SHEET;
 				break;
 		}
 
