@@ -80,8 +80,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "AddonManager", "resource://gre/modules/
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils", "resource://gre/modules/PlacesUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PluralForm", "resource://gre/modules/PluralForm.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils", "resource://gre/modules/PrivateBrowsingUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Promise", "resource://gre/modules/Promise.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Task", "resource://gre/modules/Task.jsm");
 
 // easy and useful helpers for when I'm debugging
 XPCOMUtils.defineLazyModuleGetter(this, "console", "resource://gre/modules/Console.jsm");
@@ -156,9 +154,6 @@ function prepareObject(window, aName) {
 		$ª: function(parent, anonid, anonattr = 'id') { return [...window.document.getElementsByAttribute(anonattr,anonid)].filter(i => i.parentElement == parent)[0]; } 
 	};
 
-	// Services.scriptloader.loadSubScript("resource://"+objPathString+"/modules/utils/Modules.jsm", window[objectName]);
-	// Services.scriptloader.loadSubScript("resource://"+objPathString+"/modules/utils/windowUtilsPreload.jsm", window[objectName]);
-	
 	Services.scriptloader.loadSubScript("chrome://"+objPathString+"-resource/content/modules/utils/Modules.jsm", window[objectName]);
 	Services.scriptloader.loadSubScript("chrome://"+objPathString+"-resource/content/modules/utils/windowUtilsPreload.jsm", window[objectName]);
 
