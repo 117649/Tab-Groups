@@ -577,7 +577,7 @@ this.paneSession = {
 		}
 
 		let p = aFile.path || aFile;
-		window.IOUtils.read(p, p.endsWith("lz4") ? { decompress: true } : null).then((savedState) => {
+		window.IOUtils.read(p, p.endsWith("lz4") ? { decompress: true } : null).then(async (savedState) => {
 
 			this.manualAction = aManualAction;
 
@@ -592,6 +592,34 @@ this.paneSession = {
 				this.tabList.hidden = true;
 				return;
 			}
+			await Promise.allSettled(state?.windows.flatMap(w=>w?.tabs).map(async tabData=>{
+				function base64EncodeString(aString) {
+					let stream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
+						Ci.nsIStringInputStream
+					);
+					stream.setData(aString, aString.length);
+					let encoder = Cc["@mozilla.org/scriptablebase64encoder;1"].createInstance(
+						Ci.nsIScriptableBase64Encoder
+					);
+					return encoder.encodeToString(stream, aString.length);
+				}
+	
+				let LOCAL_PROTOCOLS = ["chrome:", "about:", "resource:", "data:"];
+				if (tabData?.image && !LOCAL_PROTOCOLS.some(protocol => tabData?.image.startsWith(protocol))){
+					let favicon;
+					let faviconContents;
+					try {
+						favicon = await PlacesUtils.promiseFaviconData(tabData.entries[0].url); 
+						faviconContents =
+							"data:image/png;base64," +
+							base64EncodeString(String.fromCharCode.apply(String, favicon.data))
+					} catch (ex) {
+						Cu.reportError("Unexpected Error trying to fetch icon data");
+					};
+					if(faviconContents) tabData.image = faviconContents;
+				}
+			}));
+			this.State = window.structuredClone(state);
 			this.readState(state);
 		});
 	},
@@ -765,7 +793,7 @@ this.paneSession = {
 		});
 	},
 
-	importSelected: async function() {
+	importSelected: function() {
 		let importGroups = treeView.data.filter(function(item, idx) { return treeView.isContainer(idx) && item.checked !== false; });
 
 		// no items are selected, no-op
@@ -801,8 +829,6 @@ this.paneSession = {
 					// these tabs are pinned, so they can't be hidden, make sure this is respected
 					tab._tab.pinned = true;
 					tab._tab.hidden = false;
-
-					this.restoreTab(gWindow, tab._tab);
 				}
 				continue;
 			}
@@ -826,7 +852,19 @@ this.paneSession = {
 				tab._tab.hidden = true;
 			}
 		}
-		await Promise.all(importGroups.flatMap(x=>x.tabs.reverse()).map(tab=>this.restoreTab(gWindow, tab._tab)));
+		
+		let winData = {};
+
+		winData.tabs = importGroups.flatMap(x=>x.tabs).map(tab=>{
+			let tabData = tab._tab
+			if(!tabData.extData) {
+				tabData.extData = {};
+			}
+			tabData.extData[Storage.kTabIdentifier] = JSON.stringify(tabData._tabData);
+			delete tabData._tabData;
+			return tabData;
+		});
+		Storage._scope.SessionStoreInternal.restoreWindow(gWindow,winData,{overwriteTabs: false, firstWindow: false});
 
 		// don't forget to insert back the updated data
 		Storage.saveGroupItemsData(gWindow, {
