@@ -67,14 +67,22 @@
 						type="menu"
 						label="&session.restore.button;">
 						<menupopup id="paneSession-load-menu" position="end_before">
+							<menuitem id="paneSession-load-from-file" label="&session.restore.from.file;"/>
 							<menuseparator id="paneSession-load-separator-manual"/>
 							<menuseparator id="paneSession-load-separator-recovery"/>
 							<menuseparator id="paneSession-load-separator-upgrade"/>
 							<menuseparator id="paneSession-load-separator-sessionManager"/>
 							<menuseparator id="paneSession-load-separator-tabMixPlus"/>
-							<menuitem id="paneSession-load-from-file" label="&session.restore.from.file;"/>
 						</menupopup>
 					</button>
+					<button id="paneSession-restore-here-button"
+						class="content-cell-item"
+						hidden="true"
+						label="🔃"/>
+					<button id="paneSession-restore-in-new-button"
+						class="content-cell-item"
+						hidden="true"
+						label="🆕"/>
 				</hbox>
 				<description id="paneSession-restore-finished" hidden="true">&session.restore.finished;</description>
 				<tree id="paneSession-restore-tabList"

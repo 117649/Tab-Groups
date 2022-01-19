@@ -72,6 +72,12 @@ page[currentcategory="paneHowTo"] #main-footer {
 	margin: 1em 4em;
 }
 
+#paneSession-restore-here-button,
+#paneSession-restore-in-new-button {
+	margin: 1em 2px;
+	min-width: 30px;
+}
+
 #paneSession-load-button .button-box {
 	-moz-margin-start: 10px;
 	-moz-margin-end: 10px;

@@ -292,22 +292,15 @@ async function startup(aData, aReason) {
 
 	if(typeof(startConditions) != 'function' || startConditions(aReason)) {
 		if(aReason == APP_STARTUP) {
-			let r,p = new Promise(resolve => {
-				r = () => {
-					resolve("chrome-document-loaded");
-				}
-			});
-			let documentObserver = {
-				observe(document) {
-					if (document.createXULElement) {
-						r();
-						Services.obs.removeObserver(documentObserver, "chrome-document-loaded");
+			let promise = new Promise(resolve => {
+				Services.obs.addObserver(function obs(subject, topic) {
+					if (subject.createXULElement) {
+						Services.obs.removeObserver(obs, topic);
+						resolve();
 					}
-				}
-			};
-			Services.obs.addObserver(documentObserver, "chrome-document-loaded");
-
-			await p;
+				}, "chrome-document-loaded");
+			});
+			await promise;
 			continueStartup(aReason);
 		}
 		// In non-e10s, loadFrameScript from this startup can run load content script even before the previous sandboxed content module had a chance to shutdown.

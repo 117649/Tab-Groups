@@ -49,6 +49,8 @@ this.paneSession = {
 	get importBtn() { return $('paneSession-import-button'); },
 	get loadFromFile() { return $('paneSession-load-from-file'); },
 	get backups() { return $('paneSession-load-menu'); },
+	get restoreHereBtn() { return $('paneSession-restore-here-button'); },
+	get restoreInNewBtn() { return $('paneSession-restore-in-new-button'); },
 
 	get clearBtn1() { return $('paneSession-clear-button-1'); },
 	get clearBtn2() { return $('paneSession-clear-button-2'); },
@@ -84,6 +86,14 @@ this.paneSession = {
 					case this.clearBtn2:
 					case this.clearBtn3:
 						this.clearData();
+						break;
+
+					case this.restoreHereBtn:
+						Storage._scope.SessionStore.setBrowserState(JSON.stringify(this.State))
+						break;
+
+					case this.restoreInNewBtn:
+						this.restoreInNewWindow();
 						break;
 				}
 				break;
@@ -131,6 +141,8 @@ this.paneSession = {
 		Listeners.add(this.tabList, 'keydown', this, true);
 		Listeners.add(this.tabList, 'click', this);
 		Listeners.add(this.tabList, 'dblclick', this);
+		Listeners.add(this.restoreHereBtn, 'command', this);
+		Listeners.add(this.restoreInNewBtn, 'command', this);
 		this.backupsPath;
 	},
 
@@ -148,6 +160,8 @@ this.paneSession = {
 		Listeners.remove(this.tabList, 'keydown', this, true);
 		Listeners.remove(this.tabList, 'click', this);
 		Listeners.remove(this.tabList, 'dblclick', this);
+		Listeners.remove(this.restoreHereBtn, 'command', this);
+		Listeners.remove(this.restoreInNewBtn, 'command', this);
 	},
 
 	backup: function() {
@@ -530,12 +544,12 @@ this.paneSession = {
 		sibling.hidden = false;
 
 		// try to sort by date desc within this category
-		while(sibling.previousSibling) {
-			if(sibling.previousSibling.nodeName == 'menuseparator' || aDate <= sibling.previousSibling._date) { break; }
-			sibling = sibling.previousSibling;
+		while(sibling.nextSibling) {
+			if(sibling.nextSibling.nodeName == 'menuseparator' || aDate <= sibling.nextSibling._date) { break; }
+			sibling = sibling.nextSibling;
 		}
 
-		this.backups.insertBefore(item, sibling);
+		this.backups.insertBefore(item, sibling.nextSibling);
 	},
 
 	loadBackup: function() {
@@ -744,6 +758,8 @@ this.paneSession = {
 			this.invalidNotice.hidden = true;
 			this.tabList.hidden = false;
 			this.importBtn.hidden = false;
+			this.restoreHereBtn.hidden = false;
+			this.restoreInNewBtn.hidden = false;
 			this.tabList.view = treeView;
 			this.tabList.view.selection.select(0);
 			if(this.manualAction) {
@@ -754,6 +770,8 @@ this.paneSession = {
 			this.invalidNotice.hidden = false;
 			this.tabList.hidden = true;
 			this.importBtn.hidden = true;
+			this.restoreHereBtn.hidden = true;
+			this.restoreInNewBtn.hidden = true;
 		}
 		this.autoloadedNotice.hidden = this.manualAction;
 		this.importfinishedNotice.hidden = true;
@@ -882,46 +900,31 @@ this.paneSession = {
 		this.invalidNotice.hidden = true;
 		this.tabList.hidden = true;
 		this.importBtn.hidden = true;
+		this.restoreHereBtn.hidden = true;
+		this.restoreInNewBtn.hidden = true;
 		this.importfinishedNotice.hidden = false;
 		this.importfinishedNotice.scrollIntoView();
 	},
 
-	restoreTab: async function(win, tabData) {
-		if(!tabData.extData) {
-			tabData.extData = {};
-		}
-		tabData.extData[Storage.kTabIdentifier] = JSON.stringify(tabData._tabData);
-		delete tabData._tabData;
+	restoreInNewWindow: async function() {
+		let win = gWindow.OpenBrowserWindow();
+		let promise = new Promise(resolve => {
+        Services.obs.addObserver(function obs(subject, topic) {
+			if (win == subject) {
+				Services.obs.removeObserver(obs, topic);
+				resolve();
+			}
+        }, "browser-delayed-startup-finished");
+		});
+		await promise;
+		Storage._scope.SessionStore.setWindowState(win,this.State,true);
 
-		let tab = win.gBrowser.addTrustedTab("about:blank", { skipAnimation: true, forceNotRemote: true });
-
-		function base64EncodeString(aString) {
-			let stream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
-				Ci.nsIStringInputStream
-			);
-			stream.setData(aString, aString.length);
-			let encoder = Cc["@mozilla.org/scriptablebase64encoder;1"].createInstance(
-				Ci.nsIScriptableBase64Encoder
-			);
-			return encoder.encodeToString(stream, aString.length);
-		}
-
-		let LOCAL_PROTOCOLS = ["chrome:", "about:", "resource:", "data:"];
-    	if (tabData?.image && !LOCAL_PROTOCOLS.some(protocol => tabData?.image.startsWith(protocol))){
-			let favicon;
-			let faviconContents;
-			try {
-				favicon = await PlacesUtils.promiseFaviconData(tabData.image); 
-				faviconContents =
-					"data:image/png;base64," +
-					base64EncodeString(String.fromCharCode.apply(String, favicon.data))
-			} catch (ex) {
-				Cu.reportError("Unexpected Error trying to fetch icon data");
-			};
-			tabData.image = faviconContents;
-		}
-
-		Storage._scope.SessionStoreInternal.restoreTab(tab, tabData);
+		this.autoloadedNotice.hidden = true;
+		this.invalidNotice.hidden = true;
+		this.tabList.hidden = true;
+		this.importBtn.hidden = true;
+		this.restoreHereBtn.hidden = true;
+		this.restoreInNewBtn.hidden = true;
 	},
 
 	toggleRowChecked: function(aIx) {
