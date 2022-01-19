@@ -5,12 +5,9 @@
 // VERSION 1.0.5
 
 Modules.LOADMODULE = function() {
-	AddonManager.getAddonByID('bug566510@vovcacik.addons.mozilla.org').then(function(addon) {
-		Modules.loadIf('compatibilityFix/bug566510', (addon && addon.isActive));
-	});
-
-	AddonManager.getAddonByID('{dc572301-7619-498c-a57d-39143191b318}').then(function(addon) {
-		Modules.loadIf('compatibilityFix/TabMixPlus', addon );
+	AddonManager.getAddonByID('{dc572301-7619-498c-a57d-39143191b318}').then(async function(addon) {
+		await addon.startupPromise;
+		Modules.loadIf('compatibilityFix/TabMixPlus', addon && !addon.userDisabled);
 	});
 
 	Modules.load('compatibilityFix/CCK2');
@@ -19,7 +16,6 @@ Modules.LOADMODULE = function() {
 };
 
 Modules.UNLOADMODULE = function() {
-	Modules.unload('compatibilityFix/bug566510');
 	Modules.unload('compatibilityFix/TabMixPlus');
 	Modules.unload('compatibilityFix/CCK2');
 	Modules.unload('compatibilityFix/SessionManager');
