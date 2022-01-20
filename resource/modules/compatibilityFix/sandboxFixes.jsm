@@ -6,8 +6,10 @@
 
 Modules.LOADMODULE = function() {
 	AddonManager.getAddonByID('{dc572301-7619-498c-a57d-39143191b318}').then(async function(addon) {
-		await addon.startupPromise;
-		Modules.loadIf('compatibilityFix/TabMixPlus', addon && !addon.userDisabled);
+		if(addon){
+			await addon.startupPromise;
+			Modules.loadIf('compatibilityFix/TabMixPlus', addon.isActive);
+		}
 	});
 
 	Modules.load('compatibilityFix/CCK2');
