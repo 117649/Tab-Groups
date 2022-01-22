@@ -104,7 +104,7 @@ body.single:not([lwtheme]) {
 }
 
 body.classic[lwtheme] {
-	/*! background-image: linear-gradient(transparent 100px, white 178px, white); */
+	/* background-image: linear-gradient(transparent 100px, white 178px, white); */
 	background-attachment: fixed;
 }
 
@@ -1391,68 +1391,76 @@ body:not(.classic) #actions {
 	height: var(--actions-button-height);
 }
 
+@media (prefers-color-scheme: dark) {
+	#actions input,
+	input.name:not(:focus)::-moz-placeholder,
+	.group-options {
+		filter: invert(100%);
+	}
+}
+
 #actions #exit-button {
-	background-image: -moz-image-rect(var(--actions-icons), 0, 18, 18, 0),radial-gradient(circle at center,ThreeDHighLight 30%,transparent 86%);
+	background-image: -moz-image-rect(var(--actions-icons), 0, 18, 18, 0);
 }
 
 #actions #searchbutton {
-	background-image: -moz-image-rect(var(--actions-icons), 0, 72, 18, 54),radial-gradient(circle at center,ThreeDHighLight 30%,transparent 86%);
+	background-image: -moz-image-rect(var(--actions-icons), 0, 72, 18, 54);
 }
 
 #actions #optionsbutton {
-	background-image: -moz-image-rect(var(--actions-icons), 0, 36, 18, 18),radial-gradient(circle at center,ThreeDHighLight 30%,transparent 86%);
+	background-image: -moz-image-rect(var(--actions-icons), 0, 36, 18, 18);
 }
 
 #actions #helpbutton {
-	background-image: -moz-image-rect(var(--actions-icons), 0, 54, 18, 36),radial-gradient(circle at center,ThreeDHighLight 30%,transparent 86%);
+	background-image: -moz-image-rect(var(--actions-icons), 0, 54, 18, 36);
 }
 
 #actions #classicbutton {
-	background-image: -moz-image-rect(var(--actions-icons), 0, 126, 18, 108),radial-gradient(circle at center,ThreeDHighLight 30%,transparent 86%);
+	background-image: -moz-image-rect(var(--actions-icons), 0, 126, 18, 108);
 }
 
 #actions #gridbutton {
-	background-image: -moz-image-rect(var(--actions-icons), 0, 108, 18, 90),radial-gradient(circle at center,ThreeDHighLight 30%,transparent 86%);
+	background-image: -moz-image-rect(var(--actions-icons), 0, 108, 18, 90);
 }
 
 #actions #singlebutton {
-	background-image: -moz-image-rect(var(--actions-icons), 0, 90, 18, 72),radial-gradient(circle at center,ThreeDHighLight 30%,transparent 86%);
+	background-image: -moz-image-rect(var(--actions-icons), 0, 90, 18, 72);
 }
 
 @media (min-resolution: 1.1dppx) {
 	#actions #exit-button {
-		background-image: -moz-image-rect(var(--actions-icons-2x), 0, 36, 36, 0),radial-gradient(circle at center,ThreeDHighLight 30%,transparent 86%);
+		background-image: -moz-image-rect(var(--actions-icons-2x), 0, 36, 36, 0);
 	}
 
 	#actions #searchbutton {
-		background-image: -moz-image-rect(var(--actions-icons-2x), 0, 144, 36, 108),radial-gradient(circle at center,ThreeDHighLight 30%,transparent 86%);
+		background-image: -moz-image-rect(var(--actions-icons-2x), 0, 144, 36, 108);
 	}
 
 	#actions #optionsbutton {
-		background-image: -moz-image-rect(var(--actions-icons-2x), 0, 72, 36, 36),radial-gradient(circle at center,ThreeDHighLight 30%,transparent 86%);
+		background-image: -moz-image-rect(var(--actions-icons-2x), 0, 72, 36, 36);
 	}
 
 	#actions #helpbutton {
-		background-image: -moz-image-rect(var(--actions-icons-2x), 0, 108, 36, 72),radial-gradient(circle at center,ThreeDHighLight 30%,transparent 86%);
+		background-image: -moz-image-rect(var(--actions-icons-2x), 0, 108, 36, 72);
 	}
 
 	#actions #classicbutton {
-		background-image: -moz-image-rect(var(--actions-icons-2x), 0, 252, 36, 216),radial-gradient(circle at center,ThreeDHighLight 30%,transparent 86%);
+		background-image: -moz-image-rect(var(--actions-icons-2x), 0, 252, 36, 216);
 	}
 
 	#actions #gridbutton {
-		background-image: -moz-image-rect(var(--actions-icons-2x), 0, 216, 36, 180),radial-gradient(circle at center,ThreeDHighLight 30%,transparent 86%);
+		background-image: -moz-image-rect(var(--actions-icons-2x), 0, 216, 36, 180);
 	}
 
 	#actions #singlebutton {
-		background-image: -moz-image-rect(var(--actions-icons-2x), 0, 180, 36, 144),radial-gradient(circle at center,ThreeDHighLight 30%,transparent 86%);
+		background-image: -moz-image-rect(var(--actions-icons-2x), 0, 180, 36, 144);
 	}
 }
 
 #actions .grouped {
 	margin-top: 1px;
 	padding-top: 1px;
-	border-top: 1px solid rgba(4, 38, 60, 0.3);
+	border-top: var(--item-border)/* 1px solid rgba(4, 38, 60, 0.3) */;
 }
 
 /* Pinned Tabs group */
