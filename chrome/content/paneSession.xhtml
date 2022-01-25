@@ -30,6 +30,10 @@
 	</richlistbox>
 
 	<prefpane id="mainPrefPane">
+		<preferences>
+			<preference id="pref-SSSEnable" name="extensions.tabgroups.SessionSnapshotEnable" type="bool"/>
+			<preference id="pref-SSSI" name="extensions.tabgroups.SessionSnapshotInterval" type="int"/>
+		</preferences>
 		<hbox id="header-session" class="header" collapsed="true" data-category="paneSession">
 			<label class="header-name">&pane.session.label;</label>
 		</hbox>
@@ -54,6 +58,11 @@
 				<description>&session.backup.alldata.checkbox.tooltip.a;</description>
 				<description>&session.backup.alldata.checkbox.tooltip.b;</description>
 			</vbox>
+			<hbox style="display: inline-flex;align-items: center;">
+				<checkbox label="⏳💾" delayPreference="pref-SSSEnable" />
+				<html:input type="number" min="1" max="1440" size="4" maxlength="4" dependson="pref-SSSEnable" delayPreference="pref-SSSI" />
+				<label>min</label>
+			</hbox>
 		</groupbox>
 
 		<groupbox align="start" id="paneSession-restore" collapsed="true" data-category="paneSession">

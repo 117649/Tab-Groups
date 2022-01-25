@@ -18,10 +18,10 @@ this.paneSession = {
 		previous: /^previous.jsonlz4$/,
 		recovery: /^recovery.jsonlz4$/,
 		recoveryBackup: /^recovery.baklz4$/,
-		upgrade: /^upgrade.js-[0-9]{14}$/,
+		upgrade: /^upgrade.jsonlz4-[0-9]{14}$/,
 		tabMixPlus: /^tabmix_sessions-[0-9]{4}-[0-9]{2}-[0-9]{2}.rdf$/,
 		manual: /^tabGroups-manual-[0-9]{8}-[0-9]{6}.json$/,
-		update: /^tabGroups-update.js-[0-9]{13,14}$/
+		update: /^tabGroups-update.js-[0-9]{13,14}.json$/
 	},
 
 	// some things needed to import from Session Manager files
@@ -432,7 +432,7 @@ this.paneSession = {
 	},
 
 	checkRecoveryFile: async function(aDeferred, aPath, aName, aWhere) {
-		let state = await window.IOUtils.readJSON(aPath, aPath.endsWith("lz4") ? { decompress: true } : null);
+		let state = await window.IOUtils.readJSON(aPath, (aPath.includes(".jsonlz4") || aPath.includes(".baklz4")) ? { decompress: true } : null);
 		this.verifyState(aDeferred, state, aPath, aName, aWhere);
 	},
 

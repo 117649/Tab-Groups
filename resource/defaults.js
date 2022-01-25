@@ -60,6 +60,9 @@ prefList = {
 	previousGroupAlt: false,
 	previousGroupCtrl: DARWIN,
 
+	SessionSnapshotEnable: false,
+	SessionSnapshotInterval: 15,
+
 	noWarningsAboutSession: false,
 
 	// hidden prefs
@@ -92,19 +95,19 @@ function stopAddon(window) {
 }
 
 // Don't rely on other modules being loaded here, make sure this can do the backup by itself.
-async function backupCurrentSession() {
+async function backupCurrentSession(prefixSeg = '-update.js-', timesuffix = null) {
 	let tmp = {};
 	Cu.import("resource:///modules/sessionstore/SessionStore.jsm", tmp);
 	let window = Windows.getEnumerator('navigator:browser').getNext()
 
 	Cu.importGlobalProperties(['TextEncoder'])
 
-	let prefix = objName + '-update.js-';
+	let prefix = objName + prefixSeg;
 
 	// We can use the initTime as a seed/identifier to make sure every file has a unique name.
 	// This is the same suffix syntax as the automated backups created by Firefox upgrades, except it uses a buildID instead
 	// (which we don't have for the add-on, hence initTime instead).
-	let filename = prefix + AddonData.initTime;
+	let filename = prefix + (timesuffix ?? AddonData.initTime) + '.json';
 
 	// This is the folder where the automated backups created by Firefox upgrades are saved.
 	let profileDir = await window.PathUtils.getProfileDir();
@@ -120,7 +123,7 @@ async function backupCurrentSession() {
 		iterator.forEach((file) => {
 			// a copy of the current session, for crash-protection
 			if (window.PathUtils.filename(file).startsWith(prefix)) {
-				let val = parseInt(window.PathUtils.filename(file).substr(prefix.length));
+				let val = window.PathUtils.filename(file).substr(prefix.length);
 				existingBackups.push(val);
 			}
 		});
@@ -128,7 +131,7 @@ async function backupCurrentSession() {
 		let max = Services.prefs.getIntPref('browser.sessionstore.upgradeBackup.maxUpgradeBackups');
 		if (existingBackups.length > max) {
 			// keep the most recently created files
-			existingBackups.sort(function (a, b) { return b - a; });
+			existingBackups.sort(function (a, b) { return parseInt(b.replace(/\D/g,'')) - parseInt(a.replace(/\D/g,'')); });
 			let toRemove = existingBackups.splice(3);
 			for (let seed of toRemove) {
 				let name = prefix + seed;
@@ -153,7 +156,6 @@ async function onStartup(aData) {
 	Modules.load('Utils');
 	Modules.load('Storage');
 	Modules.load('nativePrefs');
-	Modules.loadIf('migrate', Services.vc.compare(Services.appinfo.version, "52.0a1") < 0);
 	Modules.load('compatibilityFix/sandboxFixes');
 	Modules.load('keysets');
 
@@ -168,8 +170,14 @@ async function onStartup(aData) {
 		Services.prefs.getBoolPref("extensions." + objPathString + ".hide_warning") ?
 			(await AddonManager.getAddonByID(`${aData.id}`)).__AddonInternal__.signedState = AddonManager.SIGNEDSTATE_NOT_REQUIRED
 			: (await AddonManager.getAddonByID(`${aData.id}`)).__AddonInternal__.signedState === AddonManager.SIGNEDSTATE_NOT_REQUIRED ? (await AddonManager.getAddonByID(`${aData.id}`)).__AddonInternal__.signedState = AddonManager.SIGNEDSTATE_MISSING : '';
+	
+		SSSEobs();
+		Services.prefs.addObserver("extensions." + objPathString + ".SessionSnapshotEnable", SSSEobs);
+		Services.prefs.addObserver("extensions." + objPathString + ".SessionSnapshotInterval", SSSIobs);
 	} catch (error) { }
 }
+
+branch = Services.prefs.getBranch("extensions" + objPathString);
 
 function onShutdown() {
 	// remove the add-on from all windows
@@ -183,4 +191,40 @@ function onShutdown() {
 	Modules.unload('nativePrefs');
 	Modules.unload('Storage');
 	Modules.unload('Utils');
+
+	this.SSSTimer?.cancel();
+	delete this.SSSTimer;
+	Services.prefs.removeObserver("extensions." + objPathString + ".SessionSnapshotEnable", SSSEobs);
+	Services.prefs.removeObserver("extensions." + objPathString + ".SessionSnapshotInterval", SSSIobs);
 }
+
+function SSSCallback(){
+	let date = new Date();
+	let y = date.getFullYear();
+	let m = (date.getMonth() +1); if(m < 10) { m = "0"+m; }
+	let d = date.getDate(); if(d < 10) { d = "0"+d; }
+	let h = date.getHours(); if(h < 10) { h = "0"+h; }
+	let mm = date.getMinutes(); if(mm < 10) { mm = "0"+mm; }
+	let s = date.getSeconds(); if(s < 10) { s = "0"+s; }
+	let dateStr = ""+y+m+d+"-"+h+mm+s;
+	try { backupCurrentSession('-SSS-', dateStr); }
+	catch (ex) { Cu.reportError(ex); }
+}
+
+SSSEobs = (() => {
+	if(Services.prefs.getBoolPref("extensions." + objPathString + ".SessionSnapshotEnable")){
+		this.SSSTimer?.cancel();
+		delete this.SSSTimer;
+		this.SSSTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+		this.SSSTimer.initWithCallback(SSSCallback, Services.prefs.getIntPref("extensions." + objPathString + ".SessionSnapshotInterval") * 60000, Ci.nsITimer.TYPE_REPEATING_SLACK);
+	} else
+		this.SSSTimer?.cancel();
+}).bind(this);
+
+SSSIobs = ((subject, topic, data) => {
+	if(Services.prefs.getBoolPref("extensions." + objPathString + ".SessionSnapshotEnable")){
+		this.SSSTimer?.cancel();
+		this.SSSTimer.initWithCallback(SSSCallback, Services.prefs.getIntPref(data) * 60000, Ci.nsITimer.TYPE_REPEATING_SLACK);
+	} else
+		this.SSSTimer?.cancel();
+}).bind(this);

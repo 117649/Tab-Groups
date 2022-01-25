@@ -10,6 +10,7 @@
 <?xml-stylesheet href="chrome://browser/skin/preferences/in-content/preferences.css"?>
 <?xml-stylesheet href="chrome://tabgroups/skin/utils/preferences.css"?>
 <?xml-stylesheet href="chrome://tabgroups/skin/defaults.css"?>
+<?xml-stylesheet href="chrome://tabgroups/skin/numberinput.css" type="text/css"?>
 <!DOCTYPE prefs [
   <!ENTITY % defaults SYSTEM "chrome://tabgroups/locale/defaults.dtd" >
   %defaults;
@@ -20,7 +21,9 @@
 <page	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
 		xmlns:html="http://www.w3.org/1999/xhtml"
 		id="objName-preferences"
+		onload="gNumberInput.init()"
 		title="&preferences.title;">
+	<script type="application/javascript" src="chrome://tabgroups/content/numberinput.js"/>
 
 	<keyset id="mainKeyset">
 		<key id="key-jumpto"
