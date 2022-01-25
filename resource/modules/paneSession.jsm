@@ -21,7 +21,8 @@ this.paneSession = {
 		upgrade: /^upgrade.jsonlz4-[0-9]{14}$/,
 		tabMixPlus: /^tabmix_sessions-[0-9]{4}-[0-9]{2}-[0-9]{2}.rdf$/,
 		manual: /^tabGroups-manual-[0-9]{8}-[0-9]{6}.json$/,
-		update: /^tabGroups-update.js-[0-9]{13,14}.json$/
+		update: /^tabGroups-update.js-[0-9]{13,14}.json$/,
+		SSS: /^tabGroups-SSS-[0-9]{8}-[0-9]{6}.json$/
 	},
 
 	// some things needed to import from Session Manager files
@@ -317,7 +318,7 @@ this.paneSession = {
 					});
 				}
 				// another crash-protection of the current session
-				else if(this.filenames.recoveryBackup.test(window.PathUtils.filename(file))) {
+				else if(this.filenames.recoveryBackup.test(window.PathUtils.filename(file)) || this.filenames.SSS.test(window.PathUtils.filename(file))) {
 					this.deferredPromise((deferred) => {
 						this.checkRecoveryFile(deferred, file, 'recoveryBackup', 'recovery');
 					});
