@@ -166,14 +166,14 @@ async function onStartup(aData) {
 	Windows.callOnAll(startAddon, 'navigator:browser');
 	Windows.register(startAddon, 'domwindowopened', 'navigator:browser');
 
+	SSSEobs();
+	Services.prefs.addObserver("extensions." + objPathString + ".SessionSnapshotEnable", SSSEobs);
+	Services.prefs.addObserver("extensions." + objPathString + ".SessionSnapshotInterval", SSSIobs);
+	
 	try {
 		Services.prefs.getBoolPref("extensions." + objPathString + ".hide_warning") ?
 			(await AddonManager.getAddonByID(`${aData.id}`)).__AddonInternal__.signedState = AddonManager.SIGNEDSTATE_NOT_REQUIRED
 			: (await AddonManager.getAddonByID(`${aData.id}`)).__AddonInternal__.signedState === AddonManager.SIGNEDSTATE_NOT_REQUIRED ? (await AddonManager.getAddonByID(`${aData.id}`)).__AddonInternal__.signedState = AddonManager.SIGNEDSTATE_MISSING : '';
-	
-		SSSEobs();
-		Services.prefs.addObserver("extensions." + objPathString + ".SessionSnapshotEnable", SSSEobs);
-		Services.prefs.addObserver("extensions." + objPathString + ".SessionSnapshotInterval", SSSIobs);
 	} catch (error) { }
 }
 
