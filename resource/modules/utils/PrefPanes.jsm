@@ -312,7 +312,7 @@ this.PrefPanes = {
 
 			// since we're disabling the add-on there's really no point in keeping closed tabs references to our preferences tab, as they won't be valid anymore
 			if(aWindow.__SSi && aWindow.SessionStore) {
-				let closedTabs = JSON.parse(aWindow.SessionStore.getClosedTabData(aWindow));
+				let closedTabs = aWindow.SessionStore.getClosedTabData(aWindow);
 				let count = closedTabs.length;
 
 				// we go backwards because forgetClosedTab() changes the array and we can only do one tab at once

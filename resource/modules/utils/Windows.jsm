@@ -149,5 +149,6 @@ Modules.LOADMODULE = function() {
 };
 
 Modules.UNLOADMODULE = function() {
+	if(!Services) var {Services} = ChromeUtils.import("resource://gre/modules/Services.jsm");
 	Services.ww.unregisterNotification(Windows);
 };

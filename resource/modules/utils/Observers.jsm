@@ -76,10 +76,11 @@ this.Observers = {
 	},
 
 	clean: function() {
+		if(!Services) var {Services} = ChromeUtils.import("resource://gre/modules/Services.jsm");
 		for(let handler of this.observers) {
 			Services.obs.removeObserver(handler.observer, handler.topic);
 		}
-		this.observers = new Set();
+		this.observers.clear();
 	},
 
 	notify: function(aTopic, aSubject, aData) {

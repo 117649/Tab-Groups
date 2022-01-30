@@ -167,7 +167,7 @@ this.Watchers = {
 					handlers.delete(h);
 					if(!handlers.size) {
 						obj[this._obj].disconnect();
-						obj[this._obj].attributes.delete(attr);
+						obj[this._obj].attributes.delete(a);
 					}
 					obj[this._obj].setters--;
 					break;
@@ -184,7 +184,7 @@ this.Watchers = {
 
 	setWatchers: function(obj) {
 		if(!obj || typeof(obj) != 'object') { return false; }
-		if(obj[this._obj]) { return true; }
+		if(obj[this._obj] && !Cu.isDeadWrapper(obj[this._obj])) { return true; }
 
 		let handler = {
 			setters: 0,
@@ -222,7 +222,7 @@ this.Watchers = {
 		};
 		handler.scheduleWatchers = function(mutations, observer) {
 			if(this.schedule) {
-				this.schedule.cancel();
+				// this.schedule.cancel();
 				this.schedule = null;
 			}
 
@@ -232,7 +232,7 @@ this.Watchers = {
 
 			// the script could become really heavy if it called the main function everytime (width attribute on sidebar and dragging it for instance)
 			// I'm simply following the changes asynchronously; any delays for heavily changed attributes should be handled properly by the actual handlers.
-			this.schedule = aSync(() => { this.callAttrWatchers(); });
+			this.schedule = (async () => { this.callAttrWatchers(); })();
 		};
 		handler.callAttrWatchers = function() {
 			this.disconnect();

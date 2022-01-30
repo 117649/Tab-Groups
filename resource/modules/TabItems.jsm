@@ -387,7 +387,7 @@ this.TabItem.prototype = {
 		this.container.removeEventListener('dragstart', this, true);
 		this.container.removeEventListener('dragover', this);
 		this.container.removeEventListener('dragenter', this);
-		Watchers.removeAttributeWatcher(this.tab, [ "busy", "progress", "soundplaying", "muted", "tabmix_tabState" ], this, false, false);
+		Watchers.removeAttributeWatcher(this.tab, [ "busy", "progress", "soundplaying", "muted", "tabmix_tabState", "protected" ], this, false, false);
 		this.container.remove();
 
 		delete this.tab._tabViewTabItem;

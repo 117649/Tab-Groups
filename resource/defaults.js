@@ -91,6 +91,7 @@ function startAddon(window) {
 }
 
 function stopAddon(window) {
+	window[objName].Modules.unload('TabView', window.gBrowserInit);
 	removeObject(window);
 }
 
