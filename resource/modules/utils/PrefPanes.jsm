@@ -257,11 +257,15 @@ this.PrefPanes = {
 
 		// no tab was found, so open a new one
 		if(loadOnStartup) {
-			aWindow.gBrowser.selectedTab = aWindow.gBrowser.addTrustedTab(this.notifyUri, {triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal()});
+			let tab = aWindow.gBrowser.addTrustedTab(this.notifyUri);
+			tab._tabViewTabItem.parent.reorderTabItemsBasedOnTabOrder();
+			aWindow.gBrowser.selectedTab = tab;
 			aWindow.gBrowser.selectedTab.loadOnStartup = true; // for Tab Mix Plus
 		}
 		else {
-			aWindow.gBrowser.selectedTab = aWindow.gBrowser.addTrustedTab(this.aboutUri ? this.aboutUri.spec : this.chromeUri, {triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal()});
+			let tab = aWindow.gBrowser.addTrustedTab(this.aboutUri ? this.aboutUri.spec : this.chromeUri)
+			tab._tabViewTabItem.parent.reorderTabItemsBasedOnTabOrder();
+			aWindow.gBrowser.selectedTab = tab;
 		}
 		aWindow.focus();
 		this.goTos(aWindow.gBrowser.selectedTab, aOptions);
