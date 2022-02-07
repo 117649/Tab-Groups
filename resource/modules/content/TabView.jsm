@@ -56,7 +56,7 @@ this.TabView = {
 			}
 			// Checks if the currently active document is an image document or not.
 			case 'isImageDocument': {
-				let isImageDocument = (content && content.document instanceof Ci.nsIImageDocument);
+				let isImageDocument = (content && content.ImageDocument && content.document instanceof content.ImageDocument);
 
 				Frames.message(frame, 'isImageDocument', isImageDocument);
 				break;

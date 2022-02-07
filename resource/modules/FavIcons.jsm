@@ -27,15 +27,15 @@ this.FavIcons = {
 
 	// Gets the "favicon link URI" for the given xul:tab, or null if unavailable.
 	getFavIconUrlForTab: function(tab, callback) {
-		// this._isImageDocument(tab).then((isImageDoc) => {
-		// 	if(isImageDoc) {
-		// 		callback(tab.pinned ? tab.image : null);
-		// 	} else {
-		// 		this._getFavIconForNonImageDocument(tab, callback);
-		// 	}
-		// }).catch(() => {
-		// 	callback(null);
-		// });
+		this._isImageDocument(tab).then((isImageDoc) => {
+			if(isImageDoc) {
+				callback(tab.pinned ? tab.image : null);
+			} else {
+				this._getFavIconForNonImageDocument(tab, callback);
+			}
+		}).catch(() => {
+			callback(null);
+		});
 
 		this._getFavIconForNonImageDocument(tab, callback).catch(() => {
 			callback(null);
