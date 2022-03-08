@@ -131,7 +131,7 @@ Modules.LOADMODULE = function() {
 		// Step 1 of processing:
 		// Inspect extData for Tab Groups identifiers. If found, then we want to inspect further.
 		// If there is a single group, then we can use this window. If there are multiple groups then we won't use this window.
-		let groupsData = this.getWindowValue(aWindow, Storage.kGroupsIdentifier);
+		let groupsData = this.getCustomWindowValue(aWindow, Storage.kGroupsIdentifier);
 		if(groupsData) {
 			groupsData = JSON.parse(groupsData);
 
