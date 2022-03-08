@@ -859,11 +859,6 @@ this.TabView = {
 	},
 
 	onLoad: function() {
-		// Can be removed after FF52
-		if(typeof(migrate) != 'undefined') {
-			migrate.migrateWidget();
-		}
-
 		window.SessionStore.promiseInitialized.then(() => {
 			if(UNLOADED) { return; }
 

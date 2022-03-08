@@ -71,8 +71,6 @@ prefList = {
 
 	// for internal use
 	pageAutoChanged: false,
-	migratedWidget: false, // remove after FF52
-	migratedPrefs: false, // remove after FF52
 	migratedKeysets: false
 };
 
@@ -188,7 +186,6 @@ function onShutdown() {
 
 	Modules.unload('keysets');
 	Modules.unload('compatibilityFix/sandboxFixes');
-	Modules.unload('migrate');
 	Modules.unload('nativePrefs');
 	Modules.unload('Storage');
 	Modules.unload('Utils');
