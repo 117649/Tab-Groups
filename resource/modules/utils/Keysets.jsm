@@ -544,11 +544,11 @@ this.Keysets = {
 		this.unsetWindow(aWindow);
 
 		if(this.registered.length > 0) {
-			let keyset = aWindow.document.createElement('keyset');
+			let keyset = aWindow.document.createXULElement('keyset');
 			keyset.id = objName+'-keyset';
 
 			for(let r of this.registered) {
-				let key = aWindow.document.createElement('key');
+				let key = aWindow.document.createXULElement('key');
 				key.id = r.id;
 				key.setAttribute('Keysets', objName);
 				toggleAttribute(key, 'command', r.command, r.command);
