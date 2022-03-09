@@ -708,7 +708,7 @@ this.helptext = {
 				return;
 			}
 
-			let description = this.panel.ownerDocument.createElement('description');
+			let description = this.panel.ownerDocument.createXULElement('description');
 			description.textContent = text;
 			text = description;
 		}

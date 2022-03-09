@@ -280,12 +280,12 @@ this.DnDprefs = {
 
 		// append the widget description to the helpbox if one was provided
 		if(widget.description && area._descriptions) {
-			let help1 = doc.createElement('description');
+			let help1 = doc.createXULElement('description');
 			help1.style.fontWeight = 'bold';
 			help1.style.marginTop = '1em';
 			help1.textContent = widget.label;
 
-			let help2 = doc.createElement('description');
+			let help2 = doc.createXULElement('description');
 			help2.textContent = widget.description;
 
 			area._descriptions.appendChild(help1);
@@ -316,26 +316,26 @@ this.DnDprefs = {
 	},
 
 	createWidgetItem: function(doc, aLabel, aDependsOn) {
-		let item = doc.createElement('box');
+		let item = doc.createXULElement('box');
 		item.classList.add('DnDpref-item-container');
 
-		let icon = doc.createElement('image');
+		let icon = doc.createXULElement('image');
 		icon.classList.add('DnDpref-icon');
 
-		let label = doc.createElement('label');
+		let label = doc.createXULElement('label');
 		label.classList.add('DnDpref-label');
 		let text = doc.createTextNode(aLabel);
 		label.appendChild(text);
 
-		let enable = doc.createElement('checkbox');
+		let enable = doc.createXULElement('checkbox');
 		enable.classList.add('DnDpref-enable');
 		toggleAttribute(enable, 'dependson', aDependsOn, aDependsOn);
 
-		let box = doc.createElement('box');
+		let box = doc.createXULElement('box');
 		box.classList.add('DnDpref-enable-container');
 		box.appendChild(enable);
 
-		let vbox = doc.createElement('vbox');
+		let vbox = doc.createXULElement('vbox');
 		vbox.classList.add('DnDpref-icon-container');
 		vbox.appendChild(icon);
 		vbox.appendChild(label);

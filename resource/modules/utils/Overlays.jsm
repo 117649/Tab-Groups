@@ -1190,7 +1190,7 @@ this.Overlays = {
 		node.tempAppend = {
 			parent: node.parentNode,
 			sibling: node.nextSibling,
-			container: aWindow.document.createElement('box')
+			container: aWindow.document.createXULElement('box')
 		};
 
 		setAttribute(node.tempAppend.container, 'style', 'position: fixed; top: 4000px; left: 4000px; opacity: 0.001;');
@@ -1360,7 +1360,7 @@ this.Overlays = {
 			var paletteMenu = aWindow.document.getElementById('customizationPaletteItemContextMenu');
 
 			if(node._menuEntries.add.str) {
-				node._menuEntries.add.palette = aWindow.document.createElement('menuitem');
+				node._menuEntries.add.palette = aWindow.document.createXULElement('menuitem');
 				node._menuEntries.add.palette._toolbar = node;
 				setAttribute(node._menuEntries.add.palette, 'class', 'customize-context-addTo-'+node.id);
 				setAttribute(node._menuEntries.add.palette, 'oncommand', 'this._toolbar._menuEntries.addCommand(document.popupNode);');
@@ -1370,7 +1370,7 @@ this.Overlays = {
 			}
 
 			if(node._menuEntries.move.str) {
-				node._menuEntries.move.context = aWindow.document.createElement('menuitem');
+				node._menuEntries.move.context = aWindow.document.createXULElement('menuitem');
 				node._menuEntries.move.context._toolbar = node;
 				setAttribute(node._menuEntries.move.context, 'class', 'customize-context-moveTo-'+node.id);
 				setAttribute(node._menuEntries.move.context, 'oncommand', 'this._toolbar._menuEntries.addCommand(document.popupNode);');
@@ -1387,7 +1387,7 @@ this.Overlays = {
 				contextMenu.insertBefore(node._menuEntries.move.context, contextMenu.getElementsByClassName('customize-context-removeFromToolbar')[0]);
 				contextMenu.addEventListener('popupshowing', node._menuEntries.move.context);
 
-				node._menuEntries.move.panel = aWindow.document.createElement('menuitem');
+				node._menuEntries.move.panel = aWindow.document.createXULElement('menuitem');
 				node._menuEntries.move.panel._toolbar = node;
 				setAttribute(node._menuEntries.move.panel, 'class', 'customize-context-moveTo-'+node.id);
 				setAttribute(node._menuEntries.move.panel, 'oncommand', 'this._toolbar._menuEntries.addCommand(document.popupNode);');
@@ -1430,7 +1430,7 @@ this.Overlays = {
 			}
 
 			if(node._menuEntries.main.str) {
-				node._menuEntries.main.context = aWindow.document.createElement('menuitem');
+				node._menuEntries.main.context = aWindow.document.createXULElement('menuitem');
 				setAttribute(node._menuEntries.main.context, 'class', 'customize-context-moveToToolbar');
 				setAttribute(node._menuEntries.main.context, 'oncommand', 'gCustomizeMode.addToToolbar(document.popupNode)');
 				setAttribute(node._menuEntries.main.context, 'label', node._menuEntries.main.str);
