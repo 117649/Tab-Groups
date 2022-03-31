@@ -739,6 +739,7 @@ this.TabItems = {
 	_heartbeatTiming: 200, // milliseconds between calls
 	_maxTimeForUpdating: 200, // milliseconds that consecutive updates can take
 	_maxTimeForCachedThumbs: 25,
+	_maxNumberForUpdate: 100,
 	_lastUpdateTime: Date.now(),
 	reconnectingPaused: false,
 
@@ -852,8 +853,8 @@ this.TabItems = {
 
 		this.items = new Set();
 		this._lastUpdateTime = Date.now();
-		this._tabsWaitingForUpdate.clear();
-		this._staleTabs.clear();
+		this._tabsWaitingForUpdate?.clear();
+		this._staleTabs?.clear();
 	},
 
 	cachedThumbFragment: function() {
@@ -1150,6 +1151,15 @@ this.TabItems = {
 					accumTime += deltaTime;
 				}
 
+				let items = this._tabsWaitingForUpdate.getItems();
+				while(accumTime < this._maxTimeForUpdating && items.length) {
+					let updateBegin = Date.now();
+					await this._update(items.shift());
+					let updateEnd = Date.now();
+					let deltaTime = updateEnd - updateBegin;
+					accumTime += deltaTime;
+				}
+
 				// If there are possibly still stale tabs, recheck in a while.
 				if(!this._staleTabs.isEmpty()) {
 					this.startHeartbeatHidden();
@@ -1177,7 +1187,7 @@ this.TabItems = {
 		while(accumTime < this._maxTimeForUpdating && items.length) {
 			then = now;
 
-			await this._update(items.shift());
+			await Promise.allSettled(items.splice(0, this._maxNumberForUpdate).map(x=>this._update(x)));
 
 			// Maintain a simple average of time for each tabitem update
 			// We can use this as a base by which to delay things like tab zooming, so there aren't any hitches.
