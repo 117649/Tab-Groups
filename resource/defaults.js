@@ -109,7 +109,7 @@ async function backupCurrentSession(prefixSeg = '-update.js-', timesuffix = null
 	let filename = prefix + (timesuffix ?? AddonData.initTime) + '.json';
 
 	// This is the folder where the automated backups created by Firefox upgrades are saved.
-	let profileDir = await window.PathUtils.getProfileDir();
+	let profileDir = window.PathUtils?.profileDir ?? await window.PathUtils?.getProfileDir();
 	let backupsDir = window.PathUtils.join(profileDir, "sessionstore-backups");
 	let filepath = window.PathUtils.join(backupsDir, filename);
 
