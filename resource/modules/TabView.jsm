@@ -331,7 +331,14 @@ this.TabView = {
 				gTabViewDeck.selectedPanel = this._iframe;
 				this.hide();
 			});
-		}
+		} 
+		else window.PlacesUIUtils.canLoadToolbarContentPromise.then(this._initFrame(() => {
+			this._window[objName].GroupItems.resumeArrange();
+			this._window[objName].TabItems.resumePainting();
+			this._window[objName].GroupItems.pauseArrange();
+			this._window[objName].TabItems.pausePainting();
+			this._window[objName].TabItems.startHeartbeatHidden();
+		}));
 	},
 
 	uninit: function() {
@@ -449,6 +456,7 @@ this.TabView = {
 			this._iframe.remove();
 			this._iframe = null;
 		}
+		this._isFrameLoading = false;
 	},
 
 	isVisible: function() {

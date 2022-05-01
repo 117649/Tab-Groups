@@ -905,6 +905,14 @@ this.paneSession = {
 		this.restoreInNewBtn.hidden = true;
 		this.importfinishedNotice.hidden = false;
 		this.importfinishedNotice.scrollIntoView();
+
+		gWindow[objName].TabView._initFrame(() => {
+			this._window[objName].GroupItems.resumeArrange();
+			this._window[objName].TabItems.resumePainting();
+			this._window[objName].GroupItems.pauseArrange();
+			this._window[objName].TabItems.pausePainting();
+			this._window[objName].TabItems.startHeartbeatHidden();
+		});
 	},
 
 	restoreInNewWindow: async function() {

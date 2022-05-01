@@ -1133,8 +1133,20 @@ this.TabItems = {
 		if(this.isPaintingPaused()) {
 			// With tab view hidden, the heartbeat instead turns stale tabs canvas into images, and discards the canvas.
 			if(!UI.isTabViewVisible()) {
+				let thumbUpdate = new Promise(async resolve =>{
+					let accumTime = 0;
+					let items = this._tabsWaitingForUpdate.getItems();
+					while(accumTime < this._maxTimeForUpdating && items.length) {
+						let updateBegin = Date.now();
+						await Promise.allSettled(items.splice(0, this._maxNumberForUpdate).map(x=>this._update(x)));
+						let updateEnd = Date.now();
+						let deltaTime = updateEnd - updateBegin;
+						accumTime += deltaTime;
+					}
+					resolve();
+				});
+
 				let accumTime = 0;
-				let now = Date.now();
 				while(accumTime < this._maxTimeForUpdating && !this._staleTabs.isEmpty()) {
 					let updateBegin = Date.now();
 
@@ -1151,17 +1163,10 @@ this.TabItems = {
 					accumTime += deltaTime;
 				}
 
-				let items = this._tabsWaitingForUpdate.getItems();
-				while(accumTime < this._maxTimeForUpdating && items.length) {
-					let updateBegin = Date.now();
-					await this._update(items.shift());
-					let updateEnd = Date.now();
-					let deltaTime = updateEnd - updateBegin;
-					accumTime += deltaTime;
-				}
+				await thumbUpdate;
 
 				// If there are possibly still stale tabs, recheck in a while.
-				if(!this._staleTabs.isEmpty()) {
+				if(!this._staleTabs.isEmpty() || this._tabsWaitingForUpdate.hasItems()) {
 					this.startHeartbeatHidden();
 				}
 				// Otherwise we finish by removing unused icon colors from FavIcons, to free up a little extra memory.

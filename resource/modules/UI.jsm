@@ -727,9 +727,9 @@ this.UI = {
 		Listeners.remove(gWindow, "SSWindowStateReady", this);
 		Listeners.remove(this.sessionRestoreNotice, 'click', this);
 
-		Listeners.remove(GroupItems.workSpace, 'mousedown', this);
-		Listeners.remove(GroupItems.workSpace, 'dblclick', this);
-		Listeners.remove(GroupItems.workSpace, 'dragover', this);
+		try{Listeners.remove(GroupItems.workSpace, 'mousedown', this);}catch(ex){}
+		try{Listeners.remove(GroupItems.workSpace, 'dblclick', this);}catch(ex){}
+		try{Listeners.remove(GroupItems.workSpace, 'dragover', this);}catch(ex){}
 		Listeners.remove(this.groupSelector, 'wheel', this, true);
 		Listeners.remove(this.groupSelector, 'dragover', this);
 
@@ -758,7 +758,7 @@ this.UI = {
 		GroupOptionsUI.hide();
 		TabItems.uninit();
 		PinnedItems.uninit();
-		GroupItems.uninit();
+		GroupItems?.uninit();
 		Search.uninit();
 		FavIcons.uninit();
 

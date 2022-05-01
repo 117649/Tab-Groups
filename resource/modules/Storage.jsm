@@ -158,6 +158,14 @@ Modules.LOADMODULE = function() {
 		if(aWindow.TabView) {
 			aWindow.TabView.setButtonLabel();
 		}
+
+		if(aWindow.TabView && !aWindow.TabView._iframe && aWindow.TabView._initialized) aWindow.TabView._initFrame(() => {
+			aWindow.TabView._window[objName].GroupItems.resumeArrange();
+			aWindow.TabView._window[objName].TabItems.resumePainting();
+			aWindow.TabView._window[objName].GroupItems.pauseArrange();
+			aWindow.TabView._window[objName].TabItems.pausePainting();
+			aWindow.gBrowser.tabs.forEach(t => t.addEventListener('SSTabRestored', aWindow.TabView._window[objName].TabItems.startHeartbeatHidden(), {once: true}));
+		});
 	});
 
 	Piggyback.add('Storage', Storage._migrationScope.SessionMigrationInternal, 'convertState', function(aStateObj) {
