@@ -38,7 +38,7 @@ this.paneSession = {
 	// backups are placed in profileDir/sessionstore-backups folder by default, where all other session-related backups are saved
 	get backupsPath() { return (async ()=>{
 		delete this.backupsPath;
-		let profileDir = await window.PathUtils.getProfileDir();
+		let profileDir = window.PathUtils?.profileDir ?? await window.PathUtils?.getProfileDir();
 		this.backupsPath = window.PathUtils.join(profileDir, "sessionstore-backups");
 		return this.backupsPath;
 	})()},
@@ -287,7 +287,7 @@ this.paneSession = {
 			child = next;
 		}
 
-		let profileDir = await window.PathUtils.getProfileDir();
+		let profileDir = window.PathUtils?.profileDir ?? await window.PathUtils?.getProfileDir();
 
 		if(Services.vc.compare(Services.appinfo.version, "52.0a1") < 0) {
 			// if Firefox created its migration backup when it updated to 45, we can add an item to load it directly,
