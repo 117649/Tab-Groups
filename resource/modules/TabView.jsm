@@ -5,7 +5,6 @@
 // VERSION 1.1.23
 
 this.__defineGetter__('gBrowser', function() { return window.gBrowser; });
-this.__defineGetter__('gTabViewDeck', function() { return window.gTabViewDeck; });
 this.__defineGetter__('gTaskbarTabGroup', function() { return window.gTaskbarTabGroup; });
 this.__defineGetter__('TabContextMenu', function() { return window.TabContextMenu; });
 this.__defineGetter__('goUpdateCommand', function() { return window.goUpdateCommand; });
@@ -14,7 +13,6 @@ XPCOMUtils.defineLazyGetter(this, "AeroPeek", () => { return Cu.import("resource
 XPCOMUtils.defineLazyModuleGetter(this, "PageThumbs", "resource://gre/modules/PageThumbs.jsm");
 
 this.TabView = {
-	_deck: null,
 	_iframe: null,
 	_window: null,
 	_initialized: false,
@@ -324,15 +322,7 @@ this.TabView = {
 
 		this._initialized = true;
 
-		// When updating from a 1.0.* version while tab view is visible, it wouldn't successfully hide it before deinitializing it.
-		// So we need to make sure that happens now, otherwise the user can't do a thing.
-		if(!gTabViewDeck.selectedPanel) {
-			this._initFrame(() => {
-				gTabViewDeck.selectedPanel = this._iframe;
-				this.hide();
-			});
-		} 
-		else window.PlacesUIUtils.canLoadToolbarContentPromise.then(this._initFrame(() => {
+		window.PlacesUIUtils.canLoadToolbarContentPromise.then(this._initFrame(() => {
 			this._window[objName].GroupItems.resumeArrange();
 			this._window[objName].TabItems.resumePainting();
 			this._window[objName].GroupItems.pauseArrange();
@@ -404,9 +394,6 @@ this.TabView = {
 		if(this._isFrameLoading) { return; }
 		this._isFrameLoading = true;
 
-		// find the deck
-		this._deck = gTabViewDeck;
-
 		// create the frame
 		this._iframe = document.createElement("iframe");
 		this._iframe.id = objName+"-tab-view";
@@ -418,12 +405,17 @@ this.TabView = {
 		Listeners.add(this._iframe, "DOMContentLoaded", this);
 
 		this._iframe.setAttribute("src", "chrome://"+objPathString+"/content/tabview.xhtml");
-		this._deck.appendChild(this._iframe);
+		this._iframe.show = show => {
+			if(show) this._iframe.setAttribute("show","");
+			else this._iframe.removeAttribute("show");
+			document.body.style.opacity = !show ? null : 0;
+		};
+		document.documentElement.appendChild(this._iframe);
 	},
 
 	_deinitFrame: function() {
 		// nothing to do
-		if(!this._window && !this._iframe && !this._deck) { return; }
+		if(!this._window && !this._iframe) { return; }
 
 		// hide() will actually fail to complete properly if this method is called while tab view is visible,
 		// because it implies a degree of asynchronicity in the process.
@@ -445,8 +437,6 @@ this.TabView = {
 			this.markHiddenTabs();
 		}
 
-		this._deck = null;
-
 		if(this._window) {
 			removeObject(this._window);
 			this._window = null;
@@ -460,7 +450,7 @@ this.TabView = {
 	},
 
 	isVisible: function() {
-		return (this._deck ? this._deck.selectedPanel == this._iframe : false);
+		return (this._iframe ? this._iframe.hasAttribute("show") : false);
 	},
 
 	show: function(zoomOut = true) {

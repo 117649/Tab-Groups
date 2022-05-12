@@ -962,7 +962,7 @@ this.UI = {
 
 	// Returns true if the TabView UI is currently shown.
 	isTabViewVisible: function() {
-		return gTabViewDeck.selectedPanel == gTabViewFrame;
+		return gTabViewFrame.hasAttribute("show");
 	},
 
 	focusTabView: function() {
@@ -1196,7 +1196,7 @@ this.UI = {
 				groupItem.reorderTabItemsBasedOnTabOrder();
 			}
 
-			gTabViewDeck.selectedPanel = gTabViewFrame;
+			gTabViewFrame.show(true);
 			if(!gWindow.fullScreen) gWindow.TabsInTitlebar.allowedBy("tabview-open", false);
 			window.focus();
 
@@ -1286,7 +1286,7 @@ this.UI = {
 				fulfill();
 			}
 
-			gTabViewDeck.selectedPanel = gBrowserPanel;
+			gTabViewFrame.show(false);
 			gWindow.TabsInTitlebar.allowedBy("tabview-open", true);
 			gBrowser.selectedBrowser.focus();
 

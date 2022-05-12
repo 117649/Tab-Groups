@@ -97,47 +97,21 @@
     </commandset>
 
     <html id="main-window">
-        <deck flex="1" id="tab-view-deck" selectedIndex="0" >			
-            <vbox flex="1" id="browser-panel"></vbox>
-        </deck>
-        <html:style id="tabGroup-iframestyle">
-            #tab-view-deck {
+        <html:style id="objName-iframestyle">
+            #tabGroups-tab-view[show] {
+                z-index: 1;
+            }
+
+            #tabGroups-tab-view {
+                border: 0;
                 height: 100%; 
                 width: 100%; 
                 position: fixed; 
                 top: 0px; 
                 left: 0px; 
                 right: 0px;
-            }
-
-            #tabGroups-tab-view {
-                border: 0;
-                height: 100%;
-                width: 100%;
+                z-index: -1;
             }
         </html:style>
     </html>
-
-    <script>
-        <![CDATA[
-            window.gTabViewDeck = document.getElementById("tab-view-deck");
-            gTabViewDeck.style.zIndex = -1;
-            gTabViewDeck.style.opacity = 0;
-            window.gTabViewDeck.onselect=async _=>{
-        		let x = gTabViewDeck.selectedPanel == document.querySelector('#browser-panel');
-                gTabViewDeck.style.zIndex = x ? -1 : null;
-                gTabViewDeck.style.opacity = x ? 0 : null;
-                document.body.style.opacity = x ? null : 0;
-                
-                try{
-                    gBrowser.tabContainer.removeAttributeNode(gBrowser.tabContainer.getAttributeNode("overflow"));
-                    gBrowser.tabContainer.arrowScrollbox.removeAttributeNode(gBrowser.tabContainer.arrowScrollbox.getAttributeNode("overflowing"));
-                }
-                catch(ex){
-                    //console.log(ex);
-                }// force clear the overflow state on tabContainer some how fixed it stuck on after group switch
-        	};
-        ]]>
-    </script>
-    
 </overlay>
