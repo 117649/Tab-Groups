@@ -222,7 +222,6 @@ this.Watchers = {
 		};
 		handler.scheduleWatchers = function(mutations, observer) {
 			if(this.schedule) {
-				// this.schedule.cancel();
 				this.schedule = null;
 			}
 
