@@ -1138,10 +1138,9 @@ this.TabItems = {
 			if(!UI.isTabViewVisible()) {
 				let thumbUpdate = new Promise(async resolve =>{
 					let accumTime = 0;
-					let items = this._tabsWaitingForUpdate.getItems();
-					while(accumTime < this._maxTimeForUpdating && items.length) {
+					while(accumTime < this._maxTimeForUpdating && this._tabsWaitingForUpdate.getItems().length) {
 						let updateBegin = Date.now();
-						await Promise.allSettled(items.splice(0, this._maxNumberForUpdate).map(x=>this._update(x)));
+						await Promise.allSettled(this._tabsWaitingForUpdate.getItems().splice(0, this._maxNumberForUpdate).map(x=>this._update(x)));
 						let updateEnd = Date.now();
 						let deltaTime = updateEnd - updateBegin;
 						accumTime += deltaTime;
