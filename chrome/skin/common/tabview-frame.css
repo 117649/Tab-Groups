@@ -1392,7 +1392,7 @@ body:not(.classic) #actions {
 }
 
 @media (prefers-color-scheme: dark) {
-	#actions input,
+	#actions input:not(.appTabIcon),
 	input.name:not(:focus)::-moz-placeholder,
 	.group-options {
 		filter: invert(100%);
