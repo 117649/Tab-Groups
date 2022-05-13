@@ -5,9 +5,7 @@
 // VERSION 1.0.0
 
 Modules.LOADMODULE = function() {
-	Modules.load('compatibilityFix/TabCenter');
 };
 
 Modules.UNLOADMODULE = function() {
-	Modules.unload('compatibilityFix/TabCenter');
 };
