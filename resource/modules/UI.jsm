@@ -1402,8 +1402,8 @@ this.UI = {
 			// 1) we didn't just restore a tab via Ctrl+Shift+T
 			// 2) the currently selected tab is the last created tab and has a tabItem
 			if(!this.restoredClosedTab && this._lastOpenedTab == tab && tab._tabViewTabItem) {
-				tab._tabViewTabItem.zoomIn(true);
 				this._lastOpenedTab = null;
+				tab._tabViewTabItem.zoomIn(true);
 				return;
 			}
 			if((this._closedSelectedTabInTabView && !this.closedLastTabInTabView) || this.restoredClosedTab) {
