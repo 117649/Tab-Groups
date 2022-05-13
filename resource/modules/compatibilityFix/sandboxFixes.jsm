@@ -12,14 +12,12 @@ Modules.LOADMODULE = function() {
 		}
 	});
 
-	Modules.load('compatibilityFix/CCK2');
 	Modules.load('compatibilityFix/SessionManager');
 	Modules.load('compatibilityFix/brighttext');
 };
 
 Modules.UNLOADMODULE = function() {
 	Modules.unload('compatibilityFix/TabMixPlus');
-	Modules.unload('compatibilityFix/CCK2');
 	Modules.unload('compatibilityFix/SessionManager');
 	Modules.unload('compatibilityFix/brighttext');
 };
