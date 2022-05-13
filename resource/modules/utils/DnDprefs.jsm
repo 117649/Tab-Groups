@@ -255,10 +255,10 @@ this.DnDprefs = {
 		item._widgetId = widget.id;
 
 		item._enable.handleEvent = (e) => {
-			aSync(() => {
+			(async () => {
 				let settings = pref.placements.settings.get(widget.id);
 				settings.enable = item._enable.checked;
-			});
+			})();
 		};
 		item._enable.addEventListener('command', item._enable);
 
@@ -512,7 +512,7 @@ this.DnDprefs = {
 				this._dragInitializeTimeout = null;
 			}
 		};
-		this._dragInitializeTimeout = aSync(this._initializeDragAfterMove, 0);
+		this._dragInitializeTimeout = (async _ => this._initializeDragAfterMove())();
 	},
 
 	_onDragOver: function(e) {

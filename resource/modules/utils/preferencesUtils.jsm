@@ -402,7 +402,7 @@ this.keys = {
 					// It has the annoying habit of re-selecting the first (none) entry when selecting a menuitem with '*' as value
 					if(keycode == '*') {
 						var itemIndex = key.menu.parentNode.selectedIndex;
-						aSync(function() { key.menu.parentNode.selectedIndex = itemIndex; });
+						(async () => { key.menu.parentNode.selectedIndex = itemIndex; })();
 					}
 				}
 			}

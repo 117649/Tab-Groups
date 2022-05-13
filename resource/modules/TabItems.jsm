@@ -557,12 +557,15 @@ this.TabItem.prototype = {
 		UI.setActive(this);
 
 		// Zoom in!
-		aSync(() => {
+		(async () => {
 			// Tab View has been deinitialized. We can't proceed.
 			if(typeof(UI) == 'undefined') { return; }
 
+			let notSelected;
+			if(!this.tab.selected) notSelected = true;
 			UI.goToTab(this.tab);
 
+			if(notSelected) gBrowser.tabContainer.arrowScrollbox.ensureElementIsVisible(this.tab,true);
 			gBrowser.tabContainer.arrowScrollbox._updateScrollButtonsDisabledState();
 			// make sure gBrowser.tabContainer.arrowScrollbox "overflow-end-indicator" is handeled
 
@@ -578,7 +581,7 @@ this.TabItem.prototype = {
 			}
 
 			this._sendToSubscribers("zoomedIn");
-		}, 0);
+		})();
 	},
 
 	// Handles the zoom down animation after returning to TabView. It is expected that this routine will be called from the chrome thread

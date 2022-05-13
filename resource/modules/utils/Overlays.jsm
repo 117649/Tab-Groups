@@ -332,17 +332,17 @@ this.Overlays = {
 				let waitForDelayedStartup = (aSubject, aTopic) => {
 					if(aSubject == aWindow) {
 						Observers.remove(waitForDelayedStartup, 'browser-delayed-startup-finished');
-						aSync(() => {
+						(async () => {
 							this.overlayAll(aWindow);
-						});
+						})();
 					}
 				};
 				Observers.add(waitForDelayedStartup, 'browser-delayed-startup-finished');
 			}
 			else {
-				aSync(() => {
+				(async () => {
 					this.overlayAll(aWindow);
-				});
+				})();
 			}
 		});
 	},

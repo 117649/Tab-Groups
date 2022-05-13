@@ -38,7 +38,7 @@ this.PrivateBrowsing = {
 					}
 				}
 				// write errors in the console only after it has been cleared
-				catch(ex) { aSync(function() { Cu.reportError(ex); }); }
+				catch(ex) { (async () => { Cu.reportError(ex); })() }
 			};
 		}
 		if(!aWatcher.init) { aWatcher.init = null; }
@@ -54,16 +54,16 @@ this.PrivateBrowsing = {
 
 		if(aWatcher.init) {
 			try { aWatcher.init(); }
-			catch(ex) { aSync(function() { Cu.reportError(ex); }); }
+			catch(ex) { (async () => { Cu.reportError(ex); })() }
 		}
 
 		if(this.inPrivateBrowsing) {
 			if(aWatcher.addonEnabled && STARTED != APP_STARTUP) {
 				try { aWatcher.addonEnabled(); }
-				catch(ex) { aSync(function() { Cu.reportError(ex); }); }
+				catch(ex) { (async () => { Cu.reportError(ex); })() }
 			} else if(aWatcher.autoStarted) {
 				try { aWatcher.autoStarted(); }
-				catch(ex) { aSync(function() { Cu.reportError(ex); }); }
+				catch(ex) { (async () => { Cu.reportError(ex); })() }
 			}
 		}
 	},
@@ -71,7 +71,7 @@ this.PrivateBrowsing = {
 	removeWatcher: function(aWatcher) {
 		if(aWatcher.addonDisabled && this.inPrivateBrowsing && UNLOADED && UNLOADED != APP_SHUTDOWN) {
 			try { aWatcher.addonDisabled(); }
-			catch(ex) { aSync(function() { Cu.reportError(ex); }); }
+			catch(ex) { (async () => { Cu.reportError(ex); })() }
 		}
 
 		Observers.remove(aWatcher, "quit-application");
