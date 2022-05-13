@@ -271,7 +271,7 @@ xul|button[type="menu"] > xul|*.button-box > xul|*.button-menu-dropmarker {
   background-color: transparent;
   /*   list-style-image: url("chrome://global/skin/icons/arrow-dropdown-16.svg"); */
   /*   -moz-context-properties: fill; */
-  fill: -moz-DialogText;
+  /*   fill: -moz-DialogText; */
 } 
 
 xul|*.help-button {
