@@ -799,6 +799,7 @@ this.TabView = {
 
 			if(label) {
 				setAttribute(btn, 'label', label);
+				btn._textNode ? btn._textNode.value = label : null;
 			} else {
 				label = prevLabel;
 			}
