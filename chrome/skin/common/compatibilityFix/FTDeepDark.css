@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-@-moz-document url("chrome://browser/content/browser.xhtml") {
+@-moz-document url("chrome://browser/content/browser.xul") {
 	.tabGroups-quickaccess toolbarbutton.quickaccess-currentbutton,
 	.quickaccess-currentbutton {
 		background-color: hsla(210,4%,90%,.12);

@@ -110,12 +110,19 @@ this.brightText = {
 };
 
 Modules.LOADMODULE = function() {
+	AddonManager.getAddonByID('{77d2ed30-4cd2-11e0-b8af-0800200c9a66}', function(addon) {
+		brightText.permanent = !!(addon && addon.isActive);
+		if(brightText.permanent) {
+			Modules.load('compatibilityFix/FTDeepDark');
+		}
+	});
 };
 
 Modules.UNLOADMODULE = function() {
 	Prefs.unlisten('forceBrightText', brightText);
 	Observers.remove(brightText, "lightweight-theme-styling-update");
 
+	Modules.unload('compatibilityFix/FTDeepDark');
 	brightText.unload();
 	Styles.unload('brightText');
 };
