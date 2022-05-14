@@ -1586,33 +1586,23 @@ this.TabCanvas.prototype = {
 
 					(async function() {
 						try {
-							if(Services.vc.compare(Services.appinfo.version, "51.0a1") < 0) {
-								if(!aBrowser.isRemoteBrowser) {
-									let channel = aBrowser.docShell.currentDocumentChannel;
-									originalURL = channel.originalURI.spec;
-									// see if this was an error response.
-									channelError = PageThumbs._isChannelErrorResponse(channel);
-								}
-							}
-							else {
-								if(!aBrowser.isRemoteBrowser) {
-									let channel = aBrowser.docShell.currentDocumentChannel;
-									originalURL = channel.originalURI.spec;
-									// see if this was an error response.
-									channelError = PageThumbUtils.isChannelErrorResponse(channel);
-								} else {
-									let resp = await new Promise(resolve => {
-										let mm = aBrowser.messageManager;
-										let respName = "Browser:Thumbnail:GetOriginalURL:Response";
-										mm.addMessageListener(respName, function onResp(msg) {
-											mm.removeMessageListener(respName, onResp);
-											resolve(msg.data);
-										});
-										mm.sendAsyncMessage("Browser:Thumbnail:GetOriginalURL");
+							if(!aBrowser.isRemoteBrowser) {
+								let channel = aBrowser.docShell.currentDocumentChannel;
+								originalURL = channel.originalURI.spec;
+								// see if this was an error response.
+								channelError = PageThumbUtils.isChannelErrorResponse(channel);
+							} else {
+								let resp = await new Promise(resolve => {
+									let mm = aBrowser.messageManager;
+									let respName = "Browser:Thumbnail:GetOriginalURL:Response";
+									mm.addMessageListener(respName, function onResp(msg) {
+										mm.removeMessageListener(respName, onResp);
+										resolve(msg.data);
 									});
-									originalURL = resp.originalURL || url;
-									channelError = resp.channelError;
-								}
+									mm.sendAsyncMessage("Browser:Thumbnail:GetOriginalURL");
+								});
+								originalURL = resp.originalURL || url;
+								channelError = resp.channelError;
 							}
 
 							canvas.toBlob((blob) => {

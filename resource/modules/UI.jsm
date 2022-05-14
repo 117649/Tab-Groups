@@ -599,10 +599,6 @@ this.UI = {
 			// In case we end up saving UI data before a Search is run, we shouldn't just lose the save search position.
 			Search._position = data.searchPosition;
 
-			// Some things depend on the different FF versions.
-			toggleAttribute(document.body, 'FF48', Services.vc.compare(Services.appinfo.version, "48.0a1") >= 0);
-			toggleAttribute(document.body, 'FF50', Services.vc.compare(Services.appinfo.version, "50.0a1") >= 0);
-
 			// Try to adapt to different lwthemes.
 			Watchers.addAttributeWatcher(gWindow.document.documentElement, 'lwtheme', this, false, false);
 			Watchers.addAttributeWatcher(gWindow[objName].$('nav-bar'), 'brighttext', this, false, false);
@@ -1101,11 +1097,9 @@ this.UI = {
 			// If we already have a valid previous ratio, don't update the ratio if the tab is in responsive mode or the devtools are open.
 			// (Version restriction because the devtools were initialized differently before this,
 			// and I don't feel adding backwards compatibility just for this is justified for ESR at this point.)
-			if(Services.vc.compare(Services.appinfo.version, "47.0a1") >= 0) {
-				wrongDims = gWindow.gDevToolsBrowser && gWindow.gDevToolsBrowser.hasToolboxOpened(gWindow);
-				if(!wrongDims) {
-					wrongDims = gWindow.ResponsiveUI && gWindow.ResponsiveUI.ResponsiveUIManager && gWindow.ResponsiveUI.ResponsiveUIManager.isActiveForTab(tab);
-				}
+			wrongDims = gWindow.gDevToolsBrowser && gWindow.gDevToolsBrowser.hasToolboxOpened(gWindow);
+			if(!wrongDims) {
+				wrongDims = gWindow.ResponsiveUI && gWindow.ResponsiveUI.ResponsiveUIManager && gWindow.ResponsiveUI.ResponsiveUIManager.isActiveForTab(tab);
 			}
 
 			if(wrongDims) {

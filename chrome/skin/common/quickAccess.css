@@ -38,16 +38,12 @@
 	 background-position: center center;
  }
  
- .tabGroups-quickaccess:not([FF48]) .loading {
-	 background-image: url("chrome://browser/skin/tabbrowser/loading.png");
- }
- 
- .tabGroups-quickaccess[FF48] .loading {
+ .tabGroups-quickaccess .loading {
 	 background-image: url("chrome://global/skin/icons/loading.png");
  }
  
  @media (min-resolution: 1.1dppx) {
-	 .tabGroups-quickaccess[FF50] .loading {
+	 .tabGroups-quickaccess .loading {
 		 background-image: url("chrome://global/skin/icons/loading@2x.png");
 	 }
  }

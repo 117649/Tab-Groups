@@ -513,11 +513,6 @@ this.quickAccess = {
 	},
 
 	onLoad: function() {
-		toggleAttribute(this.panel, 'FF48', Services.vc.compare(Services.appinfo.version, "48.0a1") >= 0);
-		toggleAttribute(this.view, 'FF48', Services.vc.compare(Services.appinfo.version, "48.0a1") >= 0);
-		toggleAttribute(this.panel, 'FF50', Services.vc.compare(Services.appinfo.version, "50.0a1") >= 0);
-		toggleAttribute(this.view, 'FF50', Services.vc.compare(Services.appinfo.version, "50.0a1") >= 0);
-
 		Listeners.add(this.panel, 'popupshowing', this);
 		Listeners.add(this.panel, 'popupshown', this);
 		Listeners.add(this.panel, 'popuphidden', this);
@@ -539,11 +534,6 @@ this.quickAccess = {
 		Listeners.remove(this.viewTextbox, 'keydown', this);
 		Listeners.remove(this.panelTextbox, 'input', this);
 		Listeners.remove(this.viewTextbox, 'input', this);
-
-		removeAttribute(this.panel, 'FF48');
-		removeAttribute(this.view, 'FF48');
-		removeAttribute(this.panel, 'FF50');
-		removeAttribute(this.view, 'FF50');
 	}
 };
 

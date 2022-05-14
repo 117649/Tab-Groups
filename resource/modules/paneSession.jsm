@@ -289,20 +289,6 @@ this.paneSession = {
 
 		let profileDir = window.PathUtils?.profileDir ?? await window.PathUtils?.getProfileDir();
 
-		if(Services.vc.compare(Services.appinfo.version, "52.0a1") < 0) {
-			// if Firefox created its migration backup when it updated to 45, we can add an item to load it directly,
-			// so users can import back their groups from that point easily
-			this.deferredPromise((deferred) => {
-				// the migration backup is placed in the profile folder
-				let path = window.PathUtils.join(profileDir, "tabgroups-session-backup.json");
-				window.IOUtils.exists(path).then((exists) => {
-					if(exists) {
-						this.checkRecoveryFile(deferred, path, 'groupsMigrationBackup', 'upgrade');
-					}
-				});
-			});
-		}
-
 		// Don't throw immediately if any iteration fails, run all it can to add all the possible (valid) items.
 		let exn = null;
 

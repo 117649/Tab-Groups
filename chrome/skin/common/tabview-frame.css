@@ -473,24 +473,19 @@ body.DraggingTab .tab * {
 	background-image: url("chrome://browser/skin/tabbrowser/connecting.png");
 }
 
-body:not([FF48]) .tab[busy][progress] .throbber,
-body:not([FF48]) .appTabIcon[busy][progress] {
-	background-image: url("chrome://browser/skin/tabbrowser/loading.png");
-}
-
-body[FF48] .tab[busy][progress] .throbber,
-body[FF48] .appTabIcon[busy][progress] {
+body .tab[busy][progress] .throbber,
+body .appTabIcon[busy][progress] {
 	background-image: url("chrome://global/skin/icons/loading.png");
 }
 
 @media (min-resolution: 1.1dppx) {
-	body[FF50] .tab[busy]:not([progress]) .throbber,
-	body[FF50] .appTabIcon[busy]:not([progress]) {
+	body .tab[busy]:not([progress]) .throbber,
+	body .appTabIcon[busy]:not([progress]) {
 		background-image: url("chrome://browser/skin/tabbrowser/connecting@2x.png");
 	}
 
-	body[FF50] .tab[busy][progress] .throbber,
-	body[FF50] .appTabIcon[busy][progress] {
+	body .tab[busy][progress] .throbber,
+	body .appTabIcon[busy][progress] {
 		background-image: url("chrome://global/skin/icons/loading@2x.png");
 	}
 }

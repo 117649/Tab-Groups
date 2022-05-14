@@ -95,21 +95,13 @@ this.CatchRules = {
 
 Modules.LOADMODULE = function() {
 	// Sometimes restoring a window's data doesn't happen right away at startup. Other times its session can be rewritten entirely.
-	if(Services.vc.compare(Services.appinfo.version, "51.0a1") < 0) {
-		Listeners.add(window, "SSWindowStateReady", CatchRules);
-	} else {
-		Listeners.add(window, "SSWindowRestored", CatchRules);
-	}
+	Listeners.add(window, "SSWindowRestored", CatchRules);
 
 	CatchRules.init();
 };
 
 Modules.UNLOADMODULE = function() {
-	if(Services.vc.compare(Services.appinfo.version, "51.0a1") < 0) {
-		Listeners.remove(window, "SSWindowStateReady", CatchRules);
-	} else {
-		Listeners.remove(window, "SSWindowRestored", CatchRules);
-	}
+	Listeners.remove(window, "SSWindowRestored", CatchRules);
 
 	CatchRules.uninit();
 };

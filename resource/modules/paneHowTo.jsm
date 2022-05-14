@@ -5,8 +5,6 @@
 // VERSION 1.0.1
 
 Modules.LOADMODULE = function() {
-	toggleAttribute(document.documentElement, 'FF49', Services.vc.compare(Services.appinfo.version, "49.0a1") >= 0);
-
 	let fulltext = $('paneHowTo-credits-body');
 	let exploded = fulltext.textContent.split('support.mozilla.org');
 	if(exploded.length == 2) {

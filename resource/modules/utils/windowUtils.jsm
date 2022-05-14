@@ -16,33 +16,13 @@ this.__defineGetter__('toCode', function() { delete this.toCode; Modules.load('u
 this.__defineGetter__('keydownPanel', function() { delete this.keydownPanel; Modules.load('utils/keydownPanel'); return keydownPanel; });
 
 // customizing - quick access to whether the window is (or will be) in customize mode or not
-if(Services.vc.compare(Services.appinfo.version, "47.0a1") >= 0) {
-	this.__defineGetter__('customizing', function() {
-		// See bug 1014185
-		if(trueAttribute(window.gBrowser.selectedTab, "customizemode")) { return true; }
-
-		// duh
-		if(!window.CustomizationHandler) { return false; }
-
-		return window.CustomizationHandler.isCustomizing() || window.CustomizationHandler.isEnteringCustomizeMode;
-	});
-} else {
-	this.__defineGetter__('customizing', function() {
-		// duh
-		if(!window.gCustomizeMode) { return false; }
-
-		if(window.gCustomizeMode._handler.isCustomizing() || window.gCustomizeMode._handler.isEnteringCustomizeMode) { return true; }
-
-		// this means that the window is still opening and the first tab will open customize mode
-		if(window.gBrowser._selectedTab
-		&& window.gBrowser._selectedTab.__SS_restore_data
-		&& window.gBrowser._selectedTab.__SS_restore_data.url == 'about:customizing') {
-			return true;
-		}
-
-		return false;
-	});
-}
+this.__defineGetter__('customizing', function() {
+	// See bug 1014185
+	if(trueAttribute(window.gBrowser.selectedTab, "customizemode")) { return true; }
+	// duh
+	if(!window.CustomizationHandler) { return false; }
+	return window.CustomizationHandler.isCustomizing() || window.CustomizationHandler.isEnteringCustomizeMode;
+});
 
 // alwaysRunOnClose[] - array of methods to be called when a window is unloaded. Each entry expects function(aWindow) where
 // 	aWindow - (object) the window that has been unloaded
