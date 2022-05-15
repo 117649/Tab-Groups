@@ -1566,7 +1566,7 @@ this.TabCanvas.prototype = {
 
 	persist(aBrowser, forceStale) {
 		// capture to file, thumbnail service does not persist automatically when rendering to canvas.
-		PageThumbs.shouldStoreThumbnail(aBrowser, (storeAllowed) => {
+		PageThumbs.shouldStoreThumbnail(aBrowser).then((storeAllowed) => {
 			if(!storeAllowed) { return; }
 
 			// bails out early if there already is an existing thumbnail less than 2 days old
