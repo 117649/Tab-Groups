@@ -65,7 +65,7 @@ this.TabMixPlus = {
 			try {
 				let style = JSON.parse(Prefs["styles.unloadedTab"]);
 				if(style.italic || style.bold || style.underline || style.text) {
-					sscode += '.tab[unloaded] .tab-label {\n';
+					sscode += '.tab[unloaded] .tab-label * {\n';
 					if(style.italic) {
 						sscode += 'font-style: italic;\n';
 					}
@@ -109,7 +109,7 @@ this.TabMixPlus = {
 			try {
 				let style = JSON.parse(Prefs["styles.unreadTab"]);
 				if(style.italic || style.bold || style.underline || style.text) {
-					sscode += '.tab'+unloadedSelector+'[unread] .tab-label {\n';
+					sscode += '.tab'+unloadedSelector+'[unread] .tab-label * {\n';
 					if(style.italic) {
 						sscode += 'font-style: italic;\n';
 					}

@@ -84,11 +84,11 @@
 		color: rgb(0,173,238);
 	}
 
-	.groupItem:not(.thumbing) .tab:not(.stacked).focus .tab-label,
-	.groupItem:not(.thumbing) .tab:not(.stacked):hover .tab-label,
-	.expandedTray .tab.focus .tab-label,
-	.expandedTray .tab:hover .tab-label,
-	.search-result-group .tab.focus .tab-label,
+	.groupItem:not(.thumbing) .tab:not(.stacked).focus .tab-label *,
+	.groupItem:not(.thumbing) .tab:not(.stacked):hover .tab-label *,
+	.expandedTray .tab.focus .tab-label *,
+	.expandedTray .tab:hover .tab-label *,
+	.search-result-group .tab.focus .tab-label *,
 	.groupSelector:hover,
 	.groupSelector.dragOver,
 	.groupSelector.activeGroupItem {
