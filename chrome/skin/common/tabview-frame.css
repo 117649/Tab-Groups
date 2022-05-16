@@ -13,9 +13,9 @@
 	--actions-button-height: 28px;
 	--canvas-border-width: 1px;
 	--group-border-width: 1px;
-	--group-border-color: ThreeDShadow/* rgba(73, 99, 119, 0.3) */;
+	--group-border-color: rgba(73, 99, 119, 0.3);
 
-	--item-background: Field/* rgb(252,252,252) */;
+	--item-background: rgb(252,252,252);
 	--hover-color: rgba(128,128,128,0.2);
 	--item-shadow: 0 1px 7px rgba(60, 60, 60, 0.3);
 	--item-border: var(--group-border-width) solid var(--group-border-color);
@@ -33,8 +33,8 @@
 	--group-titlebar-edit-icon: url("chrome://tabgroups/skin/edit-light.png");
 	--group-contents-margin: 0;
 	--group-contents-top-margin: 2px;
-	--group-classic-border-color: ThreeDShadow/* rgba(60,60,60,0.4) */;
-	--group-active-shadow: 0 0 0 1px ThreeDHighlight, 0 0 1px 2px ThreeDLightShadow, 0 1px 7px ThreeDDarkShadow/* 0 0 0 1px rgba(252,252,252,0.8), 0 0 1px 2px rgba(0,147,224,0.3), 0 1px 7px rgba(0,147,224,0.3) */;
+	--group-classic-border-color: rgba(60,60,60,0.4);
+	--group-active-shadow: 0 0 0 1px rgba(252,252,252,0.8), 0 0 1px 2px rgba(0,147,224,0.3), 0 1px 7px rgba(0,147,224,0.3);
 	--group-active-border-color: rgb(0,147,224);
 	--group-active-stacked-color: rgba(128,128,128,0.15);
 	--stack-expander-bottom-margin: 8px;
@@ -1199,7 +1199,7 @@ input.name.unnamed-group:not(:focus) {
 
 .unnamed-group:not(:focus) {
 	font-style: italic;
-	/*! color: rgba(128,128,128,0.9); */
+	color: rgba(128,128,128,0.9);
 }
 
 input.name:focus::-moz-placeholder {
@@ -1386,14 +1386,6 @@ body:not(.classic) #actions {
 	height: var(--actions-button-height);
 }
 
-@media (prefers-color-scheme: dark) {
-	#actions input:not(.appTabIcon),
-	input.name:not(:focus)::-moz-placeholder,
-	.group-options {
-		filter: invert(100%);
-	}
-}
-
 #actions #exit-button {
 	background-image: -moz-image-rect(var(--actions-icons), 0, 18, 18, 0);
 }
@@ -1455,7 +1447,7 @@ body:not(.classic) #actions {
 #actions .grouped {
 	margin-top: 1px;
 	padding-top: 1px;
-	border-top: var(--item-border)/* 1px solid rgba(4, 38, 60, 0.3) */;
+	border-top: 1px solid rgba(4, 38, 60, 0.3);
 }
 
 /* Pinned Tabs group */

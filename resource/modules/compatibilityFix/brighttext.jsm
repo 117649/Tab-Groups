@@ -63,8 +63,7 @@ this.brightText = {
 
 	load: function() {
 		if(!this.dark) {
-			Styles.load('FTDeepDark', 'compatibilityFix/FTDeepDark');
-			Styles.load('FTDeepDark-scrollbars', 'compatibilityFix/FTDeepDark-scrollbars', false, 'agent');
+			Styles.load('FTDeepDark', 'compatibilityFix/FTDeepDark', false, 'author');
 			this.dark = true;
 			Observers.notify(objName+'-darktheme-changed', null);
 		}
@@ -73,7 +72,6 @@ this.brightText = {
 	unload: function() {
 		if(this.dark) {
 			Styles.unload('FTDeepDark');
-			Styles.unload('FTDeepDark-scrollbars');
 			this.dark = false;
 			Observers.notify(objName+'-darktheme-changed', null);
 		}
@@ -81,19 +79,14 @@ this.brightText = {
 };
 
 Modules.LOADMODULE = function() {
-	AddonManager.getAddonByID('{77d2ed30-4cd2-11e0-b8af-0800200c9a66}', function(addon) {
-		brightText.permanent = !!(addon && addon.isActive);
-		if(brightText.permanent) {
-			Modules.load('compatibilityFix/FTDeepDark');
-		}
-	});
+	Styles.load('FTDeepDark-theme', 'compatibilityFix/FTDeepDark-theme', false, 'author');
 };
 
 Modules.UNLOADMODULE = function() {
 	Prefs.unlisten('forceBrightText', brightText);
 	Observers.remove(brightText, "lightweight-theme-styling-update");
 
-	Modules.unload('compatibilityFix/FTDeepDark');
+	Styles.unload('FTDeepDark-theme');
 	brightText.unload();
 	Styles.unload('brightText');
 };
