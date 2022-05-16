@@ -29,18 +29,6 @@ this.brightText = {
 		}, 100);
 	},
 
-	_parseRGB: /^rgba?\((\d+), (\d+), (\d+)/,
-
-	parseRGB: function(aColorString) {
-		let rgb = this._parseRGB.exec(aColorString);
-		rgb.shift();
-		return { r: parseInt(rgb[0]), g: parseInt(rgb[1]), b: parseInt(rgb[2]) };
-	},
-
-	parseLuminance: function(rgb) {
-		return 0.2125 * rgb.r + 0.7154 * rgb.g + 0.0721 * rgb.b;
-	},
-
 	check: function(aDocument) {
 		if(this.permanent) { return; }
 
@@ -62,26 +50,9 @@ this.brightText = {
 
 			case 0:
 			default:
-				// When using a lwtheme, we try to show it in the background of TabView as well.
-				let theme = LightweightThemeManager.currentTheme;
-				if(theme && theme.id != 'firefox-devedition@mozilla.org') {
-					// this only applies if the accentcolor value supplied by the theme is valid, otherwise it defaults to the gradient using white in the stylesheet
-					let sscode = '\
-						@-moz-document url("chrome://'+objPathString+'/content/tabview.xhtml") {\n\
-							body.classic[lwtheme] {\n\
-								background-image: linear-gradient(transparent 100px, '+theme.accentcolor+' 178px, '+theme.accentcolor+');\n\
-							}\n\
-						}';
-					Styles.load('brightText', sscode, true);
-					this.unload();
-					break;
-				}
 				Styles.unload('brightText');
 
-				let style = getComputedStyle(aDocument.documentElement);
-				let rgb = this.parseRGB(style.color);
-				let luminance = this.parseLuminance(rgb);
-				if(luminance > 110) {
+				if(Services.appinfo.chromeColorSchemeIsDark) {
 					this.load();
 				} else {
 					this.unload();
