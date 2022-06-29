@@ -4,17 +4,17 @@
 
 html:not(#main-window)[tabGroups_UUID][tabGroups_Version] scrollbar {
 	-moz-appearance: none !important;
-	position: relative;
+	position: relative !important;
 	background-color: transparent !important;
-	background-image: none;
-	z-index: 2147483647;
-	padding: 2px;
-	border: none;
+	background-image: none !important;
+	z-index: 2147483647 !important;
+	padding: 2px !important;
+	border: none !important;
 }
 
 html:not(#main-window)[tabGroups_UUID][tabGroups_Version] scrollbar[orient="vertical"] {
 	-moz-margin-start: calc(0px - var(--scrollbar-width)) !important;
-	margin-bottom: 12px;
+	margin-bottom: 12px!important;
 	min-width: var(--scrollbar-width) !important;
 	max-width: var(--scrollbar-width) !important;
 }
@@ -31,19 +31,19 @@ html:not(#main-window)[tabGroups_UUID][tabGroups_Version] scrollbar slider {
 
 html:not(#main-window)[tabGroups_UUID][tabGroups_Version] scrollbar thumb {
 	-moz-appearance: none !important;
-	background-color: var(--hover-color);
-	border-width: 0px;
-	border-radius: 3px;
+	background-color: var(--hover-color) !important;
+	border-width: 0px !important;
+	border-radius: 3px !important;
 }
 
 html:not(#main-window)[tabGroups_UUID][tabGroups_Version] > scrollbar,
 html:not(#main-window)[tabGroups_UUID][tabGroups_Version] .groupItem.thumbing scrollbar,
 html:not(#main-window)[tabGroups_UUID][tabGroups_Version] scrollbar scrollbarbutton,
 html:not(#main-window)[tabGroups_UUID][tabGroups_Version] scrollbar gripper {
-	display: none;
+	display: none !important;
 }
 
 html:not(#main-window)[tabGroups_UUID][tabGroups_Version] body:not([lwtheme]):not([darktheme]) #groupSelector scrollbar thumb,
 html:not(#main-window)[tabGroups_UUID][tabGroups_Version] body[lwtheme] #groupSelector[brighttext] scrollbar thumb {
-	background-color: rgba(245,245,245,0.65);
+	background-color: rgba(245,245,245,0.65) !important;
 }
