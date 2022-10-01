@@ -18,8 +18,6 @@ XPCOMUtils.defineLazyGetter(this, "gWindow", function() {
 });
 XPCOMUtils.defineLazyModuleGetter(this, "OS", "resource://gre/modules/osfile.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "FileUtils", "resource://gre/modules/FileUtils.jsm");
-// XPCOMUtils.defineLazyGetter(this, "TextEncoder", () => { return Cu.import("resource://gre/modules/osfile.jsm").TextEncoder; });
-// XPCOMUtils.defineLazyGetter(this, "TextDecoder", () => { return Cu.import("resource://gre/modules/osfile.jsm").TextDecoder; });
 Cu.importGlobalProperties(['TextEncoder']);
 Cu.importGlobalProperties(['TextDecoder']);
 
