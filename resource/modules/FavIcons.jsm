@@ -36,10 +36,6 @@ this.FavIcons = {
 		}).catch(() => {
 			callback(null);
 		});
-
-		this._getFavIconForNonImageDocument(tab, callback).catch(() => {
-			callback(null);
-		});
 	},
 
 	// Retrieves the favicon for a tab containing a non-image document.
