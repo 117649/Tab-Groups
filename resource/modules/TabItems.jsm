@@ -1592,35 +1592,40 @@ this.TabCanvas.prototype = {
 								// see if this was an error response.
 								channelError = PageThumbUtils.isChannelErrorResponse(channel);
 							} else {
-								let resp = await new Promise(resolve => {
-									let mm = aBrowser.messageManager;
-									let respName = "Browser:Thumbnail:GetOriginalURL:Response";
-									mm.addMessageListener(respName, function onResp(msg) {
-										mm.removeMessageListener(respName, onResp);
-										resolve(msg.data);
-									});
-									mm.sendAsyncMessage("Browser:Thumbnail:GetOriginalURL");
-								});
+								let thumbnailsActor = aBrowser.browsingContext.currentWindowGlobal.getActor(
+									"Thumbnails"
+								);
+								let resp = await thumbnailsActor.sendQuery(
+									"Browser:Thumbnail:GetOriginalURL"
+								);
+
 								originalURL = resp.originalURL || url;
 								channelError = resp.channelError;
 							}
 
-							canvas.toBlob((blob) => {
+							let blob = await new Promise(resolve => {
+								canvas.toBlob(blob => {
+									resolve(blob, "image/png");
+								});
+							});
+							let buffer = await new Promise((resolve, reject) => {
 								let reader = new FileReader();
-								reader.onloadend = function() {
-									if(reader.readyState == FileReader.DONE) {
-										let buffer = reader.result;
-										PageThumbs._store(originalURL, url, buffer, channelError);
+								reader.onloadend = function onloadend() {
+									if (reader.readyState != FileReader.DONE) {
+										reject(reader.error);
+									} else {
+										resolve(reader.result);
 									}
 								};
 								reader.readAsArrayBuffer(blob);
 							});
+							await PageThumbs._store(originalURL, url, buffer, channelError);
 						}
 						catch(ex) {
 							Cu.reportError("Tab Groups: exception thrown during thumbnail capture.");
 							Cu.reportError(ex);
 						}
-					});
+					})();
 				}
 			});
 		});
