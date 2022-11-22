@@ -1040,6 +1040,7 @@ this.TabItems = {
 			}
 		}
 		catch(ex) {
+			this._tabsWaitingForUpdate.push(tab); // update failed push tab back to queue.
 			Cu.reportError(ex);
 		}
 	},
