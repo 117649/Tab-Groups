@@ -106,16 +106,18 @@ async function backupCurrentSession(prefixSeg = '-update.js-', timesuffix = null
 	// We can use the initTime as a seed/identifier to make sure every file has a unique name.
 	// This is the same suffix syntax as the automated backups created by Firefox upgrades, except it uses a buildID instead
 	// (which we don't have for the add-on, hence initTime instead).
-	let filename = prefix + (timesuffix ?? AddonData.initTime) + '.json';
+	let filename = prefix + (timesuffix ?? AddonData.initTime);
 
 	// This is the folder where the automated backups created by Firefox upgrades are saved.
 	let profileDir = window.PathUtils?.profileDir ?? await window.PathUtils?.getProfileDir();
 	let backupsDir = window.PathUtils.join(profileDir, "sessionstore-backups");
 	let filepath = window.PathUtils.join(backupsDir, filename);
 
-	let state = tmp.SessionStore.getCurrentState();
-	let saveState = (new TextEncoder()).encode(JSON.stringify(state));
-	window.IOUtils.write(filepath, saveState).then(async () => {
+	let saveState = tmp.SessionStore.getCurrentState();
+	window.IOUtils.writeJSON(filepath + '.jsonlz4', saveState, {
+		tmpPath: filepath + ".tmp",
+		compress: true,
+	}).then(async () => {
 		// Don't keep backups indefinitely, follow the same rules as Firefox does, keep a limited number and rotate them out.
 		let existingBackups = [];
 		let iterator = await window.IOUtils.getChildren(backupsDir);

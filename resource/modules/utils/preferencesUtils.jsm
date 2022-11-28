@@ -1039,9 +1039,8 @@ this.controllers = {
 			for(let pref in prefList) {
 				list[pref] = Prefs[pref];
 			}
-			let save = (new TextEncoder()).encode(JSON.stringify(list));
 
-			window.IOUtils.write(aFile.path, save);
+			window.IOUtils.writeJSON(aFile.path, list);
 		});
 	},
 
@@ -1064,11 +1063,11 @@ this.controllers = {
 		});
 	},
 
-	showFilePicker: function(mode, prefix, aCallback, path) {
-		let fileExt = '.json';
+	showFilePicker: function(mode, prefix, aCallback, path, isSession) {
+		let fileExt = ['.jsonlz4', '.json'];
 		let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
 		fp.defaultExtension = 'json';
-		fp.appendFilter('JSON data', '*.json; *.jsonlz4; *.baklz4');
+		fp.appendFilter('JSON data', '*.json' + (isSession ? '; *.jsonlz4; *.baklz4' : ''));
 
 		if(path) {
 			fp.displayDirectory = new FileUtils.File(path);
@@ -1083,7 +1082,7 @@ this.controllers = {
 			let mm = date.getMinutes(); if(mm < 10) { mm = "0"+mm; }
 			let s = date.getSeconds(); if(s < 10) { s = "0"+s; }
 			let dateStr = ""+y+m+d+"-"+h+mm+s;
-			fp.defaultString = prefix+'-'+dateStr+fileExt;
+			fp.defaultString = prefix+'-'+dateStr+(isSession ? fileExt[0] : fileExt[1]);
 		}
 
 		fp.init(window, null, mode);
@@ -1091,8 +1090,8 @@ this.controllers = {
 			if(aResult != Ci.nsIFilePicker.returnCancel) {
 				let aFile = fp.file;
 				// We always make sure we're saving a .json text file, so that it can be recognized and loaded by the add-on.
-				if(mode == Ci.nsIFilePicker.modeSave && !aFile.path.endsWith(fileExt)) {
-					aFile.initWithPath(aFile.path+fileExt);
+				if(mode == Ci.nsIFilePicker.modeSave && !(aFile.path.endsWith(fileExt[0]) || aFile.path.endsWith(fileExt[1]))) {
+					aFile.initWithPath(aFile.path+(isSession ? fileExt[0] : fileExt[1]));
 				}
 				aCallback(aFile);
 			}

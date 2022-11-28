@@ -20,9 +20,9 @@ this.paneSession = {
 		recoveryBackup: /^recovery.baklz4$/,
 		upgrade: /^upgrade.jsonlz4-[0-9]{14}$/,
 		tabMixPlus: /^tabmix_sessions-[0-9]{4}-[0-9]{2}-[0-9]{2}.rdf$/,
-		manual: /^tabGroups-manual-[0-9]{8}-[0-9]{6}.json$/,
-		update: /^tabGroups-update.js-[0-9]{13,14}.json$/,
-		SSS: /^tabGroups-SSS-[0-9]{8}-[0-9]{6}.json$/
+		manual: /^tabGroups-manual-[0-9]{8}-[0-9]{6}.json(lz4)?$/,
+		update: /^tabGroups-update.js-[0-9]{13,14}.json(lz4)?$/,
+		SSS: /^tabGroups-SSS-[0-9]{8}-[0-9]{6}.json(lz4)?$/
 	},
 
 	// some things needed to import from Session Manager files
@@ -172,7 +172,7 @@ this.paneSession = {
 
 			// if backing up all session data it's simple, just save everything
 			if(this.alldata) {
-				save = (new TextEncoder()).encode(JSON.stringify(state));
+				save = state;
 			}
 			// otherwise we'll need to build a new object containing only the relevant information
 			else {
@@ -252,17 +252,20 @@ this.paneSession = {
 					}
 				}
 
-				save = (new TextEncoder()).encode(JSON.stringify(saveData));
+				save = saveData;
 			}
 
-			window.IOUtils.write(aFile.path, save).then(() => {
+			window.IOUtils.writeJSON(aFile.path, save, aFile.path.endsWith(".jsonlz4") ? {
+				tmpPath: aFile.path.replace(".jsonlz4",".tmp"),
+				compress: true,
+			} : undefined).then(() => {
 				// Load the newly created file in the Restore Tab Groups block,
 				// so that the user can confirm all the tabs and groups were backed up properly.
 				// We read from the newly created file so that we're sure to show the info that was actually saved,
 				// and not the info that's still in memory.
 				this.loadSessionFile(aFile, false);
 			});
-		}, this.backupsPath);
+		}, this.backupsPath, true);
 	},
 
 	// If at any point this fails, it simply doesn't add the corresponding item to the menu
@@ -542,7 +545,7 @@ this.paneSession = {
 	loadBackup: function() {
 		controllers.showFilePicker(Ci.nsIFilePicker.modeOpen, null, (aFile) => {
 			this.loadSessionFile(aFile, true);
-		}, this.backupsPath);
+		}, this.backupsPath, true);
 	},
 
 	loadSessionFile: function(aFile, aManualAction, aSpecial) {
@@ -593,7 +596,7 @@ this.paneSession = {
 				this.tabList.hidden = true;
 				return;
 			}
-			await Promise.allSettled(state?.windows.flatMap(w=>w?.tabs).map(async tabData=>{
+			await Promise.allSettled(state.windows.flatMap(w=>w?.tabs).map(async tabData=>{
 				function base64EncodeString(aString) {
 					let stream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
 						Ci.nsIStringInputStream
