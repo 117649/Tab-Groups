@@ -705,6 +705,7 @@ this.TabItem.prototype = {
 			this._sendToSubscribers("painted");
 			this.hideCachedThumb();
 		}
+		return painted;
 	},
 
 	getCanvasSize: function() {
@@ -1034,10 +1035,9 @@ this.TabItems = {
 
 			const isComplete = await this._isComplete(tab);
 			if(isComplete) {
-				await tabItem.updateCanvas();
-			} else {
-				this._tabsWaitingForUpdate.push(tab);
+				if(await tabItem.updateCanvas()) return;
 			}
+			this._tabsWaitingForUpdate.push(tab); 
 		}
 		catch(ex) {
 			this._tabsWaitingForUpdate.push(tab); // update failed push tab back to queue.
