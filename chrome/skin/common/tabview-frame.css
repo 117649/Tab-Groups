@@ -161,181 +161,91 @@ html.thumbing body.single #content {
 }
 
 .close {
-	background-image: -moz-image-rect(var(--control-icons), 0, 20, 20, 0);
+	background-image: -moz-image-rect(var(--control-icons-2x), 0, 40, 40, 0);
 }
 
 .close:hover {
-	background-image: -moz-image-rect(var(--control-icons), 0, 40, 20, 20);
+	background-image: -moz-image-rect(var(--control-icons-2x), 0, 80, 40, 40);
 }
 
 .close:hover:active {
-	background-image: -moz-image-rect(var(--control-icons), 0, 60, 20, 40);
+	background-image: -moz-image-rect(var(--control-icons-2x), 0, 120, 40, 80);
 }
 
 .group-options {
-	background-image: -moz-image-rect(var(--control-icons), 20, 20, 40, 0);
+	background-image: -moz-image-rect(var(--control-icons-2x), 40, 40, 80, 0);
 }
 
 .group-options:hover {
-	background-image: -moz-image-rect(var(--control-icons), 20, 40, 40, 20);
+	background-image: -moz-image-rect(var(--control-icons-2x), 40, 80, 80, 40);
 }
 
 .group-options:hover:active {
-	background-image: -moz-image-rect(var(--control-icons), 20, 60, 40, 40);
+	background-image: -moz-image-rect(var(--control-icons-2x), 40, 120, 80, 80);
 }
 
 .stackExpander {
-	background-image: -moz-image-rect(var(--control-icons), 40, 20, 60, 0);
+	background-image: -moz-image-rect(var(--control-icons-2x), 80, 40, 120, 0);
 }
 
 .stackExpander:hover {
-	background-image: -moz-image-rect(var(--control-icons), 40, 40, 60, 20);
+	background-image: -moz-image-rect(var(--control-icons-2x), 80, 80, 120, 40);
 }
 
 .stackExpander:hover:active {
-	background-image: -moz-image-rect(var(--control-icons), 40, 60, 60, 40);
+	background-image: -moz-image-rect(var(--control-icons-2x), 80, 120, 120, 80);
 }
 
 .tab-setactive {
-	background-image: -moz-image-rect(var(--control-icons), 60, 20, 80, 0);
+	background-image: -moz-image-rect(var(--control-icons-2x), 120, 40, 160, 0);
 }
 
 .tab-setactive:hover {
-	background-image: -moz-image-rect(var(--control-icons), 60, 40, 80, 20);
+	background-image: -moz-image-rect(var(--control-icons-2x), 120, 80, 160, 40);
 }
 
 .tab-setactive:hover:active {
-	background-image: -moz-image-rect(var(--control-icons), 60, 60, 80, 40);
+	background-image: -moz-image-rect(var(--control-icons-2x), 120, 120, 160, 80);
 }
 
 .group-audio,
 .tab[soundplaying] .tab-audio {
-	background-image: -moz-image-rect(var(--control-icons), 80, 20, 100, 0);
+	background-image: -moz-image-rect(var(--control-icons-2x), 160, 40, 200, 0);
 }
 
 .group-audio:hover,
 .tab[soundplaying] .tab-audio:hover {
-	background-image: -moz-image-rect(var(--control-icons), 80, 40, 100, 20);
+	background-image: -moz-image-rect(var(--control-icons-2x), 160, 80, 200, 40);
 }
 
 .group-audio:hover:active,
 .tab[soundplaying] .tab-audio:hover:active {
-	background-image: -moz-image-rect(var(--control-icons), 80, 60, 100, 40);
+	background-image: -moz-image-rect(var(--control-icons-2x), 160, 120, 200, 80);
 }
 
 .tab[muted] .tab-audio {
-	background-image: -moz-image-rect(var(--control-icons), 100, 20, 120, 0);
+	background-image: -moz-image-rect(var(--control-icons-2x), 200, 40, 240, 0);
 }
 
 .tab[muted] .tab-audio:hover {
-	background-image: -moz-image-rect(var(--control-icons), 100, 40, 120, 20);
+	background-image: -moz-image-rect(var(--control-icons-2x), 200, 80, 240, 40);
 }
 
 .tab[muted] .tab-audio:hover:active {
-	background-image: -moz-image-rect(var(--control-icons), 100, 60, 120, 40);
+	background-image: -moz-image-rect(var(--control-icons-2x), 200, 120, 240, 80);
 }
 
 #search-mode {
-	background-image: -moz-image-rect(var(--control-icons), 120, 20, 140, 0);
+	background-image: -moz-image-rect(var(--control-icons-2x), 240, 40, 280, 0);
 }
 
 #search-mode:hover {
-	background-image: -moz-image-rect(var(--control-icons), 120, 40, 140, 20);
+	background-image: -moz-image-rect(var(--control-icons-2x), 240, 80, 280, 40);
 }
 
 #search-mode:hover:active,
 body[searching="list"] #search-mode:not(:hover) {
-	background-image: -moz-image-rect(var(--control-icons), 120, 60, 140, 40);
-}
-
-@media (min-resolution: 1.1dppx) {
-	.close {
-		background-image: -moz-image-rect(var(--control-icons-2x), 0, 40, 40, 0);
-	}
-
-	.close:hover {
-		background-image: -moz-image-rect(var(--control-icons-2x), 0, 80, 40, 40);
-	}
-
-	.close:hover:active {
-		background-image: -moz-image-rect(var(--control-icons-2x), 0, 120, 40, 80);
-	}
-
-	.group-options {
-		background-image: -moz-image-rect(var(--control-icons-2x), 40, 40, 80, 0);
-	}
-
-	.group-options:hover {
-		background-image: -moz-image-rect(var(--control-icons-2x), 40, 80, 80, 40);
-	}
-
-	.group-options:hover:active {
-		background-image: -moz-image-rect(var(--control-icons-2x), 40, 120, 80, 80);
-	}
-
-	.stackExpander {
-		background-image: -moz-image-rect(var(--control-icons-2x), 80, 40, 120, 0);
-	}
-
-	.stackExpander:hover {
-		background-image: -moz-image-rect(var(--control-icons-2x), 80, 80, 120, 40);
-	}
-
-	.stackExpander:hover:active {
-		background-image: -moz-image-rect(var(--control-icons-2x), 80, 120, 120, 80);
-	}
-
-	.tab-setactive {
-		background-image: -moz-image-rect(var(--control-icons-2x), 120, 40, 160, 0);
-	}
-
-	.tab-setactive:hover {
-		background-image: -moz-image-rect(var(--control-icons-2x), 120, 80, 160, 40);
-	}
-
-	.tab-setactive:hover:active {
-		background-image: -moz-image-rect(var(--control-icons-2x), 120, 120, 160, 80);
-	}
-
-	.group-audio,
-	.tab[soundplaying] .tab-audio {
-		background-image: -moz-image-rect(var(--control-icons-2x), 160, 40, 200, 0);
-	}
-
-	.group-audio:hover,
-	.tab[soundplaying] .tab-audio:hover {
-		background-image: -moz-image-rect(var(--control-icons-2x), 160, 80, 200, 40);
-	}
-
-	.group-audio:hover:active,
-	.tab[soundplaying] .tab-audio:hover:active {
-		background-image: -moz-image-rect(var(--control-icons-2x), 160, 120, 200, 80);
-	}
-
-	.tab[muted] .tab-audio {
-		background-image: -moz-image-rect(var(--control-icons-2x), 200, 40, 240, 0);
-	}
-
-	.tab[muted] .tab-audio:hover {
-		background-image: -moz-image-rect(var(--control-icons-2x), 200, 80, 240, 40);
-	}
-
-	.tab[muted] .tab-audio:hover:active {
-		background-image: -moz-image-rect(var(--control-icons-2x), 200, 120, 240, 80);
-	}
-
-	#search-mode {
-		background-image: -moz-image-rect(var(--control-icons-2x), 240, 40, 280, 0);
-	}
-
-	#search-mode:hover {
-		background-image: -moz-image-rect(var(--control-icons-2x), 240, 80, 280, 40);
-	}
-
-	#search-mode:hover:active,
-	body[searching="list"] #search-mode:not(:hover) {
-		background-image: -moz-image-rect(var(--control-icons-2x), 240, 120, 280, 80);
-	}
+	background-image: -moz-image-rect(var(--control-icons-2x), 240, 120, 280, 80);
 }
 
 /* Tabs */
@@ -470,24 +380,12 @@ body.DraggingTab .tab * {
 
 .tab[busy]:not([progress]) .throbber,
 .appTabIcon[busy]:not([progress]) {
-	background-image: url("chrome://browser/skin/tabbrowser/connecting.png");
+	background-image: url("chrome://browser/skin/tabbrowser/connecting@2x.png");
 }
 
 body .tab[busy][progress] .throbber,
 body .appTabIcon[busy][progress] {
-	background-image: url("chrome://global/skin/icons/loading.png");
-}
-
-@media (min-resolution: 1.1dppx) {
-	body .tab[busy]:not([progress]) .throbber,
-	body .appTabIcon[busy]:not([progress]) {
-		background-image: url("chrome://browser/skin/tabbrowser/connecting@2x.png");
-	}
-
-	body .tab[busy][progress] .throbber,
-	body .appTabIcon[busy][progress] {
-		background-image: url("chrome://global/skin/icons/loading@2x.png");
-	}
+	background-image: url("chrome://global/skin/icons/loading@2x.png");
 }
 
 .tab-controls {
@@ -1050,24 +948,12 @@ body:not(.showGroupThumbs) .selector-controls {
 
 body:not([lwtheme]) .groupSelector .close:not(:hover):not(:active),
 body[lwtheme] #groupSelector[brighttext] .groupSelector .close:not(:hover):not(:active) {
-	background-image: -moz-image-rect(var(--control-icons), 0, 80, 20, 60);
+	background-image: -moz-image-rect(var(--control-icons-2x), 0, 160, 40, 120);
 }
 
 body:not([lwtheme]) .groupSelector .group-audio:not(:hover):not(:active),
 body[lwtheme] #groupSelector[brighttext] .groupSelector .group-audio:not(:hover):not(:active) {
-	background-image: -moz-image-rect(var(--control-icons), 80, 80, 100, 60);
-}
-
-@media (min-resolution: 1.1dppx) {
-	body:not([lwtheme]) .groupSelector .close:not(:hover):not(:active),
-	body[lwtheme] #groupSelector[brighttext] .groupSelector .close:not(:hover):not(:active) {
-		background-image: -moz-image-rect(var(--control-icons-2x), 0, 160, 40, 120);
-	}
-
-	body:not([lwtheme]) .groupSelector .group-audio:not(:hover):not(:active),
-	body[lwtheme] #groupSelector[brighttext] .groupSelector .group-audio:not(:hover):not(:active) {
-		background-image: -moz-image-rect(var(--control-icons-2x), 160, 160, 200, 120);
-	}
+	background-image: -moz-image-rect(var(--control-icons-2x), 160, 160, 200, 120);
 }
 
 .groupSelector .undo {
@@ -1387,61 +1273,31 @@ body:not(.classic) #actions {
 }
 
 #actions #exit-button {
-	background-image: -moz-image-rect(var(--actions-icons), 0, 18, 18, 0);
+	background-image: -moz-image-rect(var(--actions-icons-2x), 0, 36, 36, 0);
 }
 
 #actions #searchbutton {
-	background-image: -moz-image-rect(var(--actions-icons), 0, 72, 18, 54);
+	background-image: -moz-image-rect(var(--actions-icons-2x), 0, 144, 36, 108);
 }
 
 #actions #optionsbutton {
-	background-image: -moz-image-rect(var(--actions-icons), 0, 36, 18, 18);
+	background-image: -moz-image-rect(var(--actions-icons-2x), 0, 72, 36, 36);
 }
 
 #actions #helpbutton {
-	background-image: -moz-image-rect(var(--actions-icons), 0, 54, 18, 36);
+	background-image: -moz-image-rect(var(--actions-icons-2x), 0, 108, 36, 72);
 }
 
 #actions #classicbutton {
-	background-image: -moz-image-rect(var(--actions-icons), 0, 126, 18, 108);
+	background-image: -moz-image-rect(var(--actions-icons-2x), 0, 252, 36, 216);
 }
 
 #actions #gridbutton {
-	background-image: -moz-image-rect(var(--actions-icons), 0, 108, 18, 90);
+	background-image: -moz-image-rect(var(--actions-icons-2x), 0, 216, 36, 180);
 }
 
 #actions #singlebutton {
-	background-image: -moz-image-rect(var(--actions-icons), 0, 90, 18, 72);
-}
-
-@media (min-resolution: 1.1dppx) {
-	#actions #exit-button {
-		background-image: -moz-image-rect(var(--actions-icons-2x), 0, 36, 36, 0);
-	}
-
-	#actions #searchbutton {
-		background-image: -moz-image-rect(var(--actions-icons-2x), 0, 144, 36, 108);
-	}
-
-	#actions #optionsbutton {
-		background-image: -moz-image-rect(var(--actions-icons-2x), 0, 72, 36, 36);
-	}
-
-	#actions #helpbutton {
-		background-image: -moz-image-rect(var(--actions-icons-2x), 0, 108, 36, 72);
-	}
-
-	#actions #classicbutton {
-		background-image: -moz-image-rect(var(--actions-icons-2x), 0, 252, 36, 216);
-	}
-
-	#actions #gridbutton {
-		background-image: -moz-image-rect(var(--actions-icons-2x), 0, 216, 36, 180);
-	}
-
-	#actions #singlebutton {
-		background-image: -moz-image-rect(var(--actions-icons-2x), 0, 180, 36, 144);
-	}
+	background-image: -moz-image-rect(var(--actions-icons-2x), 0, 180, 36, 144);
 }
 
 #actions .grouped {

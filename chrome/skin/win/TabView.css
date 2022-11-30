@@ -6,20 +6,8 @@
 
 /* tabview toolbar button */
 
-:-moz-any(toolbar, .widget-overflow-list) #tabGroups-tabview-button > .toolbarbutton-icon {
-	/* max-width: 18px; */
+:-moz-any(toolbar, .widget-overflow-list) #tabGroups-tabview-button[cui-areatype="toolbar"] > .toolbarbutton-icon {
 	padding: calc(var(--toolbarbutton-inner-padding) - 1px);
-}
-
-#nav-bar #tabGroups-tabview-button > .toolbarbutton-icon {
-	padding: 2px 6px;
-	max-width: 32px;
-}
-
-@media (-moz-os-version: windows-win10) {
-	#nav-bar #tabGroups-tabview-button > .toolbarbutton-icon {
-		padding: 4px 6px;
-	}
 }
 
 @media (-moz-windows-theme: luna-silver) and (max-resolution: 1dppx) {

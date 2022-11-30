@@ -6,30 +6,15 @@
 
 /* tabview toolbar button */
 
-@media not all and (min-resolution: 1.1dppx) {
-	.tabGroups-icon {
-		-moz-image-region: rect(0, 18px, 18px, 0);
-	}
-	.tabGroups-icon:hover:active:not([disabled="true"]):not([cui-areatype="menu-panel"]) {
-		-moz-image-region: rect(18px, 18px, 36px, 0);
-	}
-	#tabGroups-tabview-button[cui-areatype="menu-panel"],
-	toolbarpaletteitem[place="palette"] > #tabGroups-tabview-button {
-		-moz-image-region: rect(0, 32px, 32px, 0);
-	}
+.tabGroups-icon {
+	-moz-image-region: rect(0, 36px, 36px, 0);
 }
-
-@media (min-resolution: 1.1dppx) {
-	.tabGroups-icon {
-		-moz-image-region: rect(0, 36px, 36px, 0);
-	}
-	.tabGroups-icon:hover:active:not([disabled="true"]):not([cui-areatype="menu-panel"]) {
-		-moz-image-region: rect(36px, 36px, 72px, 0);
-	}
-	#tabGroups-tabview-button[cui-areatype="menu-panel"],
-	toolbarpaletteitem[place="palette"] > #tabGroups-tabview-button {
-		-moz-image-region: rect(0, 64px, 64px, 0);
-	}
+.tabGroups-icon:hover:active:not([disabled="true"]):not([cui-areatype="panel"]) {
+	-moz-image-region: rect(36px, 36px, 72px, 0);
+}
+#tabGroups-tabview-button[cui-areatype="panel"],
+toolbarpaletteitem[place="palette"] > #tabGroups-tabview-button {
+	-moz-image-region: rect(0, 64px, 64px, 0);
 }
 
 :-moz-any(toolbar, .widget-overflow-list) #tabGroups-tabview-button > .toolbarbutton-icon {

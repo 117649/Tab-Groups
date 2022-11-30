@@ -39,13 +39,7 @@
  }
  
  .tabGroups-quickaccess .loading {
-	 background-image: url("chrome://global/skin/icons/loading.png");
- }
- 
- @media (min-resolution: 1.1dppx) {
-	 .tabGroups-quickaccess .loading {
-		 background-image: url("chrome://global/skin/icons/loading@2x.png");
-	 }
+	 background-image: url("chrome://global/skin/icons/loading@2x.png");
  }
  
  .quickaccess-contents toolbarbutton,
@@ -181,12 +175,6 @@
  }
  
  .tabGroups-quickaccess-panel-settings {
-	 list-style-image: url("chrome://tabgroups/skin/settings.png");
- }
- 
- @media (min-resolution: 1.1dppx) {
-	 .tabGroups-quickaccess-panel-settings {
-		 list-style-image: url("chrome://tabgroups/skin/settings@2x.png");
-	 }
+	 list-style-image: url("chrome://tabgroups/skin/settings@2x.png");
  }
  
