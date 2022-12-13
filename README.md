@@ -1,5 +1,3 @@
-Fixed for FF dev up to 90!! Its runing and buggy but its kicking at least!!
-
 You need install this first for it to run: [userChromeJS](https://github.com/xiaoxiaoflood/firefox-scripts) or [bootstrapLoader](https://github.com/xiaoxiaoflood/firefox-scripts/tree/master/extensions/bootstrapLoader)
 
 DO NOT USE THE userChromeJS AND bootstrapLoader AT SAME TIME!!! WHICH WILL CAUSE A DOUBLE LOAD OF THE ADDON AND EFFECTIVELY UNLOAD ADDON.
