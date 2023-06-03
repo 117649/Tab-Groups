@@ -25,7 +25,7 @@ toolbarpaletteitem[place="palette"] > #tabGroups-tabview-button {
 }
 
 #tabGroups-tabview-button[showGroupTitle][cui-areatype="toolbar"] > .toolbarbutton-text {
-	display: -moz-box;
+	display: block;
 }
 
 #tabGroups-tabview-button[showGroupTitle][cui-areatype="toolbar"]:not([overflowedItem="true"]) > .toolbarbutton-icon {

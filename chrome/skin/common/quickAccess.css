@@ -14,6 +14,7 @@
  .tabGroups-quickaccess::part(arrowcontent),
  .tabGroups-quickaccess::part(content) {
 	 -moz-box-orient: vertical;
+	 flex-direction: column;
  }
  
  .tabGroups-quickaccess textbox,
@@ -31,6 +32,7 @@
 	 background-color: transparent;
 	 color: inherit;
 	 height: 24px;
+	 z-index: 1;
  }
  
  .tabGroups-quickaccess .loading {
