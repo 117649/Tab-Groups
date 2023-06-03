@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 html:not(#main-window)[tabGroups_UUID][tabGroups_Version] scrollbar {
-	-moz-appearance: none !important;
+	/* -moz-appearance: none !important; */
 	position: relative !important;
 	background-color: transparent !important;
 	background-image: none !important;
@@ -26,11 +26,11 @@ html:not(#main-window)[tabGroups_UUID][tabGroups_Version] scrollbar[orient="hori
 }
 
 html:not(#main-window)[tabGroups_UUID][tabGroups_Version] scrollbar slider {
-	-moz-appearance: none !important;
+	/* -moz-appearance: none !important; */
 }
 
 html:not(#main-window)[tabGroups_UUID][tabGroups_Version] scrollbar thumb {
-	-moz-appearance: none !important;
+	/* -moz-appearance: none !important; */
 	background-color: var(--hover-color) !important;
 	border-width: 0px !important;
 	border-radius: 3px !important;
