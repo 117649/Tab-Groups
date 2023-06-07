@@ -5,5 +5,5 @@
 @namespace url(http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul);
 
 .tabGroups-quickaccess-panel-footer toolbarseparator {
-	-moz-appearance: none !important;
+	/* -moz-appearance: none !important; */
 }
