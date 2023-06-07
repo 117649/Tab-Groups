@@ -2074,7 +2074,7 @@ Modules.LOADMODULE = function() {
 	Browsers.register(Overlays, 'SidebarUnloaded');
 	Observers.add(Overlays, 'window-overlayed');
 
-	Piggyback.add('Overlays', CUIBackstage.CustomizableUIInternal, 'registerToolbarNode', Overlays.registerToolbarNode);
+	// Piggyback.add('Overlays', CUIBackstage.CustomizableUIInternal, 'registerToolbarNode', Overlays.registerToolbarNode);
 };
 
 Modules.UNLOADMODULE = function() {
@@ -2093,7 +2093,7 @@ Modules.UNLOADMODULE = function() {
 		Overlays.unloadAll(aWindow);
 	});
 
-	Piggyback.revert('Overlays', CUIBackstage.CustomizableUIInternal, 'registerToolbarNode');
+	// Piggyback.revert('Overlays', CUIBackstage.CustomizableUIInternal, 'registerToolbarNode');
 
 	delete Globals.widgets;
 };

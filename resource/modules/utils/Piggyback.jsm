@@ -166,86 +166,86 @@ Modules.LOADMODULE = function() {
 
 	// CustomizableUI is a special case, as CustomizableUIInternal is frozen and not exported
 	self.CUIBackstage = ChromeUtils.import("resource:///modules/CustomizableUI.jsm", self);
-	CUIBackstage[Piggyback._obj] = {
-		replaceInternal: function(objs) {
-			if(!CUIBackstage.__CustomizableUIInternal) {
-				CUIBackstage.__CustomizableUIInternal = CUIBackstage.CustomizableUIInternal;
+	// CUIBackstage[Piggyback._obj] = {
+	// 	replaceInternal: function(objs) {
+	// 		if(!CUIBackstage.__CustomizableUIInternal) {
+	// 			CUIBackstage.__CustomizableUIInternal = CUIBackstage.CustomizableUIInternal;
 
-				var CUIInternalNew = {};
-				for(var p in CUIBackstage.CustomizableUIInternal) {
-					if(CUIBackstage.CustomizableUIInternal.hasOwnProperty(p)) {
-						var propGetter = CUIBackstage.CustomizableUIInternal.__lookupGetter__(p);
-						if(propGetter) {
-							CUIInternalNew.__defineGetter__(p, propGetter.bind(CUIBackstage.__CustomizableUIInternal));
-						} else {
-							CUIInternalNew[p] = CUIBackstage.CustomizableUIInternal[p].bind(CUIBackstage.__CustomizableUIInternal);
-						}
-					}
-				}
-				CUIBackstage.CustomizableUIInternal = CUIInternalNew;
-				CUIBackstage[Piggyback._obj].active = true;
+	// 			var CUIInternalNew = {};
+	// 			for(var p in CUIBackstage.CustomizableUIInternal) {
+	// 				if(CUIBackstage.CustomizableUIInternal.hasOwnProperty(p)) {
+	// 					var propGetter = CUIBackstage.CustomizableUIInternal.__lookupGetter__(p);
+	// 					if(propGetter) {
+	// 						CUIInternalNew.__defineGetter__(p, propGetter.bind(CUIBackstage.__CustomizableUIInternal));
+	// 					} else {
+	// 						CUIInternalNew[p] = CUIBackstage.CustomizableUIInternal[p].bind(CUIBackstage.__CustomizableUIInternal);
+	// 					}
+	// 				}
+	// 			}
+	// 			CUIBackstage.CustomizableUIInternal = CUIInternalNew;
+	// 			CUIBackstage[Piggyback._obj].active = true;
 
-				// we have to make sure any other modifications from other add-ons stay in place if we're re-replacing CUIInternal
-				if(objs) {
-					for(var id in objs) {
-						for(var [aName, bName] of objs[id]) {
-							for(var [aMethod, bMethod] of bName) {
-								Piggyback.add(aName, CUIBackstage.CustomizableUIInternal, aMethod, bMethod.method, bMethod.mode, bMethod);
-							}
-						}
-					}
-				}
-			}
-		},
-		active: false
-	};
+	// 			// we have to make sure any other modifications from other add-ons stay in place if we're re-replacing CUIInternal
+	// 			if(objs) {
+	// 				for(var id in objs) {
+	// 					for(var [aName, bName] of objs[id]) {
+	// 						for(var [aMethod, bMethod] of bName) {
+	// 							Piggyback.add(aName, CUIBackstage.CustomizableUIInternal, aMethod, bMethod.method, bMethod.mode, bMethod);
+	// 						}
+	// 					}
+	// 				}
+	// 			}
+	// 		}
+	// 	},
+	// 	active: false
+	// };
 
-	CUIBackstage[Piggyback._obj].replaceInternal();
+	// CUIBackstage[Piggyback._obj].replaceInternal();
 
-	if(!CUIBackstage.__PiggybackIds) {
-		CUIBackstage.__PiggybackIds = objName;
-	} else if(CUIBackstage.__PiggybackIds.indexOf(objName) == -1) { // should always be the case if it doesn't exist
-		var ex = CUIBackstage.__PiggybackIds.split(' ');
-		ex.push(objName);
-		CUIBackstage.__PiggybackIds = ex.join(' ');
-	}
+	// if(!CUIBackstage.__PiggybackIds) {
+	// 	CUIBackstage.__PiggybackIds = objName;
+	// } else if(CUIBackstage.__PiggybackIds.indexOf(objName) == -1) { // should always be the case if it doesn't exist
+	// 	var ex = CUIBackstage.__PiggybackIds.split(' ');
+	// 	ex.push(objName);
+	// 	CUIBackstage.__PiggybackIds = ex.join(' ');
+	// }
 };
 
 Modules.UNLOADMODULE = function() {
 	if(self.isContent) { return; }
 
-	var ids = CUIBackstage.__PiggybackIds ? CUIBackstage.__PiggybackIds.split(' ') : [];
+	// var ids = CUIBackstage.__PiggybackIds ? CUIBackstage.__PiggybackIds.split(' ') : [];
 
-	// we really need to put everything back as it was!
-	if(ids.indexOf(objName) > -1) {
-		var active = CUIBackstage[Piggyback._obj].active;
+	// // we really need to put everything back as it was!
+	// if(ids.indexOf(objName) > -1) {
+	// 	var active = CUIBackstage[Piggyback._obj].active;
 
-		delete CUIBackstage[Piggyback._obj];
-		ids.splice(ids.indexOf(objName), 1);
-		if(ids.length > 0) {
-			CUIBackstage.__PiggybackIds = ids.join(' ');
-		} else {
-			delete CUIBackstage.__PiggybackIds;
-		}
+	// 	delete CUIBackstage[Piggyback._obj];
+	// 	ids.splice(ids.indexOf(objName), 1);
+	// 	if(ids.length > 0) {
+	// 		CUIBackstage.__PiggybackIds = ids.join(' ');
+	// 	} else {
+	// 		delete CUIBackstage.__PiggybackIds;
+	// 	}
 
-		var internalObjs = null;
-		if(active) {
-			// we have to make sure any other modifications from other add-ons stay in place
-			if(CUIBackstage.CustomizableUIInternal.__PiggybackIds) {
-				var internalIds = CUIBackstage.CustomizableUIInternal.__PiggybackIds.split(' ');
-				internalObjs = {};
-				for(var id of internalIds) {
-					internalObjs[id] = CUIBackstage.CustomizableUIInternal['_Piggyback_'+id];
-				}
-			}
+	// 	var internalObjs = null;
+	// 	if(active) {
+	// 		// we have to make sure any other modifications from other add-ons stay in place
+	// 		if(CUIBackstage.CustomizableUIInternal.__PiggybackIds) {
+	// 			var internalIds = CUIBackstage.CustomizableUIInternal.__PiggybackIds.split(' ');
+	// 			internalObjs = {};
+	// 			for(var id of internalIds) {
+	// 				internalObjs[id] = CUIBackstage.CustomizableUIInternal['_Piggyback_'+id];
+	// 			}
+	// 		}
 
-			CUIBackstage.CustomizableUIInternal = CUIBackstage.__CustomizableUIInternal;
-			delete CUIBackstage.__CustomizableUIInternal;
+	// 		CUIBackstage.CustomizableUIInternal = CUIBackstage.__CustomizableUIInternal;
+	// 		delete CUIBackstage.__CustomizableUIInternal;
 
-			// if another add-on is still initialized, make sure it redoes this
-			for(var id of ids) {
-				CUIBackstage['_Piggyback_'+id].replaceInternal(internalObjs);
-			}
-		}
-	}
+	// 		// if another add-on is still initialized, make sure it redoes this
+	// 		for(var id of ids) {
+	// 			CUIBackstage['_Piggyback_'+id].replaceInternal(internalObjs);
+	// 		}
+	// 	}
+	// }
 };
