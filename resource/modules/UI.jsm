@@ -2055,12 +2055,14 @@ this.UI = {
 			});
 		}
 
+		// GroupItems.unsquish(pairs);
 
 		for(let pair of pairs) {
 			if((pair.bounds.left + pair.bounds.width) >= (newPageBounds.left + newPageBounds.width)) pair.bounds.width = (newPageBounds.left + newPageBounds.width) - pair.bounds.left -  3;
 			if((pair.bounds.top + pair.bounds.height) >= (newPageBounds.top + newPageBounds.height)) pair.bounds.height = (newPageBounds.top + newPageBounds.height) - pair.bounds.top -  3;
 			
 			pair.item.setBounds(pair.bounds, true);
+			// pair.item.snap();
 		}
 
 		this._pageBounds = newPageBounds;
