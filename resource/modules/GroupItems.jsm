@@ -1470,6 +1470,9 @@ this.GroupItem.prototype = {
 			this._freezeItemSize();
 		}
 
+		// if(this.children.length && this._activeTab && tabItem.closedManually) {
+		// 	UI.setActive(this);
+		// }
 	},
 
 	// Removes an item from the groupItem.
