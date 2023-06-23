@@ -1742,7 +1742,8 @@ this.TabCanvas.prototype = {
 		};
 
 		// Init the actual promise.
-		this.destroying.promise = new Promise((resolve, reject) => {
+		var P;
+		this.destroying.promise  = P = new Promise((resolve, reject) => {
 			// Store the resolve and reject methods in the deferred object.
 			this.destroying._resolve = resolve;
 			this.destroying._reject = reject;
@@ -1766,9 +1767,9 @@ this.TabCanvas.prototype = {
 				Cu.reportError(ex);
 				this.destroying.reject(ex);
 			}
-		});
+		}).catch(ex => {});
 
-		return this.destroying.promise;
+		return P;
 	},
 
 	destroy: function() {
