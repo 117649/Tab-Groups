@@ -1707,6 +1707,10 @@ this.TabCanvas.prototype = {
 		}
 
 		if (painted) {
+			if(browser._documentURI?.asciiSpec != "about:blank") { // non-blank tab.
+				let cb = new Uint32Array(ctx.getImageData(0, 0, canvas.width, canvas.height).data.buffer);
+				if(cb.filter(x => x != 4294967295).length/cb.length < 0.001) return false; // more then 99.9% of image is white shot is invalid.
+			}
 			// Force persist the first thumb we get, to avoid showing stored black thumbs.
 			// Even though we don't actually persist those, browser-ctrlTab.js always persists the first thumb of a tab when it is first restored,
 			// which, lucky us, can be black if it happens while we're in TabView.
