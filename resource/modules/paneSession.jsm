@@ -828,6 +828,8 @@ this.paneSession = {
 			groupItems.totalNumber = 0;
 		}
 
+		let restoreTabs = [];
+
 		for(let group of importGroups) {
 			// pinned tabs are direct, just append and restore
 			if(group.pinned) {
@@ -837,6 +839,8 @@ this.paneSession = {
 					// these tabs are pinned, so they can't be hidden, make sure this is respected
 					tab._tab.pinned = true;
 					tab._tab.hidden = false;
+
+					restoreTabs.push(tab._tab);
 				}
 				continue;
 			}
@@ -858,21 +862,21 @@ this.paneSession = {
 				// force these tabs hidden, since they belong to newly creative (inactive) groups
 				delete tab._tab.pinned;
 				tab._tab.hidden = true;
+
+				restoreTabs.push(tab._tab);
 			}
 		}
 		
-		let winData = {};
-
-		winData.tabs = importGroups.flatMap(x=>x.tabs).map(tab=>{
-			let tabData = tab._tab
-			if(!tabData.extData) {
-				tabData.extData = {};
-			}
-			tabData.extData[Storage.kTabIdentifier] = JSON.stringify(tabData._tabData);
-			delete tabData._tabData;
-			return tabData;
-		});
-		Storage._scope.SessionStoreInternal.restoreWindow(gWindow,winData,{overwriteTabs: false, firstWindow: false});
+		Storage._scope.SessionStoreInternal.restoreWindow(gWindow, {
+			tabs: restoreTabs.map(tabData => {
+				if (!tabData.extData) {
+					tabData.extData = {};
+				}
+				tabData.extData[Storage.kTabIdentifier] = JSON.stringify(tabData._tabData);
+				delete tabData._tabData;
+				return tabData;
+			})
+		}, { overwriteTabs: false, firstWindow: false });
 
 		// don't forget to insert back the updated data
 		Storage.saveGroupItemsData(gWindow, {
@@ -896,11 +900,11 @@ this.paneSession = {
 		this.importfinishedNotice.scrollIntoView();
 
 		gWindow[objName].TabView._initFrame(() => {
-			this._window[objName].GroupItems.resumeArrange();
-			this._window[objName].TabItems.resumePainting();
-			this._window[objName].GroupItems.pauseArrange();
-			this._window[objName].TabItems.pausePainting();
-			this._window[objName].TabItems.startHeartbeatHidden();
+			gWindow[objName].TabView._window[objName].GroupItems.resumeArrange();
+			gWindow[objName].TabView._window[objName].TabItems.resumePainting();
+			gWindow[objName].TabView._window[objName].GroupItems.pauseArrange();
+			gWindow[objName].TabView._window[objName].TabItems.pausePainting();
+			gWindow[objName].TabView._window[objName].TabItems.startHeartbeatHidden();
 		});
 	},
 
