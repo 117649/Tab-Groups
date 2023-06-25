@@ -13,11 +13,10 @@ this.__defineGetter__('LightweightThemeManager', function() {
 });
 
 this.brightText = {
-	permanent: false,
 	dark: false,
 
 	useDarkTheme: function() {
-		return this.permanent || this.dark;
+		return this.dark;
 	},
 
 	observe: function(aSubject, aTopic, aData) {
@@ -30,8 +29,6 @@ this.brightText = {
 	},
 
 	check: function(aDocument) {
-		if(this.permanent) { return; }
-
 		// We only need to listen for changes when a(ny) window opens up the groups view.
 		Prefs.listen('forceBrightText', brightText);
 		Observers.add(brightText, "lightweight-theme-styling-update");
@@ -39,19 +36,15 @@ this.brightText = {
 		// The user can choose to force a theme on the frame.
 		switch(Prefs.forceBrightText) {
 			case 1:
-				Styles.unload('brightText');
 				this.unload();
 				break;
 
 			case 2:
-				Styles.unload('brightText');
 				this.load();
 				break;
 
 			case 0:
 			default:
-				Styles.unload('brightText');
-
 				if(Services.appinfo.chromeColorSchemeIsDark) {
 					this.load();
 				} else {
@@ -88,5 +81,4 @@ Modules.UNLOADMODULE = function() {
 
 	Styles.unload('FTDeepDark-theme');
 	brightText.unload();
-	Styles.unload('brightText');
 };
