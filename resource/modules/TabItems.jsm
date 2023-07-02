@@ -1542,7 +1542,9 @@ this.TabItems = {
 this.TabCanvas = function(tabItem) {
 	this.tabItem = tabItem;
 	this.tab = tabItem.tab;
+	if(tabItem.tabCanvas) return;
 	tabItem.tabCanvas = this;
+	[...tabItem.thumb.getElementsByTagName("canvas")].forEach(x=>x.remove());
 
 	this.destroying = null;
 
@@ -1632,95 +1634,105 @@ this.TabCanvas.prototype = {
 		});
 	},
 
-	update:async function() {
-		// If this canvas has started to be destroyed, stop it, it's better to update it than to create a new one.
-		if(this.destroying) {
-			this.destroying.reject();
-		}
-
-		let canvas = this.canvas;
-		let browser = this.tab.linkedBrowser;
-
-		// Changing the dims of a canvas will clear it, so we don't want to do do this to a canvas we're currently displaying.
-		// So grab a new thumbnail at the new dims and then copy it over to the displayed canvas.
-		let size = this.getSize();
-		let dimsChanged = !this.canvas.parentNode || this.canvas.width != size.x || this.canvas.height != size.y;
-		if(dimsChanged) {
-			canvas = TabItems.canvasFragment();
-			canvas.width = size.x;
-			canvas.height = size.y;
-		}
-		let ctx = canvas.getContext('2d');
-
-		// We need to account for the size of the actual page when drawing its thumb, if it's smaller than the canvas we end up with black borders.
-		let contentSize = await this.getContentSize();
-		let scaleX = 1;
-		let scaleY = 1;
-		if(size.x > contentSize.width && contentSize.width > 0) {
-			scaleX = Math.ceil(size.x / contentSize.width *1000) /1000;
-		}
-		if(size.y > contentSize.height && contentSize.height > 0) {
-			scaleY = Math.ceil(size.y / contentSize.height *1000) /1000;
-		}
-		if(scaleX != 1 || scaleY != 1) {
-			ctx.scale(scaleX, scaleY);
-		}
-
-		await PageThumbs.captureToCanvas(browser, canvas);
-
-		ctx = this.canvas.getContext('2d');
-		let hasHadThumb = this.tabItem._hasHadThumb;
-		let painted = !dimsChanged;
-
-		if (dimsChanged) {
-			// In non-e10s, many times the first canvas returned is completely black, probably because it tries to paint it too soon.
-			// I haven't been able to figure out if this a problem with how soon we are trying to paint, or a problem with PageThumbs itself,
-			// although it seems like snapshotCanvas in PageThumbUtils.createSnapshotThumbnail() is black already.
-			// This doesn't seem to happen in e10s with remote browsers.
-			// (This is not about local pages, but remote pages on non-remote browsers.)
-			// The toDataURL() call is a little expensive, so lets try to only use it when it can actually make a difference;
-			let isBlack = !browser.isRemoteBrowser
-				&& !this.canvas.parentNode
-				&& !hasHadThumb
-				&& canvas.toDataURL() == UICache.blackCanvas(canvas);
-			if (!isBlack) {
-				// We only append the canvas to the DOM once we paint it, to avoid showing a black/blank canvas while it's being painted.
-				if (!this.canvas.parentNode) {
-					this.tabItem.thumb.appendChild(this.canvas);
-					this.tabItem._hasHadThumb = true;
-				}
-				this.canvas.width = size.x;
-				this.canvas.height = size.y;
-				try {
-					ctx.drawImage(canvas, 0, 0);
-					painted = true;
-				}
-				catch (ex) {
-					// Can't draw if the canvas created by page thumbs isn't valid. This can happen during shutdown.
-				}
+	update: function () {
+		if (!this.updating) this.updating = {
+			_rejects: [],
+			reject: () => {
+				this.updating._rejects.forEach(x => x());
+				this.updating = null;
 			}
 		}
 
-		// Make sure we reset the canvas scale factor, in case we had to change it above to consider the page's zoom.
-		if (scaleX != 1 || scaleY != 1) {
-			ctx.setTransform(1, 0, 0, 1, 0, 0);
-		}
-
-		if (painted) {
-			if(browser._documentURI?.asciiSpec != "about:blank") { // non-blank tab.
-				let cb = new Uint32Array(ctx.getImageData(0, 0, canvas.width, canvas.height).data.buffer);
-				if(cb.filter(x => x != 4294967295).length/cb.length < 0.001) return false; // more then 99.9% of image is white shot is invalid.
+		return new Promise(async (resolve, reject) => {
+			this.updating._rejects.push(reject);
+			// If this canvas has started to be destroyed, stop it, it's better to update it than to create a new one.
+			if (this.destroying) {
+				this.destroying.reject();
 			}
-			// Force persist the first thumb we get, to avoid showing stored black thumbs.
-			// Even though we don't actually persist those, browser-ctrlTab.js always persists the first thumb of a tab when it is first restored,
-			// which, lucky us, can be black if it happens while we're in TabView.
-			// See https://dxr.mozilla.org/mozilla-central/source/browser/base/content/browser-ctrlTab.js#51.
-			let forceStale = !hasHadThumb;
-			this.persist(browser, forceStale);
-		}
 
-		return painted;
+			let canvas = this.canvas;
+			let browser = this.tab.linkedBrowser;
 
+			// Changing the dims of a canvas will clear it, so we don't want to do do this to a canvas we're currently displaying.
+			// So grab a new thumbnail at the new dims and then copy it over to the displayed canvas.
+			let size = this.getSize();
+			let dimsChanged = !this.canvas.parentNode || this.canvas.width != size.x || this.canvas.height != size.y;
+			if (dimsChanged) {
+				canvas = TabItems.canvasFragment();
+				canvas.width = size.x;
+				canvas.height = size.y;
+			}
+			let ctx = canvas.getContext('2d');
+
+			// We need to account for the size of the actual page when drawing its thumb, if it's smaller than the canvas we end up with black borders.
+			let contentSize = await this.getContentSize();
+			let scaleX = 1;
+			let scaleY = 1;
+			if (size.x > contentSize.width && contentSize.width > 0) {
+				scaleX = Math.ceil(size.x / contentSize.width * 1000) / 1000;
+			}
+			if (size.y > contentSize.height && contentSize.height > 0) {
+				scaleY = Math.ceil(size.y / contentSize.height * 1000) / 1000;
+			}
+			if (scaleX != 1 || scaleY != 1) {
+				ctx.scale(scaleX, scaleY);
+			}
+
+			await PageThumbs.captureToCanvas(browser, canvas);
+
+			ctx = this.canvas.getContext('2d');
+			let hasHadThumb = this.tabItem._hasHadThumb;
+			let painted = !dimsChanged;
+
+			if (dimsChanged) {
+				// In non-e10s, many times the first canvas returned is completely black, probably because it tries to paint it too soon.
+				// I haven't been able to figure out if this a problem with how soon we are trying to paint, or a problem with PageThumbs itself,
+				// although it seems like snapshotCanvas in PageThumbUtils.createSnapshotThumbnail() is black already.
+				// This doesn't seem to happen in e10s with remote browsers.
+				// (This is not about local pages, but remote pages on non-remote browsers.)
+				// The toDataURL() call is a little expensive, so lets try to only use it when it can actually make a difference;
+				let isBlack = !browser.isRemoteBrowser
+					&& !this.canvas.parentNode
+					&& !hasHadThumb
+					&& canvas.toDataURL() == UICache.blackCanvas(canvas);
+				if (!isBlack) {
+					// We only append the canvas to the DOM once we paint it, to avoid showing a black/blank canvas while it's being painted.
+					if (!this.canvas.parentNode) {
+						this.tabItem.thumb.appendChild(this.canvas);
+						this.tabItem._hasHadThumb = true;
+					}
+					this.canvas.width = size.x;
+					this.canvas.height = size.y;
+					try {
+						ctx.drawImage(canvas, 0, 0);
+						painted = true;
+					}
+					catch (ex) {
+						// Can't draw if the canvas created by page thumbs isn't valid. This can happen during shutdown.
+					}
+				}
+			}
+
+			// Make sure we reset the canvas scale factor, in case we had to change it above to consider the page's zoom.
+			if (scaleX != 1 || scaleY != 1) {
+				ctx.setTransform(1, 0, 0, 1, 0, 0);
+			}
+
+			if (painted) {
+				if (browser._documentURI?.asciiSpec != "about:blank") { // non-blank tab.
+					let cb = new Uint32Array(ctx.getImageData(0, 0, canvas.width, canvas.height).data.buffer);
+					if (cb.filter(x => x != 4294967295).length / cb.length < 0.001) return false; // more then 99.9% of image is white shot is invalid.
+				}
+				// Force persist the first thumb we get, to avoid showing stored black thumbs.
+				// Even though we don't actually persist those, browser-ctrlTab.js always persists the first thumb of a tab when it is first restored,
+				// which, lucky us, can be black if it happens while we're in TabView.
+				// See https://dxr.mozilla.org/mozilla-central/source/browser/base/content/browser-ctrlTab.js#51.
+				let forceStale = !hasHadThumb;
+				this.persist(browser, forceStale);
+			}
+
+			return painted;
+		}).catch(e => { }).finally(_ => { if (this.updating) this.updating._rejects = this.updating._rejects.filter(x => x) });
 	},
 
 	toImage: function() {
@@ -1773,7 +1785,9 @@ this.TabCanvas.prototype = {
 	},
 
 	destroy: function() {
+		this?.updating?.reject();
 		this.canvas.remove();
 		this.tabItem.tabCanvas = null;
+		this.tabItem = null;
 	}
 };
