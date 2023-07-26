@@ -1507,7 +1507,7 @@ this.UI = {
 		this._browserKeys = [];
 		this._browserKeysNotInInput = new Set([
 			"newNavigator", "closeWindow", "undoCloseWindow",
-			"newNavigatorTab", "close", "closeNotMac", "undoCloseTab",
+			"newNavigatorTab", "close", "closeNotMac", "undoCloseTab", "restoreLastClosedTabOrWindowOrSession",
 			"moveTabForward", "moveTabBackward", "moveTabToStart", "moveTabToEnd"
 		]);
 
