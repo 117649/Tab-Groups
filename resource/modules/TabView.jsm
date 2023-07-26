@@ -272,7 +272,7 @@ this.TabView = {
 
 		Piggyback.add('TabView', window, 'undoCloseTab', (aIndex) => {
 			let tab = null;
-			if(SessionStore.getClosedTabCount(window) > (aIndex || 0)) {
+			if(SessionStore.getClosedTabCountForWindow(window) > (aIndex || 0)) {
 				// wallpaper patch to prevent an unnecessary blank tab (bug 343895)
 				let blankTabToRemove = null;
 				if(Tabs.length == 1 && window.isTabEmpty(Tabs.selected)) {
