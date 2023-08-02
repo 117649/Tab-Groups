@@ -8,7 +8,7 @@
 
 this.__defineGetter__('LightweightThemeManager', function() {
 	delete this.LightweightThemeManager;
-	Cu.import("resource://gre/modules/LightweightThemeManager.jsm", this);
+	ChromeUtils.importESModule("resource://gre/modules/LightweightThemeManager.sys.mjs", this);
 	return this.LightweightThemeManager;
 });
 

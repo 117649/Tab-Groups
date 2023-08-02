@@ -96,7 +96,7 @@ function stopAddon(window) {
 // Don't rely on other modules being loaded here, make sure this can do the backup by itself.
 async function backupCurrentSession(prefixSeg = '-update.js-', timesuffix = null) {
 	let tmp = {};
-	Cu.import("resource:///modules/sessionstore/SessionStore.jsm", tmp);
+	ChromeUtils.importESModule("resource:///modules/sessionstore/SessionStore.sys.mjs", tmp);
 	let window = Windows.getEnumerator('navigator:browser').getNext()
 
 	Cu.importGlobalProperties(['TextEncoder'])

@@ -4,9 +4,9 @@
 
 // VERSION 1.3.12
 
-XPCOMUtils.defineLazyModuleGetter(this, "PageThumbs", "resource://gre/modules/PageThumbs.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PageThumbsStorage", "resource://gre/modules/PageThumbs.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PageThumbUtils", "resource://gre/modules/PageThumbUtils.jsm");
+ChromeUtils.defineESModuleGetters(this, {PageThumbs: "resource://gre/modules/PageThumbs.sys.mjs",
+	PageThumbsStorage: "resource://gre/modules/PageThumbs.sys.mjs",
+	PageThumbUtils: "resource://gre/modules/PageThumbUtils.sys.mjs"});
 Cu.importGlobalProperties(['FileReader']);
 this.__defineGetter__('URL', function() { return window.URL; });
 

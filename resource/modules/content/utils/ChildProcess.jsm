@@ -41,7 +41,6 @@
 //	see DOMContentLoaded.add
 
 var {classes: Cc, interfaces: Ci, utils: Cu, manager: Cm} = Components;
-Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "console", "resource://gre/modules/Console.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PluralForm", "resource://gre/modules/PluralForm.jsm");

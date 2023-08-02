@@ -7,11 +7,6 @@ Modules.UTILS = true;
 Modules.BASEUTILS = true;
 
 Components.utils.importGlobalProperties(['XMLHttpRequest']);
-ChromeUtils.defineModuleGetter(
-	this,
-	"Services",
-	"resource://gre/modules/Services.jsm"
-  );
 
 // xmlHttpRequest(url, callback, method) - aid for quickly using the nsIXMLHttpRequest interface
 //	url - (string) to send the request

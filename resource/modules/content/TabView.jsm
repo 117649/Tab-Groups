@@ -4,7 +4,7 @@
 
 // VERSION 1.1.1
 
-XPCOMUtils.defineLazyModuleGetter(this, "PageThumbUtils", "resource://gre/modules/PageThumbUtils.jsm");
+ChromeUtils.defineESModuleGetters(this, {PageThumbUtils: "resource://gre/modules/PageThumbUtils.sys.mjs"});
 
 this.TabView = {
 	// This module will only be initialized in frame scripts from windows that need it.

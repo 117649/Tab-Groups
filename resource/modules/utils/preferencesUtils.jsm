@@ -16,8 +16,7 @@ XPCOMUtils.defineLazyGetter(this, "gWindow", function() {
 			.QueryInterface(Ci.nsIInterfaceRequestor)
 			.getInterface(Ci.nsIDOMWindow);
 });
-XPCOMUtils.defineLazyModuleGetter(this, "OS", "resource://gre/modules/osfile.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "FileUtils", "resource://gre/modules/FileUtils.jsm");
+ChromeUtils.defineESModuleGetters(this, {FileUtils: "resource://gre/modules/FileUtils.sys.mjs"});
 Cu.importGlobalProperties(['TextEncoder']);
 Cu.importGlobalProperties(['TextDecoder']);
 

@@ -73,16 +73,15 @@ var addonUris = {
 };
 
 var {classes: Cc, interfaces: Ci, utils: Cu, manager: Cm, results: Cr} = Components;
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+var { XPCOMUtils } = ChromeUtils.importESModule("resource://gre/modules/XPCOMUtils.sys.mjs");
 
-XPCOMUtils.defineLazyModuleGetter(this, "AddonManager", "resource://gre/modules/AddonManager.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils", "resource://gre/modules/PlacesUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PluralForm", "resource://gre/modules/PluralForm.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils", "resource://gre/modules/PrivateBrowsingUtils.jsm");
+ChromeUtils.defineESModuleGetters(this, {AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
+	PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
+	PluralForm: "resource://gre/modules/PluralForm.sys.mjs",
+	PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
 
 // easy and useful helpers for when I'm debugging
-XPCOMUtils.defineLazyModuleGetter(this, "console", "resource://gre/modules/Console.jsm");
+	console: "resource://gre/modules/Console.sys.mjs"});
 function LOG(str) {
 	if(!str) { str = typeof(str)+': '+str; }
 	console.log(objName+' :: CHROME :: '+str);
