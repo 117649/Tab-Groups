@@ -77,7 +77,6 @@ var { XPCOMUtils } = ChromeUtils.importESModule("resource://gre/modules/XPCOMUti
 
 ChromeUtils.defineESModuleGetters(this, {AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
 	PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
-	PluralForm: "resource://gre/modules/PluralForm.sys.mjs",
 	PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
 
 // easy and useful helpers for when I'm debugging
@@ -285,6 +284,7 @@ async function startup(aData, aReason) {
 	Services.scriptloader.loadSubScript(defaultsURI, this);
 
 	// Get the utils.jsm module into our sandbox
+	XPCOMUtils.defineLazyModuleGetter(this, "PluralForm", "chrome://"+objPathString+"-resource/content/modules/utils/PluralForm.jsm");
 	Services.scriptloader.loadSubScript("chrome://"+objPathString+"-resource/content/modules/utils/Modules.jsm", this);
 	Services.scriptloader.loadSubScript("chrome://"+objPathString+"-resource/content/modules/utils/sandboxUtilsPreload.jsm", this);
 	Modules.load("utils/sandboxUtils");
