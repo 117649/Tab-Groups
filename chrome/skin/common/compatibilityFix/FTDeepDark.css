@@ -62,8 +62,8 @@
 	.expandedTray,
 	.undo:not(.inGroupSelector),
 	#actions .grouped,
-	body:-moz-any(.single,.grid,.classic) .groupItem,
-	body:-moz-any(.single,.grid,.classic) #actions {
+	body:is(.single,.grid,.classic) .groupItem,
+	body:is(.single,.grid,.classic) #actions {
 		border-color: rgb(77,77,77);
 	}
 

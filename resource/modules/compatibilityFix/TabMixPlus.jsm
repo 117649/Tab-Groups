@@ -148,20 +148,20 @@ this.TabMixPlus = {
 		}
 
 		sscode += '\
-				.tab-container:not(.noThumbs):not(.onlyIcons) .tab:not(.stacked):-moz-any('+bothSelectors+') .favicon-container {\n\
+				.tab-container:not(.noThumbs):not(.onlyIcons) .tab:not(.stacked):is('+bothSelectors+') .favicon-container {\n\
 					top: 0 !important;\n\
 					width: 27px !important;\n\
 					height: 27px !important;\n\
 				}\n\
-				.tab-container:not(.noThumbs):not(.onlyIcons) .tab:not(.stacked):-moz-any('+bothSelectors+') .favicon-container:-moz-locale-dir(ltr) {\n\
+				.tab-container:not(.noThumbs):not(.onlyIcons) .tab:not(.stacked):is('+bothSelectors+') .favicon-container:-moz-locale-dir(ltr) {\n\
 					left: 0 !important;\n\
 					border-bottom-right-radius: 0.4em !important;\n\
 				}\n\
-				.tab-container:not(.noThumbs):not(.onlyIcons) .tab:not(.stacked):-moz-any('+bothSelectors+') .favicon-container:-moz-locale-dir(rtl) {\n\
+				.tab-container:not(.noThumbs):not(.onlyIcons) .tab:not(.stacked):is('+bothSelectors+') .favicon-container:-moz-locale-dir(rtl) {\n\
 					right: 0 !important;\n\
 					border-bottom-left-radius: 0.4em !important;\n\
 				}\n\
-				.tab-container:not(.noThumbs):not(.onlyIcons) .tab:not(.stacked):-moz-any('+bothSelectors+') .favicon {\n\
+				.tab-container:not(.noThumbs):not(.onlyIcons) .tab:not(.stacked):is('+bothSelectors+') .favicon {\n\
 					position: relative;\n\
 					top: 0 !important;\n\
 					left: 0 !important;\n\

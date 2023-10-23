@@ -6,7 +6,7 @@
 
 /* tabview toolbar button */
 
-:-moz-any(toolbar, .widget-overflow-list) #tabGroups-tabview-button[cui-areatype="toolbar"] > .toolbarbutton-icon {
+:is(toolbar, .widget-overflow-list) #tabGroups-tabview-button[cui-areatype="toolbar"] > .toolbarbutton-icon {
 	padding: calc(var(--toolbarbutton-inner-padding) - 1px);
 }
 
