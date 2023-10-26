@@ -3,13 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #categories .category image { 
-	--panes: url("chrome://tabgroups/skin/panes@2x.png");
+	background-image: url("chrome://tabgroups/skin/panes@2x.png");
 	background-size: cover;
- }
-#categories .category[value="paneAbout"] image { background-image: -moz-image-rect(var(--panes), 0, 48, 48, 0); }
-#categories .category[value="paneTabGroups"] image { background-image: -moz-image-rect(var(--panes), 0, 96, 48, 48); }
-#categories .category[value="paneHowTo"] image { background-image: -moz-image-rect(var(--panes), 0, 144, 48, 96); }
-#categories .category[value="paneSession"] image { background-image: -moz-image-rect(var(--panes), 0, 192, 48, 144); }
+}
+#categories .category[value="paneTabGroups"] image { background-position-x: -24px; }
+#categories .category[value="paneHowTo"] image { background-position-x: -48px; }
+#categories .category[value="paneSession"] image { background-position-x: -72px; }
 
 #paneTabGroups-shortcut label.stretch {
 	-moz-margin-end: 1.5em !important;

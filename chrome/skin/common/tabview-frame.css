@@ -158,94 +158,122 @@ html.thumbing body.single #content {
 	background-repeat: no-repeat;
 	background-position: center center;
 	background-size: 20px 20px;
+
+	display: flex;
+	justify-content: center;
+	align-items: center;
 }
 
-.close {
-	background-image: -moz-image-rect(var(--control-icons-2x), 0, 40, 40, 0);
-}
-
-.close:hover {
-	background-image: -moz-image-rect(var(--control-icons-2x), 0, 80, 40, 40);
-}
-
-.close:hover:active {
-	background-image: -moz-image-rect(var(--control-icons-2x), 0, 120, 40, 80);
-}
-
-.group-options {
-	background-image: -moz-image-rect(var(--control-icons-2x), 40, 40, 80, 0);
-}
-
-.group-options:hover {
-	background-image: -moz-image-rect(var(--control-icons-2x), 40, 80, 80, 40);
-}
-
-.group-options:hover:active {
-	background-image: -moz-image-rect(var(--control-icons-2x), 40, 120, 80, 80);
-}
-
-.stackExpander {
-	background-image: -moz-image-rect(var(--control-icons-2x), 80, 40, 120, 0);
-}
-
-.stackExpander:hover {
-	background-image: -moz-image-rect(var(--control-icons-2x), 80, 80, 120, 40);
-}
-
-.stackExpander:hover:active {
-	background-image: -moz-image-rect(var(--control-icons-2x), 80, 120, 120, 80);
-}
-
-.tab-setactive {
-	background-image: -moz-image-rect(var(--control-icons-2x), 120, 40, 160, 0);
-}
-
-.tab-setactive:hover {
-	background-image: -moz-image-rect(var(--control-icons-2x), 120, 80, 160, 40);
-}
-
-.tab-setactive:hover:active {
-	background-image: -moz-image-rect(var(--control-icons-2x), 120, 120, 160, 80);
-}
-
+:is(.close,
+.group-options,
+.stackExpander,
+.tab-setactive,
+.tab-audio,
 .group-audio,
-.tab[soundplaying] .tab-audio {
-	background-image: -moz-image-rect(var(--control-icons-2x), 160, 40, 200, 0);
+#search-mode)::before {
+	display: inline-block;
+	content: "";
+	width: 20px;
+	height: 20px;
+	background-color: transparent;
+	background-size: auto calc(20px * 7);
+	background-image: var(--control-icons-2x);
 }
 
-.group-audio:hover,
-.tab[soundplaying] .tab-audio:hover {
-	background-image: -moz-image-rect(var(--control-icons-2x), 160, 80, 200, 40);
+.close:hover::before {
+	background-position-x: -20px;
 }
 
-.group-audio:hover:active,
-.tab[soundplaying] .tab-audio:hover:active {
-	background-image: -moz-image-rect(var(--control-icons-2x), 160, 120, 200, 80);
+.close:hover:active::before {
+	background-position-x: -40px;
 }
 
-.tab[muted] .tab-audio {
-	background-image: -moz-image-rect(var(--control-icons-2x), 200, 40, 240, 0);
+.group-options::before {
+	background-position-y: -20px;
 }
 
-.tab[muted] .tab-audio:hover {
-	background-image: -moz-image-rect(var(--control-icons-2x), 200, 80, 240, 40);
+.group-options:hover::before {
+	background-position-x: -20px;
+	background-position-y: -20px;
 }
 
-.tab[muted] .tab-audio:hover:active {
-	background-image: -moz-image-rect(var(--control-icons-2x), 200, 120, 240, 80);
+.group-options:hover:active::before {
+	background-position-x: -40px;
+	background-position-y: -20px;
 }
 
-#search-mode {
-	background-image: -moz-image-rect(var(--control-icons-2x), 240, 40, 280, 0);
+.stackExpander::before {
+	background-position-y: -40px;
 }
 
-#search-mode:hover {
-	background-image: -moz-image-rect(var(--control-icons-2x), 240, 80, 280, 40);
+.stackExpander:hover::before {
+	background-position-x: -20px;
+	background-position-y: -40px;
 }
 
-#search-mode:hover:active,
-body[searching="list"] #search-mode:not(:hover) {
-	background-image: -moz-image-rect(var(--control-icons-2x), 240, 120, 280, 80);
+.stackExpander:hover:active::before {
+	background-position-x: -40px;
+	background-position-y: -40px;
+}
+
+.tab-setactive::before {
+	background-position-y: -60px;
+}
+
+.tab-setactive:hover::before {
+	background-position-x: -20px;
+	background-position-y: -60px;
+}
+
+.tab-setactive:hover:active::before {
+	background-position-x: -40px;
+	background-position-y: -60px;
+}
+
+.group-audio::before,
+.tab[soundplaying] .tab-audio::before {
+	background-position-y: -80px;
+}
+
+.group-audio:hover::before,
+.tab[soundplaying] .tab-audio:hover::before {
+	background-position-x: -20px;
+	background-position-y: -80px;
+}
+
+.group-audio:hover:active::before,
+.tab[soundplaying] .tab-audio:hover:active::before {
+	background-position-x: -40px;
+	background-position-y: -80px;
+}
+
+.tab[muted] .tab-audio::before {
+	background-position-y: -100px;
+}
+
+.tab[muted] .tab-audio:hover::before {
+	background-position-x: -20px;
+	background-position-y: -100px;
+}
+
+.tab[muted] .tab-audio:hover:active::before {
+	background-position-x: -40px;
+	background-position-y: -100px;
+}
+
+#search-mode::before {
+	background-position-y: -120px;
+}
+
+#search-mode:hover::before {
+	background-position-x: -20px;
+	background-position-y: -120px;
+}
+
+#search-mode:hover:active::before,
+body[searching="list"] #search-mode:not(:hover)::before {
+	background-position-x: -40px;
+	background-position-y: -120px;
 }
 
 /* Tabs */
@@ -946,14 +974,15 @@ body:not(.showGroupThumbs) .selector-controls {
 	display: flex;
 }
 
-body:not([lwtheme]) .groupSelector .close:not(:hover):not(:active),
-body[lwtheme] #groupSelector[brighttext] .groupSelector .close:not(:hover):not(:active) {
-	background-image: -moz-image-rect(var(--control-icons-2x), 0, 160, 40, 120);
+body:not([lwtheme]) .groupSelector .close:not(:hover):not(:active)::before,
+body[lwtheme] #groupSelector[brighttext] .groupSelector .close:not(:hover):not(:active)::before {
+	background-position-x: -60px;
 }
 
-body:not([lwtheme]) .groupSelector .group-audio:not(:hover):not(:active),
-body[lwtheme] #groupSelector[brighttext] .groupSelector .group-audio:not(:hover):not(:active) {
-	background-image: -moz-image-rect(var(--control-icons-2x), 160, 160, 200, 120);
+body:not([lwtheme]) .groupSelector .group-audio:not(:hover):not(:active)::before,
+body[lwtheme] #groupSelector[brighttext] .groupSelector .group-audio:not(:hover):not(:active)::before {
+	background-position-x: -60px;
+	background-position-y: -100px;
 }
 
 .groupSelector .undo {
@@ -1259,7 +1288,8 @@ body:not(.classic) #actions {
 	height: calc(100% - var(--group-border-width));
 }
 
-#actions input {
+#actions input,
+#actions [type="button"] {
 	background-color: transparent;
 	background-repeat: no-repeat;
 	background-position: 50% 50%;
@@ -1272,32 +1302,45 @@ body:not(.classic) #actions {
 	height: var(--actions-button-height);
 }
 
-#actions #exit-button {
-	background-image: -moz-image-rect(var(--actions-icons-2x), 0, 36, 36, 0);
+#actions div[type="button"] {
+	display: flex;
+	justify-content: center; 
+	align-items: center;
 }
 
-#actions #searchbutton {
-	background-image: -moz-image-rect(var(--actions-icons-2x), 0, 144, 36, 108);
+#actions div[type="button"]::before {
+	display: inline-block;
+	content: "";
+	width: 18px;
+	height: 18px;
+	background-color: transparent;
+	background-size: auto 18px;
+	background-image: var(--actions-icons-2x);
 }
 
-#actions #optionsbutton {
-	background-image: -moz-image-rect(var(--actions-icons-2x), 0, 72, 36, 36);
+#actions #searchbutton::before {
+	background-position-x: -54px;
 }
 
-#actions #helpbutton {
-	background-image: -moz-image-rect(var(--actions-icons-2x), 0, 108, 36, 72);
+#actions #optionsbutton::before {
+	background-position-x: -18px;
 }
 
-#actions #classicbutton {
-	background-image: -moz-image-rect(var(--actions-icons-2x), 0, 252, 36, 216);
+#actions #helpbutton::before {
+	background-position-x: -36px;
 }
 
-#actions #gridbutton {
-	background-image: -moz-image-rect(var(--actions-icons-2x), 0, 216, 36, 180);
+#actions #classicbutton::before {
+	background-position-x: -108px;
 }
 
-#actions #singlebutton {
-	background-image: -moz-image-rect(var(--actions-icons-2x), 0, 180, 36, 144);
+#actions #gridbutton::before {
+	background-position-x: -90px;
+}
+
+#actions #singlebutton::before {
+	background-position-x: -72px;
+	
 }
 
 #actions .grouped {
@@ -1335,6 +1378,7 @@ body.DraggingTab .appTabIcon {
 .expandedTray .tab.focus,
 .expandedTray .tab:hover,
 #actions input:hover,
+#actions [type="button"]:hover,
 #actions input.appTabIcon.activeAppTab,
 .search-result-group .tab.focus,
 body.classic #classicbutton,
