@@ -4,7 +4,7 @@
 
 // VERSION 1.1.0
 
-XPCOMUtils.defineLazyModuleGetter(this, "gSessionManager", "chrome://sessionmanager/content/modules/session_manager.jsm");
+ChromeUtils.defineModuleGetter(this, "gSessionManager", "chrome://sessionmanager/content/modules/session_manager.jsm");
 
 this.SessionManager = {
 	id: '{1280606b-2510-4fe0-97ef-9b5a22eafe30}',

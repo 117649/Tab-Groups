@@ -42,8 +42,10 @@
 
 var {classes: Cc, interfaces: Ci, utils: Cu, manager: Cm} = Components;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "console", "resource://gre/modules/Console.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PluralForm", "chrome://"+objPathString+"-resource/content/modules/utils/PluralForm.jsm");
+XPCOMUtils.defineLazyModuleGetters(this, {
+	console: "resource://gre/modules/Console.jsm",
+	PluralForm: "chrome://" + objPathString + "-resource/content/modules/utils/PluralForm.jsm",
+});
 XPCOMUtils.defineLazyServiceGetter(Services, "navigator", "@mozilla.org/network/protocol;1?name=http", "nsIHttpProtocolHandler");
 
 // See the definition of these in bootstrap.js

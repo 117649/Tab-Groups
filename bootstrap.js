@@ -284,7 +284,7 @@ async function startup(aData, aReason) {
 	Services.scriptloader.loadSubScript(defaultsURI, this);
 
 	// Get the utils.jsm module into our sandbox
-	XPCOMUtils.defineLazyModuleGetter(this, "PluralForm", "chrome://"+objPathString+"-resource/content/modules/utils/PluralForm.jsm");
+	ChromeUtils.defineModuleGetter(this, "PluralForm", "chrome://"+objPathString+"-resource/content/modules/utils/PluralForm.jsm");
 	Services.scriptloader.loadSubScript("chrome://"+objPathString+"-resource/content/modules/utils/Modules.jsm", this);
 	Services.scriptloader.loadSubScript("chrome://"+objPathString+"-resource/content/modules/utils/sandboxUtilsPreload.jsm", this);
 	Modules.load("utils/sandboxUtils");
