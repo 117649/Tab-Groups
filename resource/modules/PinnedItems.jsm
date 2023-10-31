@@ -27,6 +27,10 @@ this.PinnedItems = {
 
 		switch(e.type) {
 			case "TabOpen":
+				if(tab.label == "about:firefoxview-next") {
+					tab.setAttribute("pinned",true);
+					tab.style.display = "none";
+				}
 				if(tab.pinned) {
 					this.add(tab);
 				}
@@ -150,6 +154,13 @@ this.PinnedItems = {
 
 		if(this.icons.has(tab)) {
 			let icon = this.icons.get(tab);
+			//firefox view
+			if (tab.linkedBrowser.contentDocument?.URL == "about:firefoxview-next") {
+				icon.style.backgroundImage = "url('chrome://browser/skin/firefox-view.svg')";
+				icon.style.MozContextProperties = "fill, fill-opacity";
+				icon.style.fill = "var(--toolbarbutton-icon-fill)";
+				return;
+			}
 			let busy = tab.hasAttribute('busy');
 			let progress = tab.hasAttribute('progress');
 			toggleAttribute(icon, 'busy', busy);

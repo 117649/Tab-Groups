@@ -16,11 +16,11 @@ this.Tabs = {
 	},
 
 	get pinned() {
-		return this.all.filter(function(tab) { return tab.pinned; });
+		return this.all.filter(function(tab) { return tab.pinned || tab.linkedBrowser.contentDocument?.URL == "about:firefoxview-next"; });
 	},
 
 	get notPinned() {
-		return this.all.filter(function(tab) { return !tab.pinned; });
+		return this.all.filter(function(tab) { return !tab.pinned && tab.linkedBrowser.contentDocument?.URL != "about:firefoxview-next"; });
 	},
 
 	get numPinned() {

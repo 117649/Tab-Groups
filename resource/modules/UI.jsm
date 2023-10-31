@@ -435,7 +435,7 @@ this.UI = {
 				break;
 
 			case 'TabOpen':
-				if(!tab.pinned && this.isTabViewVisible() && !this._storageBusyCount) {
+				if(!tab.label == "about:firefoxview-next" && !tab.pinned && this.isTabViewVisible() && !this._storageBusyCount) {
 					this._lastOpenedTab = tab;
 				}
 
