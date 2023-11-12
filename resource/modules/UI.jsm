@@ -1528,6 +1528,10 @@ this.UI = {
 		}
 		for(let name of keyArray) {
 			let element = gWindow.document.getElementById("key_" + name);
+			if(!element) {
+				Cu.reportError("missing browser key element: key_" + name);
+				continue;
+			}
 			let key = element.getAttribute('keycode') || element.getAttribute("key");
 			let modifiers = element.getAttribute('modifiers') || "";
 			this._browserKeys.push({
