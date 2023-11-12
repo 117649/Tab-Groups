@@ -9,7 +9,7 @@ this.__defineGetter__('gTaskbarTabGroup', function() { return window.gTaskbarTab
 this.__defineGetter__('TabContextMenu', function() { return window.TabContextMenu; });
 this.__defineGetter__('goUpdateCommand', function() { return window.goUpdateCommand; });
 
-XPCOMUtils.defineLazyGetter(this, "AeroPeek", () => { return ChromeUtils.importESModule("resource:///modules/WindowsPreviewPerTab.sys.mjs", {}).AeroPeek; });
+XPCOMUtils.defineLazyGetter(this, "AeroPeek", () => { return ChromeUtils.importESModule("resource:///modules/WindowsPreviewPerTab.sys.mjs").AeroPeek; });
 ChromeUtils.defineESModuleGetters(this, {PageThumbs: "resource://gre/modules/PageThumbs.sys.mjs"});
 
 this.TabView = {

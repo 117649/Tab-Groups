@@ -8,8 +8,7 @@
 
 this.__defineGetter__('LightweightThemeManager', function() {
 	delete this.LightweightThemeManager;
-	ChromeUtils.importESModule("resource://gre/modules/LightweightThemeManager.sys.mjs", this);
-	return this.LightweightThemeManager;
+	return this.LightweightThemeManager = ChromeUtils.importESModule("resource://gre/modules/LightweightThemeManager.sys.mjs");
 });
 
 this.brightText = {
