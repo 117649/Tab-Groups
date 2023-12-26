@@ -435,7 +435,7 @@ this.UI = {
 				break;
 
 			case 'TabOpen':
-				if(!tab.pinned && this.isTabViewVisible() && !this._storageBusyCount) {
+				if(!tab.label == "about:firefoxview-next" && !tab.pinned && this.isTabViewVisible() && !this._storageBusyCount) {
 					this._lastOpenedTab = tab;
 				}
 
@@ -2167,6 +2167,10 @@ this.UI = {
 		if(activeTabItem) {
 			activeTabItem.zoomIn();
 		}
+
+		//handle foxview
+		else if(Tabs.selected.label == "about:firefoxview-next" || Tabs.selected.linkedBrowser.contentDocument?.URL == "about:firefoxview-next")
+			this.goToTab(Tabs.selected);
 
 		// If not (for instance when the selected tab is an app tab), just go there.
 		else if(Tabs.numPinned > 0) {
