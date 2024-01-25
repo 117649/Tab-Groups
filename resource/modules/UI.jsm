@@ -363,7 +363,7 @@ this.UI = {
 				}
 				else {
 					// There's nothing to do if we're not in main groups view.
-					if(Search.inSearch || GroupOptionsUI.activeOptions) { break; }
+					if(GroupOptionsUI.activeOptions) { break; }
 
 					let tab = null;
 					let group = null;
@@ -420,6 +420,7 @@ this.UI = {
 					}
 					// We right-clicked a group.
 					else if(group) {
+						if(Search.inSearch) { break; }
 						gTabView.openGroupContextMenu(e, group);
 					}
 				}
