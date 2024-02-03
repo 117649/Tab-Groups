@@ -164,7 +164,10 @@ Modules.LOADMODULE = function() {
 			aWindow.TabView._window[objName].TabItems.resumePainting();
 			aWindow.TabView._window[objName].GroupItems.pauseArrange();
 			aWindow.TabView._window[objName].TabItems.pausePainting();
-			aWindow.gBrowser.tabs.forEach(t => t.addEventListener('SSTabRestored', aWindow.TabView._window[objName].TabItems.startHeartbeatHidden(), {once: true}));
+			aWindow.gBrowser.tabs.forEach(t => t.addEventListener('SSTabRestored', _ => {
+				aWindow.TabView._window[objName].TabItems.startHeartbeatHidden();
+				aWindow.TabView._window[objName].TabItems.update(t);
+			}, {once: true}));
 		});
 	});
 
