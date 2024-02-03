@@ -1678,7 +1678,9 @@ this.TabCanvas.prototype = {
 				ctx.scale(scaleX, scaleY);
 			}
 
-			await PageThumbs.captureToCanvas(browser, canvas);
+			try {
+				await PageThumbs.captureToCanvas(browser, canvas);
+			} catch (ex) { reject(ex) }
 
 			ctx = this.canvas.getContext('2d');
 			let hasHadThumb = this.tabItem?._hasHadThumb;
