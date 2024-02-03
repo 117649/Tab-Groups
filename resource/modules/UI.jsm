@@ -410,9 +410,8 @@ this.UI = {
 						// Pause rendering of thumbs until the menu is shown, to speed things up.
 						TabItems.pausePainting();
 
-						// Make this the active group item and update the tab bar accordingly immediately,
+						//NO longer// Make this the active group item and update the tab bar accordingly immediately,
 						// since some of the context menu's items will need to act on an updated tab bar.
-						this.updateShownTabs(tab);
 						this.reorderTabsBasedOnTabItemOrder();
 						gTabView.openTabContextMenu(e, tab, node);
 
