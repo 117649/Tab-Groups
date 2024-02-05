@@ -5,7 +5,7 @@
 // VERSION 2.4.16
 Modules.UTILS = true;
 
-XPCOMUtils.defineLazyGetter(this, "gWindow", function() {
+ChromeUtils.defineLazyGetter(this, "gWindow", function() {
 	// TODO: investigate when exactly I can use windowRoot
 	return	window.windowRoot
 		? window.windowRoot.ownerGlobal
