@@ -543,12 +543,12 @@ html|a:hover:active,
 
 xul|checkbox {
   margin-inline-start: 0;
-  -moz-appearance: none;
+  /* -moz-appearance: none; */
 }
 
 xul|*.checkbox-check,
 html|input[type="checkbox"] {
-  -moz-appearance: none;
+  /* -moz-appearance: none; */
   width: 23px;
   height: 23px;
   border: 1px solid var(--in-content-box-border-color);
@@ -597,11 +597,11 @@ html|*.toggle-container-with-text {
 
 xul|radio {
   margin-inline-start: 0;
-  -moz-appearance: none;
+  /* -moz-appearance: none; */
 }
 
 xul|*.radio-check {
-  -moz-appearance: none;
+  /* -moz-appearance: none; */
   width: 23px;
   height: 23px;
   border: 1px solid var(--in-content-box-border-color);
