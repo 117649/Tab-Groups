@@ -1060,7 +1060,7 @@ this.TabItems = {
 	link: function(tab, options) {
 		try {
 			// Don't add an item for temporary tabs created by us.
-			if(gTabView._closedLastVisibleTab === tab || gTabView._closedLastVisibleTab === true || tab.label == "about:firefoxview-next" || tab.linkedBrowser.contentDocument?.URL == "about:firefoxview-next") { return; }
+			if(gTabView._closedLastVisibleTab === tab || gTabView._closedLastVisibleTab === true || tab.label?.startsWith("about:firefoxview") || tab.linkedBrowser.contentDocument?.URL?.startsWith("about:firefoxview")) { return; }
 
 			new TabItem(tab, options); // sets tab._tabViewTabItem to itself
 		}

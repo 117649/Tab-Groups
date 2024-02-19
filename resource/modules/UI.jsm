@@ -435,7 +435,7 @@ this.UI = {
 				break;
 
 			case 'TabOpen':
-				if(!tab.label == "about:firefoxview-next" && !tab.pinned && this.isTabViewVisible() && !this._storageBusyCount) {
+				if(!tab.label?.startsWith("about:firefoxview") && !tab.pinned && this.isTabViewVisible() && !this._storageBusyCount) {
 					this._lastOpenedTab = tab;
 				}
 
@@ -2169,7 +2169,7 @@ this.UI = {
 		}
 
 		//handle foxview
-		else if(Tabs.selected.label == "about:firefoxview-next" || Tabs.selected.linkedBrowser.contentDocument?.URL == "about:firefoxview-next")
+		else if(Tabs.selected.label?.startsWith("about:firefoxview") || Tabs.selected.linkedBrowser.contentDocument?.URL?.startsWith("about:firefoxview"))
 			this.goToTab(Tabs.selected);
 
 		// If not (for instance when the selected tab is an app tab), just go there.
