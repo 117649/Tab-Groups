@@ -876,6 +876,7 @@ this.TabItems = {
 			let canvas = document.createElement('canvas');
 			canvas.classList.add('tab-thumb');
 			canvas.mozOpaque = true;
+			canvas.imageSmoothingEnabled = true;
 			this._canvasFragment = canvas;
 		}
 		return this._canvasFragment.cloneNode(true);
