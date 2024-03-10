@@ -1,0 +1,93 @@
+name: dev-build
+
+on:
+  push:
+    branches: [ master ]
+
+env:
+  XPI_NAME: Tab-Groups-2.1.4b1_r
+  CHANGELOG_EXIST: false
+  PREVIOUS_TAG: ''
+  NOTES: 'This release includes an XPI file that is automatically generated after each push to the master branch.'
+
+jobs:
+  build-and-upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: master
+
+      - name: Set version in install.rdf
+        run: |
+          previous_tag=$(git tag --sort=-creatordate | grep -E '^v2.1.4b1_r.*' | head -n 1)
+          echo "PREVIOUS_TAG=$previous_tag" >> $GITHUB_ENV
+          changelog_exist=$( [[ $(git rev-parse $previous_tag) != $(git rev-parse HEAD) ]] && echo true || echo false )
+          echo "CHANGELOG_EXIST=$changelog_exist" >> $GITHUB_ENV
+          date=$(date +'%Y%m%d.%H%M')
+          sed -i "s/2.1.4b1_r2.0/2.1.4b1_r$date/" install.rdf
+          echo "next version: $version-$date"
+          echo "XPI_NAME=${{ env.XPI_NAME }}$date" >> $GITHUB_ENV
+
+      - name: Zip addon folder
+        run: |
+          rm pack.ps1
+          zip -rq /tmp/${{ env.XPI_NAME }}.xpi *
+
+      - name: Update dev-build tag
+        run: |
+          if [ $(git rev-parse dev-build) != $(git rev-parse HEAD) ]; then
+            git tag -d dev-build && git tag dev-build $(git rev-parse HEAD)
+            git push origin :refs/tags/dev-build
+            git push origin dev-build
+          fi
+
+      - name: Create CHANGELOG
+        if: ${{ env.CHANGELOG_EXIST }}
+        uses: requarks/changelog-action@v1.10.1
+        with:
+          token: ${{ github.token }}
+          fromTag: 'dev-build'
+          toTag: ${{ env.PREVIOUS_TAG }}
+          excludeTypes: ''
+          includeInvalidCommits: true
+
+      - name: Modify CHANGELOG
+        if: ${{ env.CHANGELOG_EXIST }}
+        run: |
+          node -e '
+            let content = fs.readFileSync("CHANGELOG.md", "utf8");
+            let newContent = content.replace("### :wrench: Chores", "### :wrench: Maintenance").split("\n").slice(5);
+            newContent.unshift("${{ env.NOTES }}");
+            newContent = newContent.map(line => {
+              return line
+                .replace(" *(commit by [@117649](https://github.com/117649))*", "")
+                .replace(/-\s*(\[.{9}\][^)]*\))\s-\s(.*)/g, "- $2 ($1)")
+                .replace(/__/g, "\\_\\_")
+                .replace(/followup/gi, "follow up")
+                .replace(/(-\s*)(\w)/g, (_, p1, p2) => p1 + p2.toUpperCase())
+                .replace(/(Bug|bug)\s(\d{5,7})/g, "[$&](https://bugzilla.mozilla.org/show_bug.cgi?id=$2)");
+            });
+            fs.writeFileSync("CHANGELOG.md", newContent.join("\n"));
+          '
+
+      - name: Upload release asset to GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ ${{ env.CHANGELOG_EXIST }} ]; then
+            gh release edit dev-build --draft=false --notes-file=CHANGELOG.md
+          else
+            url=https://github.com/117649/Tab-Groups/releases/tag/${{ env.PREVIOUS_TAG }}
+            notes="${{ env.NOTES }}<br /><br />No changes since [${{ env.PREVIOUS_TAG }}]($url)"
+            gh release edit dev-build --draft=false --notes="$notes"
+          fi
+          ASSETS=$(gh release view dev-build --json assets -q '.assets[].name')
+          for ASSET_NAME in $ASSETS; do
+            if [[ $ASSET_NAME == *.xpi ]]; then
+              gh release delete-asset dev-build $ASSET_NAME --yes
+            fi
+          done
+          gh release upload dev-build /tmp/${{ env.XPI_NAME }}.xpi --clobber
