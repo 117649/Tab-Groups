@@ -40,8 +40,7 @@ jobs:
         run: |
           if [ $(git rev-parse dev-build) != $(git rev-parse HEAD) ]; then
             git tag -d dev-build && git tag dev-build $(git rev-parse HEAD)
-            git push origin :refs/tags/dev-build
-            git push origin dev-build
+            git push origin -f dev-build
           fi
 
       - name: Create CHANGELOG
