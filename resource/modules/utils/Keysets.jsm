@@ -371,7 +371,7 @@ this.Keysets = {
 				self: k.getAttribute('Keysets') == objName
 			};
 
-			let modifiers = k.getAttribute('modifiers').toLowerCase();
+			let modifiers = k.getAttribute('modifiers')?.toLowerCase() || "";
 			key.accel = modifiers.includes('accel') || modifiers.includes(!DARWIN ? 'control' : 'meta'); // control key in windows and linux, command key on osx
 			key.alt = modifiers.includes('alt'); // option key on mac
 			key.shift = modifiers.includes('shift');
