@@ -1084,7 +1084,7 @@ this.controllers = {
 			fp.defaultString = prefix+'-'+dateStr+(isSession ? fileExt[0] : fileExt[1]);
 		}
 
-		fp.init(window, null, mode);
+		fp.init(window.browsingContext, null, mode);
 		fp.open(function(aResult) {
 			if(aResult != Ci.nsIFilePicker.returnCancel) {
 				let aFile = fp.file;

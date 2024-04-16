@@ -1198,7 +1198,7 @@ this.UI = {
 
 			// Trick to make Ctrl+F4 and Ctrl+Shift+PageUp/PageDown shortcuts behave as expected in TabView,
 			// we need to remove the gBrowser as a listener for these, otherwise it would consume these events and they would never reach our handler.
-			this._els.removeSystemEventListener(gWindow.document, "keydown", gBrowser, false);
+			gWindow.document.removeEventListener("keydown", gBrowser, {mozSystemGroup: true});
 
 			let currentTab = this._currentTab;
 			if(currentTab) {
@@ -1287,7 +1287,7 @@ this.UI = {
 			gBrowser.updateTitlebar();
 			gBrowser.tabContainer.arrowScrollbox.smoothScroll = this._originalSmoothScroll;
 
-			this._els.addSystemEventListener(gWindow.document, "keydown", gBrowser, false);
+			gWindow.document.addEventListener("keydown", gBrowser, {mozSystemGroup: true});
 		}
 		catch(ex) {
 			Cu.reportError(ex);
