@@ -561,8 +561,7 @@ this.TabItem.prototype = {
 			// Tab View has been deinitialized. We can't proceed.
 			if(typeof(UI) == 'undefined') { return; }
 
-			let notSelected;
-			if(!this.tab.selected) notSelected = true;
+			let notSelected = !this.tab.selected;
 			UI.goToTab(this.tab);
 
 			if(notSelected) gBrowser.tabContainer.arrowScrollbox.ensureElementIsVisible(this.tab,true);
