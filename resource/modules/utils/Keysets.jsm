@@ -183,6 +183,7 @@ this.Keysets = {
 
 	// we only translate the ones we actually use in here
 	translateFromConstantCode: function(keycode) {
+		if(!keycode) return '';
 		let key = keycode;
 		if(key.startsWith('DOM_')) { key = key.substr(4); }
 		if(key.startsWith('VK_')) { key = key.substr(3); }
