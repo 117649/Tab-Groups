@@ -6,7 +6,9 @@ There is a ```pack.ps1``` that will done everything for you if run with PS versi
 
 Single view mode is broken and will freeze the browser when I testing it after about FF 114 time. NO idea why only CSS rules been activate by adding class names when it happens. Even adding those class name with debug tool will cause the freeze. May be someone with full setup for debugging FF can crack it but not me.
 
-You need install one of these first for it to run: [userChromeJS](https://github.com/xiaoxiaoflood/firefox-scripts) or [bootstrapLoader](https://github.com/xiaoxiaoflood/firefox-scripts/tree/master/extensions/bootstrapLoader)
+Use TMP's guide for [installation](https://onemen.github.io/tabmixplus-docs/other/installation/)
+
+~~You need install one of these first for it to run: [userChromeJS](https://github.com/xiaoxiaoflood/firefox-scripts) or [bootstrapLoader](https://github.com/xiaoxiaoflood/firefox-scripts/tree/master/extensions/bootstrapLoader)~~
 
 DO NOT USE THE userChromeJS AND bootstrapLoader AT SAME TIME!!! WHICH WILL CAUSE A DOUBLE LOAD OF THE ADDON AND EFFECTIVELY UNLOAD THE ADDON.
 
