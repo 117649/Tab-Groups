@@ -4,7 +4,7 @@ Download the source and pack the ```.xpi``` and install by yourself.
 
 There is a ```pack.ps1``` that will done everything for you if run with PS version higher than 7.
 
-Single view mode is broken and will freeze the browser when I testing it after about FF 114 time. NO idea why only CSS rules been activate by adding class names when it happens. Even adding those class name with debug tool will cause the freeze. May be someone with full setup for debugging FF can crack it but not me.
+Single view mode is fine now.
 
 Use TMP's guide for [installation](https://onemen.github.io/tabmixplus-docs/other/installation/)
 
