@@ -37,10 +37,14 @@ html:not(#main-window)[tabGroups_UUID][tabGroups_Version] scrollbar thumb {
 }
 
 html:not(#main-window)[tabGroups_UUID][tabGroups_Version] > scrollbar,
-html:not(#main-window)[tabGroups_UUID][tabGroups_Version] .groupItem.thumbing scrollbar,
 html:not(#main-window)[tabGroups_UUID][tabGroups_Version] scrollbar scrollbarbutton,
 html:not(#main-window)[tabGroups_UUID][tabGroups_Version] scrollbar gripper {
 	display: none !important;
+}
+
+/* This was `display: none !important;` but it was freezing the whole browser. No idea why so it has been substituted */
+html:not(#main-window)[tabGroups_UUID][tabGroups_Version] .groupItem.thumbing * {
+	scrollbar-width: none !important;
 }
 
 html:not(#main-window)[tabGroups_UUID][tabGroups_Version] body:not([lwtheme]):not([darktheme]) #groupSelector scrollbar thumb,
@@ -50,7 +54,7 @@ html:not(#main-window)[tabGroups_UUID][tabGroups_Version] body[lwtheme] #groupSe
 
 /* This is temp fix for overlay scrollbar not reappear on tabview*/
 @media (-moz-overlay-scrollbars) {
-	html:not(#main-window)[tabGroups_UUID][tabGroups_Version] scrollbar:not([active="true"]){
-	  -moz-appearance: none;
+	html:not(#main-window)[tabGroups_UUID][tabGroups_Version] scrollbar:not([active="true"]) {
+		-moz-appearance: none;
 	}
-  }
+}
