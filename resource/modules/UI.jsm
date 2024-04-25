@@ -780,6 +780,12 @@ this.UI = {
 
 	useDarkTheme: function() {
 		toggleAttribute(document.body, 'darktheme', brightText.useDarkTheme());
+
+		// Refresh group thumb
+		for (let groupItem of GroupItems) {
+			groupItem._lastThumb = null;
+			if (this.single) groupItem.updateThumb(true);
+		}
 	},
 
 	goToPreferences: function(aOptions) {
