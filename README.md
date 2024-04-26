@@ -1,8 +1,10 @@
-SINCE THERE IS LITTLE TO NONE USERS I'M NO LONGER BOTHER TO UPLOAD NEW RELEASE ANYMORE BUT MAINTAINCE WILL BE CONTINUED AS LONG AS I'M USING IT.
+SINCE THERE IS LITTLE TO NONE USERS I'M NO LONGER BOTHER TO UPLOAD NEW RELEASE ANYMORE. 
 
-Download the source and pack the ```.xpi``` and install by yourself.
+THE dev-build RELEASE WILL ALWAYS PROVIDE A .XPI FILE THAT IS AUTOMATICALLY SYNC TO THE NEWEST COMMIT.
 
-There is a ```pack.ps1``` that will done everything for you if run with PS version higher than 7.
+MAINTAINCE WILL BE CONTINUED AS LONG AS I'M USING IT.
+
+There is a ```pack.ps1``` in the source that will pack the ```.xpi``` for you if run with PS version higher than 7.
 
 Single view mode is fine now.
 
