@@ -902,9 +902,9 @@ this.TabDrag.prototype = {
 			this.sibling.container.classList.remove('space-after');
 
 			let sibling = this.sibling;
-			aSync(() => {
+			window.requestAnimationFrame(() => {
 				sibling.parent.arrange();
-			}, 50);
+			});
 		}
 
 		this.sibling = siblingToBe;
@@ -912,9 +912,9 @@ this.TabDrag.prototype = {
 			this.sibling.container.classList.add('space-'+dir);
 
 			let sibling = this.sibling;
-			aSync(() => {
+			window.requestAnimationFrame(() => {
 				sibling.parent.arrange();
-			}, 50);
+			});
 		}
 	},
 

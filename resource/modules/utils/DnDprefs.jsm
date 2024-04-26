@@ -512,7 +512,7 @@ this.DnDprefs = {
 				this._dragInitializeTimeout = null;
 			}
 		};
-		this._dragInitializeTimeout = (async _ => this._initializeDragAfterMove())();
+		this._dragInitializeTimeout = aSync(this._initializeDragAfterMove);
 	},
 
 	_onDragOver: function(e) {

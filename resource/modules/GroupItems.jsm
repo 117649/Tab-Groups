@@ -1303,7 +1303,7 @@ this.GroupItem.prototype = {
 				});
 
 				// hide group item and show undo container.
-				aSync(() => {
+				window.requestAnimationFrame(() => {
 					$undoContainer.animate({
 						"transform": "scale(1)"
 					}, {
@@ -1311,7 +1311,7 @@ this.GroupItem.prototype = {
 						duration: 170,
 						complete: () => { this._sendToSubscribers("groupHidden"); }
 					});
-				}, 50);
+				});
 			}
 			else {
 				this.container.appendChild(this.undoContainer);
@@ -1379,9 +1379,9 @@ this.GroupItem.prototype = {
 			});
 
 			// Begin showing the group even before the undo button is fully removed.
-			aSync(() => {
+			window.requestAnimationFrame(() => {
 				this._unhide();
-			}, 50);
+			});
 		}
 		else {
 			this.destroyUndoButton();

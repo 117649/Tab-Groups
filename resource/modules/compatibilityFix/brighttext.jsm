@@ -20,11 +20,11 @@ this.brightText = {
 
 	observe: function(aSubject, aTopic, aData) {
 		// Only possibilities are forceBrightText pref changed or the lwtheme changed.
-		aSync(() => {
+		window.requestAnimationFrame(() => {
 			Windows.callOnMostRecent((aWindow) => {
 				this.check(aWindow.document);
 			}, 'navigator:browser');
-		}, 100);
+		});
 	},
 
 	check: function(aDocument) {

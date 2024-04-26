@@ -305,19 +305,19 @@ this.Search = {
 			case 'focus':
 				if(this.inSearch) {
 					this._blockClick = true;
-					aSync(() => {
+					window.requestAnimationFrame(() => {
 						this._blockClick = false;
-					}, 0);
+					});
 				}
 				break;
 
 			case 'blur':
-				aSync(() => {
+				window.requestAnimationFrame(() => {
 					// This could happen as a result of switching modes, which in turn can refocus the searchquery.
 					if(Prefs.searchMode == 'highlight' && this.searchquery != document.activeElement && !this.searchquery.value.length) {
 						this.hide();
 					}
-				}, 10);
+				});
 				break;
 
 			case 'keydown':
@@ -541,9 +541,9 @@ this.Search = {
 				this.focus();
 			} else {
 				// marshal the focusing, otherwise it ends up with searchquery.focus gets called before the search button gets the focus after being pressed.
-				aSync(() => {
+				window.requestAnimationFrame(() => {
 					this.focus();
-				}, 0);
+				});
 			}
 		}
 	},
