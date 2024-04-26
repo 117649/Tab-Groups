@@ -196,6 +196,7 @@ this.PinnedItems = {
 			icon.tab = tab;
 			icon._iconUrl = '';
 			icon.classList.add("appTabIcon");
+			icon.classList.add(Array.from(tab.classList).find(x => x.startsWith("identity-color-")));
 			icon.setAttribute('type', 'button');
 			icon.setAttribute('draggable', 'true');
 			icon.zoomIn = function() {

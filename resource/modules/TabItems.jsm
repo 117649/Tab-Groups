@@ -54,6 +54,8 @@ this.TabItem = function(tab, options = {}) {
 		"busy", "progress", "soundplaying", "muted", "tabmix_tabState", "protected"
 	], this, false, false);
 
+	this.addClass(Array.from(this.tab.classList).find(x => x.startsWith("identity-color-")));
+
 	TabItems.register(this);
 
 	// ___ reconnect to data from Storage

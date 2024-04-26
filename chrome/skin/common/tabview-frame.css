@@ -437,6 +437,19 @@ body .appTabIcon[busy][progress] {
 	margin: 3px 0;
 }
 
+.tab-label::before {
+	content: "";
+	display: block;
+	position: absolute;
+	border-bottom: 2px solid var(--identity-icon-color);
+	width: 25%;
+	opacity: 0.75;
+}
+
+.appTabIcon {
+	border-right: 2.5px solid var(--identity-icon-color) !important;
+}
+
 .stacked {
 	position: absolute;
 	top: 50%;
