@@ -271,13 +271,6 @@ this.UI = {
 						break;
 
 					case this.sessionRestoreNotice:
-						// If Session Manager is enabled, we don't dare mess with its preferences.
-						// Changing its settings is better done through SM's own options window.
-						if(pageWatch.SM) {
-							gSessionManager.openOptions();
-							break;
-						}
-
 						this.goToPreferences({ jumpto: 'sessionRestore' });
 						break;
 

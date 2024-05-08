@@ -25,11 +25,6 @@ this.paneSession = {
 		SSS: /^tabGroups-SSS-[0-9]{8}-[0-9]{6}.json(lz4)?$/
 	},
 
-	// some things needed to import from Session Manager files
-	SessionIo: null,
-	FileUtils: null,
-	Utils: null,
-
 	// some things needed to import from tab mix plus sessions
 	TabmixSessionManager: null,
 	TabmixConvertSession: null,
@@ -342,25 +337,6 @@ this.paneSession = {
 			exn = exn || ex;
 		}
 
-		// Let's look for Session Manager's session backups as well, since we can also import from those.
-		AddonManager.getAddonByID('{1280606b-2510-4fe0-97ef-9b5a22eafe30}', (addon) => {
-			if(addon && addon.isActive) {
-				let smiterator;
-				let smiterating;
-				if(!this.SessionIo) {
-					Cu.import("chrome://sessionmanager/content/modules/session_file_io.jsm", this);
-					Cu.import("chrome://sessionmanager/content/modules/utils.jsm", this);
-					Cu.import("resource://gre/modules/FileUtils.jsm", this);
-				}
-				let smdir = this.SessionIo.getSessionDir();
-				let smsessions = this.SessionIo.getSessions();
-				for(let session of smsessions) {
-					let path = window.PathUtils.join(smdir.path, session.fileName);
-					this.checkSessionManagerFile(session, path);
-				}
-			}
-		});
-
 		// Let's look for Tab Mix Plus's sessions and try to import from those as well.
 		AddonManager.getAddonByID('{dc572301-7619-498c-a57d-39143191b318}', async (addon) => {
 			if(addon && addon.isActive) {
@@ -426,16 +402,6 @@ this.paneSession = {
 		this.verifyState(aDeferred, state, aPath, aName, aWhere);
 	},
 
-	checkSessionManagerFile: function(session, path) {
-		this.deferredPromise((deferred) => {
-			let file = new this.FileUtils.File(path);
-			this.SessionIo.readSessionFile(file, false, (state) => {
-				state = this.getStateForSessionManagerData(session, state);
-				this.verifyState(deferred, state, { file, session }, 'sessionManager', 'sessionManager');
-			});
-		});
-	},
-
 	checkTabMixPlusFile: function(aFile) {
 		let tmpDATASource;
 
@@ -464,22 +430,6 @@ this.paneSession = {
 				this.TabmixSessionManager.DATASource = tmpDATASource;
 			}
 		}
-	},
-
-	getStateForSessionManagerData: function(session, data) {
-		data = data.split("\n")[4];
-		data = this.Utils.decrypt(data);
-		if(data) {
-			data = this.Utils.JSON_decode(data);
-			if(data && !data._JSON_decode_failed) {
-				// Use the timestamp from the session file header as the lastUpdate property for these files.
-				// It's more accurate (and some session files don't actually have a lastUpdate property.
-				if(!data.session) { data.session = {}; }
-				data.session.lastUpdate = session.timestamp;
-				return data;
-			}
-		}
-		return null;
 	},
 
 	getStateForTabMixPlusData: function(session) {
@@ -549,16 +499,6 @@ this.paneSession = {
 	},
 
 	loadSessionFile: function(aFile, aManualAction, aSpecial) {
-		if(aSpecial == 'sessionManager') {
-			this.SessionIo.readSessionFile(aFile.file, false, (state) => {
-				this.manualAction = aManualAction;
-
-				state = this.getStateForSessionManagerData(aFile.session, state);
-				this.readState(state);
-			});
-			return;
-		}
-
 		if(aSpecial == 'tabMixPlus') {
 			let tmpDATASource;
 			try {

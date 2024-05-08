@@ -85,13 +85,6 @@ this.pageWatch = {
 		// In case any of our dependencies failed to initialize before we need this, make sure it still "works".
 		if(this.sessionRestoreEnabled) { return; }
 
-		// If Session Manager is enabled, we don't dare mess with its preferences.
-		// Changing its settings is better done through SM's own options window.
-		if(this.SM) {
-			gSessionManager.openOptions();
-			return;
-		}
-
 		if(this.TMP && Prefs["sessions.manager"]) {
 			Prefs.onCloseBackup = Prefs["sessions.onClose"];
 			Prefs.onStartBackup = Prefs["sessions.onStart"];
@@ -118,9 +111,6 @@ this.pageWatch = {
 
 		if(this.TMP && Prefs["sessions.manager"]) {
 			return Prefs["sessions.onClose"] != 2 && Prefs["sessions.onStart"] != 2;
-		}
-		if(this.SM && SessionManager.isSavingSession()) {
-			return true;
 		}
 		return this.kKeepingSession.has(Prefs.page);
 	},
@@ -157,12 +147,6 @@ this.pageWatch = {
 				}
 				resolve();
 			});
-		}));
-
-		// Session Manager has a few extra settings that keep the session across restarts,
-		// we need to recognize those, so wait for our Session Manager watcher to be initialized.
-		promises.push(new Promise((resolve, reject) => {
-			this.waitForSessionManagerModule = resolve;
 		}));
 
 		Promise.all(promises).then(() => {

@@ -12,12 +12,10 @@ Modules.LOADMODULE = function() {
 		}
 	});
 
-	Modules.load('compatibilityFix/SessionManager');
 	Modules.load('compatibilityFix/brighttext');
 };
 
 Modules.UNLOADMODULE = function() {
 	Modules.unload('compatibilityFix/TabMixPlus');
-	Modules.unload('compatibilityFix/SessionManager');
 	Modules.unload('compatibilityFix/brighttext');
 };
