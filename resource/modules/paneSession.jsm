@@ -521,7 +521,7 @@ this.paneSession = {
 		}
 
 		let p = aFile.path || aFile;
-		window.IOUtils.read(p, p.endsWith("lz4") ? { decompress: true } : null).then(async (savedState) => {
+		window.IOUtils.readUTF8(p, p.match(".(bak|json)lz4")[0] ? { decompress: true } : null).then(async (savedState) => {
 
 			this.manualAction = aManualAction;
 
@@ -569,7 +569,7 @@ this.paneSession = {
 	},
 
 	getStateForData: function(data) {
-		return JSON.parse((new TextDecoder()).decode(data));
+		return JSON.parse(data);
 	},
 
 	readState: function(state) {
