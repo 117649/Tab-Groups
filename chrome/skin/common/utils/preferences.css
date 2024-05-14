@@ -164,7 +164,7 @@ page[currentcategory="paneAbout"] #main-footer {
 	-moz-padding-start: 13px !important;
 }
 
-#main-footer dropmarker.button-menu-dropmarker::part(icon) {
+#main-footer dropmarker.button-menu-dropmarker {
 	width: 16px;
 	height: 16px;
 	transform: rotate(180deg);

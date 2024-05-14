@@ -44,8 +44,11 @@ xul|page,
 xul|window {
   font: message-box;
   -moz-appearance: none;
-  background-color: var(--in-content-page-background);
-  color: var(--in-content-page-color);
+
+  @media (prefers-color-scheme: light) {
+    background-color: var(--in-content-page-background);
+    color: var(--in-content-page-color);
+  }
 }
 
 html|body {
@@ -184,14 +187,17 @@ xul|colorpicker[type="button"],
 xul|menulist {
   -moz-appearance: none;
   min-height: 30px;
-  color: var(--in-content-text-color);
   border: 1px solid var(--in-content-box-border-color);
   -moz-border-top-colors: none !important;
   -moz-border-right-colors: none !important;
   -moz-border-bottom-colors: none !important;
   -moz-border-left-colors: none !important;
   border-radius: 2px;
-  background-color: var(--in-content-page-background);
+
+  @media (prefers-color-scheme: light) {
+    background-color: var(--in-content-page-background);
+    color: var(--in-content-text-color);
+  }
 }
 
 html|select:not([size]):not([multiple]) {
@@ -405,9 +411,9 @@ xul|menulist[disabled="true"]:not([editable="true"]) > xul|*.menulist-dropmarker
 xul|menulist > xul|menupopup,
 xul|button[type="menu"] > xul|menupopup {
   -moz-appearance: none;
-  border: 1px solid var(--in-content-box-border-color);
+  /* border: 1px solid var(--in-content-box-border-color); */
   border-radius: 2px;
-  background-color: var(--in-content-box-background);
+  /* background-color: var(--in-content-box-background); */
 }
 
 xul|menulist > xul|menupopup xul|menu,
@@ -810,15 +816,21 @@ xul|treecol:not([hideheader="true"]),
 xul|treecolpicker {
   -moz-appearance: none;
   border: none;
-  background-color: var(--in-content-box-background-hover);
-  color: #808080;
+
+  @media (prefers-color-scheme: light) {
+    background-color: var(--in-content-box-background-hover);
+    color: #808080;
+  }
+
   padding: 5px 10px;
 }
 
 xul|treecol:not([hideheader="true"]):not([sortable="false"]):hover,
 xul|treecolpicker:hover {
-  background-color: var(--in-content-box-background-active);
-  color: var(--in-content-text-color);
+  @media (prefers-color-scheme: light) {
+    background-color: var(--in-content-box-background-active);
+    color: var(--in-content-text-color);
+  }
 }
 
 xul|treecol:not([hideheader="true"]):not(:first-child),
@@ -847,11 +859,15 @@ xul|treechildren::-moz-tree-row {
 
 /* Color needs to be set on tree cell in order to be applied */
 xul|treechildren::-moz-tree-cell-text {
-  color: var(--in-content-text-color);
+  @media (prefers-color-scheme: light) {
+    color: var(--in-content-text-color);
+  }
 }
 
 xul|treechildren::-moz-tree-cell-text(selected) {
-  color: var(--in-content-selected-text);
+  @media (prefers-color-scheme: light) {
+    color: var(--in-content-selected-text);
+  }
 }
 
 /* Message bars */

@@ -5,7 +5,9 @@
 /* preferences About pane backgound */
 
 .main-wrapper {
+	@media (prefers-color-scheme: light)  {
 	background: url("chrome://tabgroups/skin/utils/bg-gradient-grass.png") repeat-x, url("chrome://tabgroups/skin/utils/bg-grainy-grass.png") repeat, #eee;
+	}
 }
 
 /* add-on's icon next to its name in About pane */
@@ -42,4 +44,28 @@
 
 #promo-matchhead-image {
 	background-image: url("chrome://tabgroups/skin/utils/promo.jpg");
+}
+
+@media (prefers-color-scheme: dark)  {
+	.header,
+	caption,
+	groupbox,
+	vbox #version label,
+	#bank .header,
+	page h3,
+	page h4,
+	page h5,
+	treecol:not([hideheader="true"]) {
+		color: inherit;
+		text-shadow: inherit;
+	}
+
+	tree, button{
+		background-color: inherit;
+		-moz-appearance: auto;
+	}
+
+	.checkbox-check, .radio-check{
+		box-shadow: inherit;
+	}
 }
