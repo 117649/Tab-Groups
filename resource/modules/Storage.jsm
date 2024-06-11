@@ -122,109 +122,92 @@ this.Storage = {
 };
 
 Modules.LOADMODULE = function() {
-	Storage._scope = Cu.import("resource:///modules/sessionstore/SessionStore.jsm", self);
-	Storage._migrationScope = Cu.import("resource:///modules/sessionstore/SessionMigration.jsm", {});
+	Storage._scope = ChromeUtils.importESModule("resource:///modules/sessionstore/SessionStore.sys.mjs");
+	self.SessionStore = Storage._scope.SessionStore;
+	// Storage._migrationScope = Cu.import("resource:///modules/sessionstore/SessionMigration.jsm", {});
 
-	Piggyback.add('Storage', Storage._scope.SessionStoreInternal, '_prepWindowToRestoreInto', function(aWindow) {
+	Storage._prepWindowToRestoreInto = function(aWindow) {
 		if(!aWindow) { return; }
 
 		// Step 1 of processing:
 		// Inspect extData for Tab Groups identifiers. If found, then we want to inspect further.
 		// If there is a single group, then we can use this window. If there are multiple groups then we won't use this window.
-		let groupsData = this.getCustomWindowValue(aWindow, Storage.kGroupsIdentifier);
+		let groupsData = SessionStore.getCustomWindowValue(aWindow, Storage.kGroupsIdentifier);
 		if(groupsData) {
 			groupsData = JSON.parse(groupsData);
 
 			// If there are multiple groups, we don't want to use this window.
-			if(groupsData.totalNumber > 1) {
-				return [false, false];
-			}
-		}
-
-		return this.__prepWindowToRestoreInto(aWindow);
-	});
-
-	Piggyback.add('Storage', Storage._scope.SessionStoreInternal, 'restoreWindow', function(aWindow, winData, aOptions) {
-		// Deinitialize tab view in any window that will have its session overwritten.
-		// Nothing in TabView will be useful anyway, just let it reinistialize if/when necessary later by itself.
-		if(aWindow.TabView) {
-			aWindow.TabView._deinitFrame();
-		}
-
-		// Call the original method.
-		this._restoreWindow(aWindow, winData, aOptions);
-
-		// Update our button's label, to reflect the groups data in the new/different session.
-		if(aWindow.TabView) {
-			aWindow.TabView.setButtonLabel();
-		}
-
-		if(aWindow.TabView && !aWindow.TabView._iframe && aWindow.TabView._initialized) aWindow.TabView._initFrame(() => {
-			aWindow.TabView._window[objName].GroupItems.resumeArrange();
-			aWindow.TabView._window[objName].TabItems.resumePainting();
-			aWindow.TabView._window[objName].GroupItems.pauseArrange();
-			aWindow.TabView._window[objName].TabItems.pausePainting();
-			aWindow.gBrowser.tabs.forEach(t => t.addEventListener('SSTabRestored', _ => {
-				aWindow.TabView._window[objName].TabItems.startHeartbeatHidden();
-				aWindow.TabView._window[objName].TabItems.update(t);
-			}, {once: true}));
-		});
-	});
-
-	Piggyback.add('Storage', Storage._migrationScope.SessionMigrationInternal, 'convertState', function(aStateObj) {
-		let state = {
-			selectedWindow: aStateObj.selectedWindow,
-			_closedWindows: []
-		};
-		state.windows = aStateObj.windows.map(function(oldWin) {
-			let win = { extData: {} };
-			win.tabs = oldWin.tabs.map(function(oldTab) {
-				let tab = {};
-				// Keep only titles, urls and triggeringPrincipals for history entries
-				tab.entries = oldTab.entries.map(function(entry) {
-					return {
-						url: entry.url,
-						triggeringPrincipal_base64: entry.triggeringPrincipal_base64,
-						title: entry.title,
-					};
-				});
-				tab.index = oldTab.index;
-				tab.hidden = oldTab.hidden;
-				tab.pinned = oldTab.pinned;
-
-				// The tabgroup info is in the extData, so we need to get it out.
-				if(oldTab.extData && Storage.kTabIdentifier in oldTab.extData) {
-					tab.extData = { [Storage.kTabIdentifier]: oldTab.extData[Storage.kTabIdentifier] };
-				}
-				return tab;
-			});
-
-			// There are various tabgroup-related attributes that we need to get out of the session restore data for the window, too.
-			if(oldWin.extData) {
-				for(let k of Object.keys(oldWin.extData)) {
-					if(k.startsWith("tabview-")) {
-						win.extData[k] = oldWin.extData[k];
+			if (groupsData.totalNumber > 1) {
+				if (aWindow.__SS_lastSessionWindowID) {
+					aWindow["_" + objPathString + "__SS_lastSessionWindowID"] = aWindow.__SS_lastSessionWindowID;
+					aWindow.__SS_lastSessionWindowID = "_" + objPathString + "_removed_" + AddonData.initTime;
+					let t = Storage._scope._LastSession.getState()?.windows
+						.find(w => w.__lastSessionWindowID == aWindow["_" + objPathString + "__SS_lastSessionWindowID"]);
+					if (t) {
+						t["_" + objPathString + "__lastSessionWindowID"] = t.__lastSessionWindowID;
+						delete t.__lastSessionWindowID;
 					}
 				}
+			} else {
+				if (aWindow["_" + objPathString + "__SS_lastSessionWindowID"]) {
+					aWindow.__SS_lastSessionWindowID = aWindow["_" + objPathString + "__SS_lastSessionWindowID"];
+					let t = Storage._scope._LastSession.getState()?.windows
+						.find(w => w["_" + objPathString + "__lastSessionWindowID"] == aWindow["_" + objPathString + "__SS_lastSessionWindowID"]);
+					if (t) t.__lastSessionWindowID = t["_" + objPathString + "__lastSessionWindowID"];
+				}
 			}
+		}
+	};
 
-			win.selected = oldWin.selected;
-			win._closedTabs = [];
-			return win;
+	Storage._WindowRestoring = e =>{
+		// Deinitialize tab view in any window that will have its session overwritten.
+		// Nothing in TabView will be useful anyway, just let it reinistialize if/when necessary later by itself.
+		if(window.TabView) {
+			window.TabView._deinitFrame();
+		}
+	}
+
+	Storage._WindowRestored = e => {
+		// Update our button's label, to reflect the groups data in the new/different session.
+		if(window.TabView) {
+			window.TabView.setButtonLabel();
+		}
+
+		if(window.TabView && !window.TabView._iframe && window.TabView._initialized) window.TabView._initFrame(() => {
+			window.TabView._window[objName].GroupItems.resumeArrange();
+			window.TabView._window[objName].TabItems.resumePainting();
+			window.TabView._window[objName].GroupItems.pauseArrange();
+			window.TabView._window[objName].TabItems.pausePainting();
+			window.gBrowser.tabs.forEach(t => t.addEventListener('SSTabRestored', _ => {
+				window.TabView._window[objName].TabItems.startHeartbeatHidden();
+				window.TabView._window[objName].TabItems.update(t);
+			}, {once: true}));
 		});
+	}
 
-		let url = "about:welcomeback";
-		let formdata = { id: { sessionData: state }, url };
-		let entry = {
-			url,
-			triggeringPrincipal_base64: lazy.E10SUtils.SERIALIZED_SYSTEMPRINCIPAL,
-		};
-		return { windows: [ { tabs: [ { entries: [ entry ], formdata } ] } ] };
-	});
+	Storage._obs = function obs(subject, topic) {
+		try { Storage._prepWindowToRestoreInto(window); } catch (e) { Cu.reportError(e); }
+	}
+	Storage._obs();
+	Services.obs.addObserver(Storage._obs, "sessionstore-windows-restored");
+	Services.obs.addObserver(Storage._obs, "sessionstore-initiating-manual-restore");
+	window.addEventListener("SSWindowRestoring", Storage._WindowRestoring);
+	window.addEventListener("SSWindowRestored", Storage._WindowRestored);
 };
 
 Modules.UNLOADMODULE = function() {
-	Piggyback.revert('Storage', Storage._scope.SessionStoreInternal, '_prepWindowToRestoreInto');
-	Piggyback.revert('Storage', Storage._scope.SessionStoreInternal, 'restoreWindow');
-	Piggyback.revert('Storage', Storage._migrationScope.SessionMigrationInternal, 'convertState');
+	Services.obs.removeObserver(Storage._obs, "sessionstore-windows-restored");
+	Services.obs.removeObserver(Storage._obs, "sessionstore-initiating-manual-restore");
+	if (window["_" + objPathString + "__SS_lastSessionWindowID"]) {
+		window.__SS_lastSessionWindowID = window["_" + objPathString + "__SS_lastSessionWindowID"];
+		let t = Storage._scope._LastSession.getState()?.windows
+			.find(w => w["_" + objPathString + "__lastSessionWindowID"] == window["_" + objPathString + "__SS_lastSessionWindowID"]);
+		if (t) t.__lastSessionWindowID = t["_" + objPathString + "__lastSessionWindowID"];
+	}
+	window.removeEventListener("SSWindowRestoring", Storage._WindowRestoring);
+	window.removeEventListener("SSWindowRestored", Storage._WindowRestored);
+	if (ChromeUtils.importESModule("resource:///modules/sessionstore/SessionMigration.sys.mjs").SessionMigration.migrate['_Piggyback_']) {
+		ChromeUtils.importESModule("resource:///modules/sessionstore/SessionMigration.sys.mjs").SessionMigration.migrate = ChromeUtils.importESModule("resource:///modules/sessionstore/SessionMigration.sys.mjs").SessionMigration.migrate['_Piggyback_']
+		delete ChromeUtils.importESModule("resource:///modules/sessionstore/SessionMigration.sys.mjs").SessionMigration.migrate['_Piggyback_'];
+	}
 };
