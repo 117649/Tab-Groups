@@ -757,7 +757,7 @@ this.paneSession = {
 		}
 
 		// initialize window if necessary, just in case
-		Storage._scope.SessionStoreInternal.onLoad(gWindow);
+		Storage._scope.SessionStore.ensureInitialized(gWindow);
 
 		// get the next id to be used for the imported groups
 		let groupItems = Storage.readGroupItemsData(gWindow) || {};
@@ -807,16 +807,18 @@ this.paneSession = {
 			}
 		}
 		
-		Storage._scope.SessionStoreInternal.restoreWindow(gWindow, {
-			tabs: restoreTabs.map(tabData => {
-				if (!tabData.extData) {
-					tabData.extData = {};
-				}
-				tabData.extData[Storage.kTabIdentifier] = JSON.stringify(tabData._tabData);
-				delete tabData._tabData;
-				return tabData;
-			})
-		}, { overwriteTabs: false, firstWindow: false });
+		Storage._scope.SessionStore.setWindowState(gWindow, {
+			windows: [{
+				tabs: restoreTabs.map(tabData => {
+					if (!tabData.extData) {
+						tabData.extData = {};
+					}
+					tabData.extData[Storage.kTabIdentifier] = JSON.stringify(tabData._tabData);
+					delete tabData._tabData;
+					return tabData;
+				})
+			}]
+		}, false);
 
 		// don't forget to insert back the updated data
 		Storage.saveGroupItemsData(gWindow, {

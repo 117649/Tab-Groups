@@ -73,7 +73,7 @@ var addonUris = {
 };
 
 var {classes: Cc, interfaces: Ci, utils: Cu, manager: Cm, results: Cr} = Components;
-var { XPCOMUtils } = ChromeUtils.importESModule("resource://gre/modules/XPCOMUtils.sys.mjs");
+var {XPCOMUtils} = ChromeUtils.importESModule("resource://gre/modules/XPCOMUtils.sys.mjs");
 
 ChromeUtils.defineESModuleGetters(this, {AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
 	PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
@@ -284,7 +284,7 @@ async function startup(aData, aReason) {
 	Services.scriptloader.loadSubScript(defaultsURI, this);
 
 	// Get the utils.jsm module into our sandbox
-	ChromeUtils.defineModuleGetter(this, "PluralForm", "chrome://"+objPathString+"-resource/content/modules/utils/PluralForm.jsm");
+	ChromeUtils.defineESModuleGetters(this, {PluralForm: "chrome://"+objPathString+"-resource/content/modules/utils/PluralForm.sys.mjs"});
 	Services.scriptloader.loadSubScript("chrome://"+objPathString+"-resource/content/modules/utils/Modules.jsm", this);
 	Services.scriptloader.loadSubScript("chrome://"+objPathString+"-resource/content/modules/utils/sandboxUtilsPreload.jsm", this);
 	Modules.load("utils/sandboxUtils");
