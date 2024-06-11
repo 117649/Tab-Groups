@@ -12,17 +12,16 @@
 
 // When bug 1195689 is fixed, we'll be able to use ChildProcess.jsm directly and discard this file completely.
 
-var EXPORTED_SYMBOLS = [ "ModuleInSandbox" ];
-
 var {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
 var gSandbox = null;
 
-var ModuleInSandbox = {
+export var ModuleInSandbox = {
 	init: function(objPathString, aFrame) {
 		if(!gSandbox) {
 			let systemPrincipal = Cc["@mozilla.org/systemprincipal;1"].createInstance(Ci.nsIPrincipal);
 			gSandbox = Cu.Sandbox(systemPrincipal, { freshZone: true, sandboxName: objPathString+"-ModuleInSandbox" });
+			gSandbox.ChromeUtils = ChromeUtils;
 			Services.scriptloader.loadSubScript("chrome://"+objPathString+"-resource/content/modules/content/utils/ChildProcess.jsm", gSandbox);
 		}
 		gSandbox.ChildProcess.init(objPathString, aFrame, this);

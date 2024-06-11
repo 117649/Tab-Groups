@@ -165,7 +165,7 @@ Modules.LOADMODULE = function() {
 	if(self.isContent) { return; }
 
 	// CustomizableUI is a special case, as CustomizableUIInternal is frozen and not exported
-	self.CUIBackstage = Cu.import("resource:///modules/CustomizableUI.jsm", self);
+	self.CUIBackstage = self.CustomizableUI = ChromeUtils.importESModule("resource:///modules/CustomizableUI.sys.mjs").CustomizableUI;
 	// CUIBackstage[Piggyback._obj] = {
 	// 	replaceInternal: function(objs) {
 	// 		if(!CUIBackstage.__CustomizableUIInternal) {

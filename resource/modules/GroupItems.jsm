@@ -2661,6 +2661,7 @@ this.GroupItems = {
 
 		this._lastActiveList.append(groupItem);
 		this.arrange(true);
+		Storage._prepWindowToRestoreInto(gWindow);
 		UI.updateTabButton();
 	},
 
@@ -2681,6 +2682,7 @@ this.GroupItems = {
 		this._arrangesPending.delete(groupItem);
 		this.arrange(true);
 
+		Storage._prepWindowToRestoreInto(gWindow);
 		UI.updateTabButton();
 	},
 

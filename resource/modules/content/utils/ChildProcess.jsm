@@ -41,10 +41,10 @@
 //	see DOMContentLoaded.add
 
 var {classes: Cc, interfaces: Ci, utils: Cu, manager: Cm} = Components;
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-XPCOMUtils.defineLazyModuleGetters(this, {
-	console: "resource://gre/modules/Console.jsm",
-	PluralForm: "chrome://" + objPathString + "-resource/content/modules/utils/PluralForm.jsm",
+var {XPCOMUtils} = ChromeUtils.importESModule("resource://gre/modules/XPCOMUtils.sys.mjs");
+ChromeUtils.defineESModuleGetters(this, {
+	console: "resource://gre/modules/Console.sys.mjs",
+	PluralForm: "chrome://" + objPathString + "-resource/content/modules/utils/PluralForm.sys.mjs",
 });
 XPCOMUtils.defineLazyServiceGetter(Services, "navigator", "@mozilla.org/network/protocol;1?name=http", "nsIHttpProtocolHandler");
 
