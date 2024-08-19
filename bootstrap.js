@@ -108,7 +108,6 @@ STEPLOGGER.prototype = {
 	}
 };
 
-XPCOMUtils.defineLazyServiceGetter(Services, "xulStore", "@mozilla.org/xul/xulstore;1", "nsIXULStore");
 XPCOMUtils.defineLazyServiceGetter(Services, "navigator", "@mozilla.org/network/protocol;1?name=http", "nsIHttpProtocolHandler");
 XPCOMUtils.defineLazyServiceGetter(Services, "stylesheet", "@mozilla.org/content/style-sheet-service;1", "nsIStyleSheetService");
 

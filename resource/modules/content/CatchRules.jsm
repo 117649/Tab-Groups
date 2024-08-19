@@ -28,7 +28,7 @@ this.CatchRules = {
 	},
 
 	// this is needed in content progress listeners (for some reason)
-	QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener, Ci.nsISupportsWeakReference])
+	QueryInterface: ChromeUtils.generateQI([Ci.nsIWebProgressListener, Ci.nsISupportsWeakReference])
 };
 
 Modules.LOADMODULE = function() {
