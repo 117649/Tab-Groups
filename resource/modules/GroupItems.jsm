@@ -2807,6 +2807,17 @@ this.GroupItems = {
 		}
 
 		let tabItems = this._activeGroupItem.children;
+		if (!gBrowser.showOnlyTheseTabs) gBrowser.showOnlyTheseTabs = function (aTabs) {
+			for (let tab of this.tabs) {
+				if (!aTabs.includes(tab)) {
+					this.hideTab(tab);
+				} else {
+					this.showTab(tab);
+				}
+			}
+
+			this.tabContainer._handleTabSelect(true);
+		}.bind(gBrowser);
 		gBrowser.showOnlyTheseTabs(tabItems.map(item => item.tab));
 		try {
 			gTabView.updateAeroPeek();
