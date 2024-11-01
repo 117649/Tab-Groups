@@ -567,7 +567,7 @@ this.TabItem.prototype = {
 			UI.goToTab(this.tab);
 
 			if(notSelected) gBrowser.tabContainer.arrowScrollbox.ensureElementIsVisible(this.tab,true);
-			gBrowser.tabContainer.arrowScrollbox._updateScrollButtonsDisabledState();
+			gBrowser.tabContainer.arrowScrollbox._updateScrollButtonsDisabledState?.call();
 			// make sure gBrowser.tabContainer.arrowScrollbox "overflow-end-indicator" is handeled
 
 			// tab might not be selected because hideTabView() is invoked after
