@@ -2854,7 +2854,7 @@ this.GroupItems = {
 				indices = tabs.map(tab => tab._tPos);
 			}
 
-			let start = index ? indices[index - 1] + 1 : 0;
+			let start = index ? Math.min(indices[index - 1] + 1, gBrowser.tabs.length - 1) : 0;
 			let end = index + 1 < indices.length ? indices[index + 1] - 1 : Infinity;
 			let targetRange = new Range(start, end);
 
