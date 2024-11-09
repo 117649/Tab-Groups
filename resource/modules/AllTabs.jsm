@@ -24,7 +24,7 @@ this.Tabs = {
 	},
 
 	get numPinned() {
-		return gBrowser._numPinnedTabs;
+		return gBrowser._numPinnedTabs ?? gBrowser.pinnedTabCount;
 	},
 
 	get visible() {
