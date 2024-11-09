@@ -667,6 +667,7 @@ this.TabView = {
 
 	moveTabTo: function(tab, groupItemId, focusIfSelected) {
 		this._initFrame(() => {
+			gBrowser.ungroupTab?.call(tab);
 			this._window[objName].GroupItems.moveTabToGroupItem(tab, groupItemId, focusIfSelected);
 		});
 	},

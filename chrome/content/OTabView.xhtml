@@ -114,6 +114,10 @@
                 z-index: -1;
                 visibility: hidden;
             }
+
+            tab-group:not(:has(tab:not([hidden="true"]))) .tab-group-label-container {
+				display: none;
+            }
         </html:style>
     </html>
 </overlay>
