@@ -658,7 +658,7 @@ this.TabView = {
 
 	newTab: function() {
 		// This should obey any new tab custom settings and add-ons (as long as they obey this method themselves of course).
-		window.BrowserOpenTab();
+		window.BrowserCommands.openTab();
 	},
 
 	openTab: function(url) {
