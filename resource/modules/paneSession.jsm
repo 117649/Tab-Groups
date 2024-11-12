@@ -599,7 +599,7 @@ this.paneSession = {
 				}
 			}
 			catch(ex) {
-				console.log(ex.name+': '+ex.message);
+				Services.console.logStringMessage(ex.name+': '+ex.message);
 
 				// groups data is corrupted or missing, consider the whole window its own group
 				activeGroupId = 1;
@@ -622,7 +622,7 @@ this.paneSession = {
 						}
 					}
 					catch(ex) {
-						console.log(ex.name+': '+ex.message);
+						Services.console.logStringMessage(ex.name+': '+ex.message);
 
 						// I think it's possible that tabs created while TabView is closed could somehow skip the group registration.
 						// Even if not, we squeeze in any ungrouped tabs into the "current" group of that window,
