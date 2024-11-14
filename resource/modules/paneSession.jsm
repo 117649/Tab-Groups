@@ -15,9 +15,9 @@ this.paneSession = {
 	},
 
 	filenames: {
-		previous: /^previous.jsonlz4$/,
-		recovery: /^recovery.jsonlz4$/,
-		recoveryBackup: /^recovery.baklz4$/,
+		previous: /^previous.json(lz4)$/,
+		recovery: /^recovery.json(lz4)$/,
+		recoveryBackup: /^recovery.bak(lz4)$/,
 		upgrade: /^upgrade.jsonlz4-[0-9]{14}$/,
 		tabMixPlus: /^tabmix_sessions-[0-9]{4}-[0-9]{2}-[0-9]{2}.rdf$/,
 		manual: /^tabGroups-manual-[0-9]{8}-[0-9]{6}.json(lz4)?$/,
@@ -521,7 +521,7 @@ this.paneSession = {
 		}
 
 		let p = aFile.path || aFile;
-		window.IOUtils.readUTF8(p, p.match(".(bak|json)lz4")[0] ? { decompress: true } : null).then(async (savedState) => {
+		window.IOUtils.readUTF8(p, p.match(".(bak|json)lz4")?.[0] ? { decompress: true } : null).then(async (savedState) => {
 
 			this.manualAction = aManualAction;
 
