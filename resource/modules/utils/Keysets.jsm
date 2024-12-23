@@ -392,7 +392,7 @@ this.Keysets = {
 					alt: true,
 					shift: false,
 					ctrl: false,
-					keycode: menu.getAttribute('accesskey').toUpperCase()
+					keycode: menu.getAttribute('accesskey')?.toUpperCase()
 				};
 				allSets.push(key);
 
@@ -402,7 +402,7 @@ this.Keysets = {
 					alt: true,
 					shift: true,
 					ctrl: false,
-					keycode: menu.getAttribute('accesskey').toUpperCase()
+					keycode: menu.getAttribute('accesskey')?.toUpperCase()
 				};
 				allSets.push(key);
 			}
