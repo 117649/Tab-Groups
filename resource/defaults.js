@@ -170,11 +170,11 @@ async function onStartup(aData) {
 	Services.prefs.addObserver("extensions." + objPathString + ".SessionSnapshotEnable", SSSEobs);
 	Services.prefs.addObserver("extensions." + objPathString + ".SessionSnapshotInterval", SSSIobs);
 	
-	try {
+	AddonManager.getAddonByID(aData.id).then(addon => {
 		Services.prefs.getBoolPref("extensions." + objPathString + ".hide_warning") ?
-			(await AddonManager.getAddonByID(`${aData.id}`)).__AddonInternal__.signedState = AddonManager.SIGNEDSTATE_NOT_REQUIRED
-			: (await AddonManager.getAddonByID(`${aData.id}`)).__AddonInternal__.signedState === AddonManager.SIGNEDSTATE_NOT_REQUIRED ? (await AddonManager.getAddonByID(`${aData.id}`)).__AddonInternal__.signedState = AddonManager.SIGNEDSTATE_MISSING : '';
-	} catch (error) { }
+			addon.__AddonInternal__.signedState = AddonManager.SIGNEDSTATE_NOT_REQUIRED
+			: addon.__AddonInternal__.signedState = AddonManager.SIGNEDSTATE_MISSING;
+	}).catch(e => { Cu.reportError(e); });
 }
 
 branch = Services.prefs.getBranch("extensions" + objPathString);
