@@ -54,7 +54,7 @@ html:not(#main-window)[tabGroups_UUID][tabGroups_Version] body[lwtheme] #groupSe
 
 /* This is temp fix for overlay scrollbar not reappear on tabview*/
 @media (-moz-overlay-scrollbars) {
-	html:not(#main-window)[tabGroups_UUID][tabGroups_Version] scrollbar:not([active="true"]) {
+	html:not(#main-window)[tabGroups_UUID][tabGroups_Version] scrollbar:not([active]) {
 		-moz-appearance: none;
 	}
 }
