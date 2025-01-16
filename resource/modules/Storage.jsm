@@ -193,6 +193,34 @@ Modules.LOADMODULE = function() {
 	Services.obs.addObserver(Storage._obs, "sessionstore-initiating-manual-restore");
 	window.addEventListener("SSWindowRestoring", Storage._WindowRestoring);
 	window.addEventListener("SSWindowRestored", Storage._WindowRestored);
+
+	new Promise(async r => {
+		if (ChromeUtils.importESModule("resource:///modules/sessionstore/SessionMigration.sys.mjs").SessionMigration.migrate['_Piggyback_'])
+			return;
+		var t = ChromeUtils.importESModule("resource:///modules/sessionstore/SessionMigration.sys.mjs").SessionMigration.migrate;
+		let a = {};
+		Services.scriptloader.loadSubScript("data:text/javascript," + encodeURIComponent((await (await window.fetch('resource:///modules/sessionstore/SessionMigration.sys.mjs')).text()).replace(`return tab;`,`
+            
+            // The tabgroup info is in the extData, so we need to get it out.
+            if (oldTab.extData && tabview - tab in oldTab.extData) {
+              tab.extData = { [${Storage.kTabIdentifier}]: oldTab.extData[${Storage.kTabIdentifier}] };
+            }
+            
+            return tab;`
+		).replace(`win.selected = oldWin.selected;`,`
+        // There are various tabgroup-related attributes that we need to get out of the session restore data for the window, too.
+        if (oldWin.extData) {
+          for (let k of Object.keys(oldWin.extData)) {
+            if (k.startsWith('tabview-')) {
+              win.extData[k] = oldWin.extData[k];
+            }
+          }
+        }
+        
+        win.selected = oldWin.selected;`).replace(/\nexport /,'')),a);
+		ChromeUtils.importESModule("resource:///modules/sessionstore/SessionMigration.sys.mjs").SessionMigration.migrate = a.SessionMigration.migrate;
+		ChromeUtils.importESModule("resource:///modules/sessionstore/SessionMigration.sys.mjs").SessionMigration.migrate['_Piggyback_'] = t;
+	});
 };
 
 Modules.UNLOADMODULE = function() {
