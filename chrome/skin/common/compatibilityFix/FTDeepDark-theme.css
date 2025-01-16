@@ -17,8 +17,8 @@
 		list-style-image: url(chrome://tabgroups-os/skin/menuPanel@2x.png);
 	}
 
-	#main-window[tabsintitlebar]:not([inFullscreen]) :-moz-any(#TabsToolbar, #toolbar-menubar) > toolbarpaletteitem > #tabGroups-tabview-button:-moz-system-metric(windows-classic):not(:-moz-lwtheme),
-	#main-window[tabsintitlebar]:not([inFullscreen]) :-moz-any(#TabsToolbar, #toolbar-menubar) > #tabGroups-tabview-button:-moz-system-metric(windows-classic):not(:-moz-lwtheme) {
+	#main-window:is([tabsintitlebar], [customtitlebar]):not([inFullscreen]) :-moz-any(#TabsToolbar, #toolbar-menubar) > toolbarpaletteitem > #tabGroups-tabview-button:-moz-system-metric(windows-classic):not(:-moz-lwtheme),
+	#main-window:is([tabsintitlebar], [customtitlebar]):not([inFullscreen]) :-moz-any(#TabsToolbar, #toolbar-menubar) > #tabGroups-tabview-button:-moz-system-metric(windows-classic):not(:-moz-lwtheme) {
 		position: relative;
 		z-index: 1;
 		list-style-image: url("chrome://tabgroups-os/skin/Toolbar-inverted@2x.png");

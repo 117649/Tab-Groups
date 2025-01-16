@@ -1190,7 +1190,7 @@ this.UI = {
 			}
 
 			gTabViewFrame.show(true);
-			if(!gWindow.fullScreen) gWindow.TabsInTitlebar.allowedBy("tabview-open", false);
+			if(!gWindow.fullScreen) (gWindow.TabsInTitlebar || gWindow.CustomTitlebar).allowedBy("tabview-open", false);
 			window.focus();
 
 			gBrowser.updateTitlebar();
@@ -1280,7 +1280,7 @@ this.UI = {
 			}
 
 			gTabViewFrame.show(false);
-			gWindow.TabsInTitlebar.allowedBy("tabview-open", true);
+			(gWindow.TabsInTitlebar || gWindow.CustomTitlebar).allowedBy("tabview-open", true);
 			gBrowser.selectedBrowser.focus();
 
 			gBrowser.updateTitlebar();
