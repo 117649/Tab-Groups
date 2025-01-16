@@ -1045,9 +1045,6 @@ this.Overlays = {
 				var toolboxes = aWindow.document.querySelectorAll('toolbox');
 				for(let toolbox of toolboxes) {
 					var palette = toolbox.palette;
-					// if(toolbox == aWindow.gNavToolbox){
-					// 	palette.id = "BrowserToolbarPalette";
-					// }
 
 					if(palette
 					&& aWindow.gCustomizeMode._stowedPalette
