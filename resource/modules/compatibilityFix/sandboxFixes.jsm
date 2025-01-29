@@ -8,7 +8,7 @@ Modules.LOADMODULE = function() {
 	AddonManager.getAddonByID('{dc572301-7619-498c-a57d-39143191b318}').then(async function(addon) {
 		if(addon){
 			await addon.startupPromise;
-			Modules.load('compatibilityFix/TabMixPlus');
+			Modules.loadIf('compatibilityFix/TabMixPlus', !addon.userDisabled);
 		}
 	});
 
