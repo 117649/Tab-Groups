@@ -270,26 +270,18 @@ this.TabView = {
 			return window._WindowIsClosing();
 		});
 
-		Piggyback.add('TabView', window, 'undoCloseTab', (aIndex) => {
-			let tab = null;
-			if(SessionStore.getClosedTabCountForWindow(window) > (aIndex || 0)) {
-				// wallpaper patch to prevent an unnecessary blank tab (bug 343895)
-				let blankTabToRemove = null;
-				if(Tabs.length == 1 && window.isTabEmpty(Tabs.selected)) {
-					blankTabToRemove = Tabs.selected;
-				}
-
-				this.prepareUndoCloseTab(blankTabToRemove);
-				tab = SessionStore.undoCloseTab(window, aIndex || 0);
-				this.afterUndoCloseTab();
-
-				if(blankTabToRemove) {
-					gBrowser.removeTab(blankTabToRemove);
-				}
-			}
-
-			return tab;
-		});
+		Piggyback.add('TabView', window, 'undoCloseTab', Cu.getGlobalForObject(window).eval('(' + window.undoCloseTab.toString().replace(
+			`blankTabToRemove = targetWindow.gBrowser.selectedTab;
+  }`,
+			`blankTabToRemove = targetWindow.gBrowser.selectedTab;
+  }
+  TabView.prepareUndoCloseTab(blankTabToRemove);`
+		).replace(
+			`if (tabsRemoved && blankTabToRemove)`,
+			`
+  TabView.afterUndoCloseTab();
+  if (tabsRemoved && blankTabToRemove)`
+		) + ')'));
 
 		Piggyback.add('TabView', gBrowser, 'updateTitlebar', () => {
 			if(this.isVisible()) {
@@ -342,6 +334,19 @@ this.TabView = {
 		PageThumbs.removeExpirationFilter(this);
 
 		Piggyback.revert('TabView', window, 'WindowIsClosing');
+		if (window.Tabmix && !window._undoCloseTab.toLocaleString().includes('TMP_ClosedTabs')) {
+			window.Tabmix.changeCode(window, "window._undoCloseTab")._replace(
+				/tab = SessionStore\.undoCloseTab.*\n.*true;/,
+				`tab = TMP_ClosedTabs._undoCloseTab(
+					  ${window.Tabmix.isVersion(1170) ? "sourceWindow" : "window"},
+					  index,
+					  "original",
+					  !tab,
+					  !tab ? undefined : null,
+					  tabsToRemove.length > 1
+					);`
+			).toCode();
+		}
 		Piggyback.revert('TabView', window, 'undoCloseTab');
 		Piggyback.revert('TabView', gBrowser, 'updateTitlebar');
 
