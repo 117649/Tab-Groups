@@ -803,6 +803,12 @@ this.Overlays = {
 			}
 		}
 
+		if (aWindow.document.csp.policyCount && aWindow.document.csp.getPolicy(0) == "script-src-attr 'none' 'report-sample'")
+			for (const key of Object.keys(data).filter(t => t.startsWith('anon'))) {
+				const f = new Function("event", "with(event.view){" + data[key] + "}");
+				data['on' + key.charAt(4).toUpperCase() + key.slice(5)] = f;
+			}
+
 		// createWidget() defaults the removable state to true as of bug 947987
 		if(!data.removable && !data.defaultArea) {
 			data.defaultArea = (node.parentNode) ? node.parentNode.id : palette.id;
@@ -1006,6 +1012,9 @@ this.Overlays = {
 	},
 
 	loadInto: function(aWindow, overlay) {
+		let isCSPstrict = aWindow.location == "chrome://browser/content/browser.xhtml"
+			&& aWindow.document.csp.policyCount && aWindow.document.csp.getPolicy(0) == "script-src-attr 'none' 'report-sample'";
+		
 		for(let overlayNode of overlay.childNodes) {
 			// Special case for overlaying preferences to options dialogs
 			if(overlayNode.nodeName == 'preferences') {
@@ -1077,6 +1086,8 @@ this.Overlays = {
 									Globals.widgets[button.id] = button;
 								}
 
+								if (isCSPstrict) button => [...button.attributes].forEach((a) => a.name.startsWith("on")
+									&& (button.setAttribute("an" + a.name, button.getAttribute(a.name)), button.removeAttribute(a.name)));
 								// add the button if not found either in a toolbar or the palette
 								button = aWindow.document.importNode(button, true);
 								this.appendButton(aWindow, palette, button);
@@ -1111,6 +1122,11 @@ this.Overlays = {
 					// Why bother, id is the same already
 					if(attr.name == 'id') { continue; }
 
+					if(isCSPstrict && attr.name.startsWith("on")){
+						node.addEventListener(attr.name.replace(/^on/, ''), new Function("event", "with(event.view){" + attr.textContent + "}"));
+						attr.name = "an" + attr.name;
+					}
+
 					this.setAttribute(aWindow, node, attr);
 				}
 
@@ -1124,7 +1140,15 @@ this.Overlays = {
 				this.loadInto(aWindow, overlayNode);
 			}
 			else if(overlayNode.parentNode.nodeName != 'overlay' || overlayNode.hasAttribute("insertafter") || overlayNode.hasAttribute("insertbefore")) {
+				if (isCSPstrict) [overlayNode, ...overlayNode.querySelectorAll("*")].forEach((el) => [...el.attributes].forEach((a) =>
+					a.name.startsWith("on") && (el.setAttribute("an" + a.name, el.getAttribute(a.name)), el.removeAttribute(a.name))));
+
 				var node = aWindow.document.importNode(overlayNode, true);
+
+				if (isCSPstrict) [node, ...node.querySelectorAll("*")].forEach((el) => [...el.attributes].forEach((a) => {
+					if (a.name.startsWith("anon"))
+						el.addEventListener(a.name.replace(/^anon/, ''), new Function("event", "with(event.view){" + a.textContent + "}"));
+				}));
 
 				// We need to register the customization area before we append the node
 				this.registerAreas(aWindow, node);
