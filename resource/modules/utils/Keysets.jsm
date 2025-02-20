@@ -553,7 +553,7 @@ this.Keysets = {
 				key.id = r.id;
 				key.setAttribute('Keysets', objName);
 				toggleAttribute(key, 'command', r.command, r.command);
-				toggleAttribute(key, 'oncommand', r.oncommand, r.oncommand);
+				key.addEventListener('command', Overlays.insertInlineEventHandler(key, r.oncommand));
 
 				let code = this.translateToConstantCode(r.keycode);
 				key.setAttribute(code.startsWith('VK_') ? 'keycode' : 'key', code);
