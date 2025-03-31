@@ -992,6 +992,7 @@ this.Search = {
 			if(Prefs.searchMode == 'highlight') {
 				if(this.currentItem) {
 					this.setActive(this.currentItem._tabItem);
+					this.currentItem._tabItem.container.scrollIntoView();
 				} else {
 					UI.clearActiveTab();
 				}
