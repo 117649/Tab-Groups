@@ -270,7 +270,7 @@ this.TabView = {
 			return window._WindowIsClosing();
 		});
 
-		Piggyback.add('TabView', window, 'undoCloseTab', Cu.getGlobalForObject(window).eval('(' + window.undoCloseTab.toString().replace(
+		Piggyback.add('TabView', window, 'undoCloseTab', Cu.evalInSandbox(`(${window.undoCloseTab.toString().replace(
 			`blankTabToRemove = targetWindow.gBrowser.selectedTab;
   }`,
 			`blankTabToRemove = targetWindow.gBrowser.selectedTab;
@@ -280,8 +280,7 @@ this.TabView = {
 			`if (tabsRemoved && blankTabToRemove)`,
 			`
   TabView.afterUndoCloseTab();
-  if (tabsRemoved && blankTabToRemove)`
-		) + ')'));
+  if (tabsRemoved && blankTabToRemove)`)})`, Globals.getSandbox(window.undoCloseTab)));
 
 		Piggyback.add('TabView', gBrowser, 'updateTitlebar', () => {
 			if(this.isVisible()) {
@@ -335,17 +334,19 @@ this.TabView = {
 
 		Piggyback.revert('TabView', window, 'WindowIsClosing');
 		if (window.Tabmix && !window._undoCloseTab.toLocaleString().includes('TMP_ClosedTabs')) {
-			window.Tabmix.changeCode(window, "window._undoCloseTab")._replace(
-				/tab = SessionStore\.undoCloseTab.*\n.*true;/,
-				`tab = TMP_ClosedTabs._undoCloseTab(
-					  ${window.Tabmix.isVersion(1170) ? "sourceWindow" : "window"},
-					  index,
-					  "original",
-					  !tab,
-					  !tab ? undefined : null,
-					  tabsToRemove.length > 1
-					);`
-			).toCode();
+			window.Tabmix.changeCode(window, "window._undoCloseTab")
+			._replace(
+			  /tab = SessionStore\.undoCloseTab.*\n.*true;/,
+			  `tab = TMP_ClosedTabs._undoCloseTab(
+				  ${window.Tabmix.isVersion(1170) ? "sourceWindow" : "window"},
+				  index,
+				  "original",
+				  !tab,
+				  !tab ? undefined : null,
+				  tabsToRemove.length > 1
+				);`
+			)
+			.toCode();
 		}
 		Piggyback.revert('TabView', window, 'undoCloseTab');
 		Piggyback.revert('TabView', gBrowser, 'updateTitlebar');

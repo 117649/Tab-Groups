@@ -75,6 +75,25 @@ var addonUris = {
 var {classes: Cc, interfaces: Ci, utils: Cu, manager: Cm, results: Cr} = Components;
 var {XPCOMUtils} = ChromeUtils.importESModule("resource://gre/modules/XPCOMUtils.sys.mjs");
 
+Globals.getSandbox = function (obj) {
+	if (!Globals.sandboxes) Globals.sandboxes = Services.wm.getMostRecentWindow('navigator:browser')?.UC.sandboxes ?? new WeakMap();
+	let global = Cu.getGlobalForObject(obj);
+	if (ChromeUtils.getClassName(global) == "Sandbox") return global;
+	if (Globals.sandboxes.has(global)) return Globals.sandboxes.get(global);
+	let sandbox = Cu.Sandbox(Services.scriptSecurityManager.getSystemPrincipal(), {
+		sandboxPrototype: global,
+		sameZoneAs: global,
+		wantXrays: false,
+		sandboxName: objName+'-sandbox',
+	});
+	Globals.sandboxes.set(global, sandbox);
+	if(global.window == global) global.addEventListener('unload', () => {
+		Globals.sandboxes.delete(global);
+		Cu.nukeSandbox(sandbox);
+	});
+	return sandbox;
+};
+
 ChromeUtils.defineESModuleGetters(this, {AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
 	PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
 	PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
