@@ -46,7 +46,7 @@ this.toCode = {
 		}
 
 		try {
-			aObj[fnName] = eval("("+methodCode+")");
+			aObj[fnName] = Cu.evalInSandbox("("+methodCode+")", Globals.getSandbox(aObj));
 			newRecord.newCode = aObj[fnName].toString();
 			this._records.set(aName, newRecord);
 		}

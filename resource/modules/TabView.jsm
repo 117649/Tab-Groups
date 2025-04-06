@@ -270,7 +270,7 @@ this.TabView = {
 			return window._WindowIsClosing();
 		});
 
-		Piggyback.add('TabView', window, 'undoCloseTab', Cu.getGlobalForObject(window).eval('(' + window.undoCloseTab.toString().replace(
+		Piggyback.add('TabView', window, 'undoCloseTab', Cu.evalInSandbox(`(${window.undoCloseTab.toString().replace(
 			`blankTabToRemove = targetWindow.gBrowser.selectedTab;
   }`,
 			`blankTabToRemove = targetWindow.gBrowser.selectedTab;
@@ -280,8 +280,7 @@ this.TabView = {
 			`if (tabsRemoved && blankTabToRemove)`,
 			`
   TabView.afterUndoCloseTab();
-  if (tabsRemoved && blankTabToRemove)`
-		) + ')'));
+  if (tabsRemoved && blankTabToRemove)`)})`, Globals.getSandbox(window.undoCloseTab)));
 
 		Piggyback.add('TabView', gBrowser, 'updateTitlebar', () => {
 			if(this.isVisible()) {
