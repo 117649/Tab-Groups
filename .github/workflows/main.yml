@@ -77,7 +77,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if [ ${{ env.CHANGELOG_EXIST }} ]; then
-            gh release edit dev-build --draft=false --notes-file=CHANGELOG.md
+            cat CHANGELOG.md | sed 's/dev-Build/dev-build/g' > CHANGELOG_FIXED.md
+            gh release edit dev-build --draft=false --notes-file=CHANGELOG_FIXED.md
           else
             url=https://github.com/117649/Tab-Groups/releases/tag/${{ env.PREVIOUS_TAG }}
             notes="${{ env.NOTES }}<br /><br />No changes since [${{ env.PREVIOUS_TAG }}]($url)"
