@@ -270,7 +270,8 @@ this.TabView = {
 			return window._WindowIsClosing();
 		});
 
-		Piggyback.add('TabView', window, 'undoCloseTab', Cu.evalInSandbox(`(${window.undoCloseTab.toString().replace(
+		let parent = window.SessionWindowUI ?? window;
+		let code = parent.undoCloseTab.toString().replace(
 			`blankTabToRemove = targetWindow.gBrowser.selectedTab;
   }`,
 			`blankTabToRemove = targetWindow.gBrowser.selectedTab;
@@ -280,7 +281,9 @@ this.TabView = {
 			`if (tabsRemoved && blankTabToRemove)`,
 			`
   TabView.afterUndoCloseTab();
-  if (tabsRemoved && blankTabToRemove)`)})`, Globals.getSandbox(window.undoCloseTab)));
+  if (tabsRemoved && blankTabToRemove)`);
+		if (!code.startsWith("function")) code = 'function ' + code;
+		Piggyback.add('TabView', parent, 'undoCloseTab', Cu.evalInSandbox(`(${code})`, Globals.getSandbox(parent.undoCloseTab)));
 
 		Piggyback.add('TabView', gBrowser, 'updateTitlebar', () => {
 			if(this.isVisible()) {
@@ -333,22 +336,35 @@ this.TabView = {
 		PageThumbs.removeExpirationFilter(this);
 
 		Piggyback.revert('TabView', window, 'WindowIsClosing');
-		if (window.Tabmix && !window._undoCloseTab.toLocaleString().includes('TMP_ClosedTabs')) {
-			window.Tabmix.changeCode(window, "window._undoCloseTab")
-			._replace(
-			  /tab = SessionStore\.undoCloseTab.*\n.*true;/,
-			  `tab = TMP_ClosedTabs._undoCloseTab(
-				  ${window.Tabmix.isVersion(1170) ? "sourceWindow" : "window"},
-				  index,
-				  "original",
-				  !tab,
-				  !tab ? undefined : null,
-				  tabsToRemove.length > 1
-				);`
-			)
-			.toCode();
+		if (window.Tabmix && !((window.SessionWindowUI ?? window)._undoCloseTab.toLocaleString()?.includes('TMP_ClosedTabs'))) {
+			if (window.SessionWindowUI) {
+				const lazy = {};
+				const modules = {
+					BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
+					PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
+					SessionStore: "resource:///modules/sessionstore/SessionStore.sys.mjs",
+					TabMetrics: "moz-src:///browser/components/tabbrowser/TabMetrics.sys.mjs",
+				};
+				ChromeUtils.defineESModuleGetters(lazy, modules);
+				const sandbox = Tabmix.getSandbox(window.SessionWindowUI, { scope: { lazy, Tabmix } });
+			}
+			window.Tabmix.changeCode(window.SessionWindowUI ?? window, "_undoCloseTab", window.SessionWindowUI ? { sandbox } : undefined)
+				._replace(
+					window.SessionWindowUI
+						? /tab\s*=\s*lazy\.SessionStore\.undoCloseTab\([\s\S]*?\);\s*tabsRemoved\s*=\s*true;/
+						: /tab = SessionStore\.undoCloseTab.*\n.*true;/,
+					`tab = TMP_ClosedTabs._undoCloseTab(
+            ${Tabmix.isVersion(1170) ? "sourceWindow" : "window"},
+            index,
+            "original",
+            !tab,
+            !tab ? undefined : null,
+            tabsToRemove.length > 1
+          );`
+				)
+				.toCode();
 		}
-		Piggyback.revert('TabView', window, 'undoCloseTab');
+		Piggyback.revert('TabView', window.SessionWindowUI ?? window, 'undoCloseTab');
 		Piggyback.revert('TabView', gBrowser, 'updateTitlebar');
 
 		Prefs.unlisten('groupTitleInButton', this);
