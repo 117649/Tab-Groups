@@ -272,16 +272,15 @@ this.TabView = {
 
 		let parent = window.SessionWindowUI ?? window;
 		let code = parent.undoCloseTab.toString().replace(
+			/blankTabToRemove = targetWindow.gBrowser.selectedTab;\n\s*\}/,
 			`blankTabToRemove = targetWindow.gBrowser.selectedTab;
-  }`,
-			`blankTabToRemove = targetWindow.gBrowser.selectedTab;
-  }
-  TabView.prepareUndoCloseTab(blankTabToRemove);`
+    }
+    targetWindow.TabView.prepareUndoCloseTab(blankTabToRemove);`
 		).replace(
 			`if (tabsRemoved && blankTabToRemove)`,
 			`
-  TabView.afterUndoCloseTab();
-  if (tabsRemoved && blankTabToRemove)`);
+	targetWindow.TabView.afterUndoCloseTab();
+	if (tabsRemoved && blankTabToRemove)`);
 		if (!code.startsWith("function")) code = 'function ' + code;
 		Piggyback.add('TabView', parent, 'undoCloseTab', Cu.evalInSandbox(`(${code})`, Globals.getSandbox(parent.undoCloseTab)));
 
