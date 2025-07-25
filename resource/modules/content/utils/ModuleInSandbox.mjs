@@ -20,8 +20,7 @@ export var ModuleInSandbox = {
 	init: function(objPathString, aFrame) {
 		if(!gSandbox) {
 			let systemPrincipal = Cc["@mozilla.org/systemprincipal;1"].createInstance(Ci.nsIPrincipal);
-			gSandbox = Cu.Sandbox(systemPrincipal, { freshZone: true, sandboxName: objPathString+"-ModuleInSandbox" });
-			gSandbox.ChromeUtils = ChromeUtils;
+			gSandbox = Cu.Sandbox(systemPrincipal, { freshZone: true, wantGlobalProperties: ['ChromeUtils'], sandboxName: objPathString + "-ModuleInSandbox" });
 			Services.scriptloader.loadSubScript("chrome://"+objPathString+"-resource/content/modules/content/utils/ChildProcess.jsm", gSandbox);
 		}
 		gSandbox.ChildProcess.init(objPathString, aFrame, this);
