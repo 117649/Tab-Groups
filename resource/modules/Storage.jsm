@@ -124,7 +124,11 @@ this.Storage = {
 Modules.LOADMODULE = function() {
 	Storage._scope = ChromeUtils.importESModule("resource:///modules/sessionstore/SessionStore.sys.mjs");
 	self.SessionStore = Storage._scope.SessionStore;
-	// Storage._migrationScope = Cu.import("resource:///modules/sessionstore/SessionMigration.jsm", {});
+	Storage._migrationScope = Cu.Sandbox(Services.scriptSecurityManager.getSystemPrincipal(), {
+		sandboxPrototype: Storage,
+		wantGlobalProperties: ['ChromeUtils'],
+		wantExportHelpers: true,
+	});
 
 	Storage._prepWindowToRestoreInto = function(aWindow) {
 		if(!aWindow) { return; }
@@ -195,31 +199,32 @@ Modules.LOADMODULE = function() {
 	window.addEventListener("SSWindowRestored", Storage._WindowRestored);
 
 	new Promise(async r => {
-		if (ChromeUtils.importESModule("resource:///modules/sessionstore/SessionMigration.sys.mjs").SessionMigration.migrate['_Piggyback_'])
+		let { SessionMigration } = ChromeUtils.importESModule("resource:///modules/sessionstore/SessionMigration.sys.mjs");
+		if (SessionMigration.migrate['_Piggyback_'])
 			return;
-		var t = ChromeUtils.importESModule("resource:///modules/sessionstore/SessionMigration.sys.mjs").SessionMigration.migrate;
-		let a = {};
-		Services.scriptloader.loadSubScript("data:text/javascript," + encodeURIComponent((await (await window.fetch('resource:///modules/sessionstore/SessionMigration.sys.mjs')).text()).replace(`return tab;`,`
-            
-            // The tabgroup info is in the extData, so we need to get it out.
-            if (oldTab.extData && tabview - tab in oldTab.extData) {
-              tab.extData = { [${Storage.kTabIdentifier}]: oldTab.extData[${Storage.kTabIdentifier}] };
-            }
-            
-            return tab;`
-		).replace(`win.selected = oldWin.selected;`,`
+		var orig = SessionMigration.migrate;
+		Cu.evalInSandbox((await (await window.fetch('resource:///modules/sessionstore/SessionMigration.sys.mjs')).text())
+			.replace(`return tab;`, `
+        // The tabgroup info is in the extData, so we need to get it out.
+        if (oldTab.extData && tabview - tab in oldTab.extData) {
+          tab.extData = { [undefined]: oldTab.extData[undefined] };
+        }
+
+        return tab;`
+			).replace(`win.selected = oldWin.selected;`, `
         // There are various tabgroup-related attributes that we need to get out of the session restore data for the window, too.
-        if (oldWin.extData) {
-          for (let k of Object.keys(oldWin.extData)) {
-            if (k.startsWith('tabview-')) {
-              win.extData[k] = oldWin.extData[k];
-            }
+      if (oldWin.extData) {
+        for (let k of Object.keys(oldWin.extData)) {
+          if (k.startsWith('tabview-')) {
+            win.extData[k] = oldWin.extData[k];
           }
         }
-        
-        win.selected = oldWin.selected;`).replace(/\nexport /,'')),a);
-		ChromeUtils.importESModule("resource:///modules/sessionstore/SessionMigration.sys.mjs").SessionMigration.migrate = a.SessionMigration.migrate;
-		ChromeUtils.importESModule("resource:///modules/sessionstore/SessionMigration.sys.mjs").SessionMigration.migrate['_Piggyback_'] = t;
+      }
+
+      win.selected = oldWin.selected;`).replace(/\nexport /, '')
+			+ `\n_migrationScope.SessionMigration = SessionMigration ;`, Storage._migrationScope);
+		SessionMigration.migrate = Storage._migrationScope.SessionMigration.migrate;
+		SessionMigration.migrate['_Piggyback_'] = orig;
 	});
 };
 
@@ -234,8 +239,10 @@ Modules.UNLOADMODULE = function() {
 	}
 	window.removeEventListener("SSWindowRestoring", Storage._WindowRestoring);
 	window.removeEventListener("SSWindowRestored", Storage._WindowRestored);
-	if (ChromeUtils.importESModule("resource:///modules/sessionstore/SessionMigration.sys.mjs").SessionMigration.migrate['_Piggyback_']) {
-		ChromeUtils.importESModule("resource:///modules/sessionstore/SessionMigration.sys.mjs").SessionMigration.migrate = ChromeUtils.importESModule("resource:///modules/sessionstore/SessionMigration.sys.mjs").SessionMigration.migrate['_Piggyback_']
-		delete ChromeUtils.importESModule("resource:///modules/sessionstore/SessionMigration.sys.mjs").SessionMigration.migrate['_Piggyback_'];
+	let { SessionMigration } = ChromeUtils.importESModule("resource:///modules/sessionstore/SessionMigration.sys.mjs");
+	if (SessionMigration.migrate['_Piggyback_']) {
+		SessionMigration.migrate = SessionMigration.migrate['_Piggyback_']
+		delete SessionMigration.migrate['_Piggyback_'];
 	}
+	Cu.nukeSandbox(Storage._migrationScope);
 };

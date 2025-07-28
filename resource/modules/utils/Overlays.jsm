@@ -789,8 +789,10 @@ this.Overlays = {
 	insertInlineEventHandler: (node, textContent) => Cu.evalInSandbox(`(function(event){${textContent}})`, Globals.getSandbox(node)),
 
 	isCSPstrict: function (aWindow) {
-		return aWindow.document.csp.policyCount
-			&& aWindow.document.csp.getPolicy(0).includes('script-src');
+		return !(aWindow.document.csp ?? aWindow.document.policyContainer.csp).getAllowsInline(
+			Ci.nsIContentSecurityPolicy.SCRIPT_SRC_ATTR_DIRECTIVE,
+			false, "", false, null, null, "", 0, 1
+		)
 	},
 
 	getWidgetData: function(aWindow, node, palette) {
@@ -1042,7 +1044,12 @@ this.Overlays = {
 						"data:application/javascript," + encodeURIComponent(overlayNode.textContent);
 					  // It would be great if we could have script errors show the right url, but for now
 					  // loadSubScript will have to do.
-					  Services.scriptloader.loadSubScript(dataURL, aWindow);
+					  let isDone = false;
+					  ChromeUtils.compileScript(dataURL).then(script => {
+						script.executeInGlobal(aWindow);
+						isDone = true;
+					  });
+					  Services.tm.spinEventLoopUntil("Wait for eval'd script to load", () => isDone);
 					} catch (ex) {
 					  Cu.reportError(ex);
 					}

@@ -215,18 +215,15 @@ this.delayPreferences = {
 				setAttribute(node, "preference-editable", "true");
 			}
 
-			// node._pref = $(node.getAttribute('delayPreference'));
-
 			node._pref = window.Preferences.get($(node.getAttribute('delayPreference')).getAttribute('name'));
-			if(node.hasAttribute("onsyncfrompreference")) {
-				let f = new Function("document",
-				node.getAttribute("onsyncfrompreference"));
-				window.Preferences.addSyncFromPrefListener(node, x=>f.call(x,x.getRootNode()));
+			let sb = Globals.getSandbox(node);
+			if (node.hasAttribute("onsyncfrompreference")) {
+				window.Preferences.addSyncFromPrefListener(node, x =>
+					Cu.evalInSandbox(`(function(){${node.getAttribute("onsyncfrompreference")}})`, sb).call(x));
 			}
 			if(node.hasAttribute("onsynctopreference")) {
-				let f = new Function("document",
-				node.getAttribute("onsynctopreference"));
-				window.Preferences.addSyncToPrefListener(node, x=>f.call(x,x.getRootNode()));
+				window.Preferences.addSyncToPrefListener(node, x =>
+					Cu.evalInSandbox(`(function(){${node.getAttribute("onsynctopreference")}})`, sb).call(x));
 			}
 			node._pref.setElementValue(node);
 
