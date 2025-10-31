@@ -909,6 +909,7 @@ this.UI = {
 		if(this._activeTab) {
 			this._activeTab.addSubscriber("close", this);
 			this._activeTab.makeActive();
+			this.showActiveTab();
 
 			// Make sure the pinned items reflect this change as well.
 			// It won't actually select anything, rather it will unselect an item if it already is selected.
@@ -1022,6 +1023,11 @@ this.UI = {
 
 		// There's no need to do anything, the active tab item is already visible for sure.
 		if(!tabItem.parent.overflowing && !tabItem.parent.noThumbs) { return; }
+		else {
+			let bounds = tabItem.container.getBoundingClientRect();
+			let parent = tabItem.parent.contents.getBoundingClientRect();
+			if(bounds.top >= parent.top && bounds.bottom <= parent.bottom) { return; }
+		}
 
 		tabItem.container.scrollIntoView();
 	},
