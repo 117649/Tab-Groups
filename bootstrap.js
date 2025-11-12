@@ -127,8 +127,8 @@ STEPLOGGER.prototype = {
 	}
 };
 
-XPCOMUtils.defineLazyServiceGetter(Services, "navigator", "@mozilla.org/network/protocol;1?name=http", "nsIHttpProtocolHandler");
-XPCOMUtils.defineLazyServiceGetter(Services, "stylesheet", "@mozilla.org/content/style-sheet-service;1", "nsIStyleSheetService");
+XPCOMUtils.defineLazyServiceGetter(Services, "navigator", "@mozilla.org/network/protocol;1?name=http", Ci.nsIHttpProtocolHandler);
+XPCOMUtils.defineLazyServiceGetter(Services, "stylesheet", "@mozilla.org/content/style-sheet-service;1", Ci.nsIStyleSheetService);
 
 // I check these pretty much everywhere, so might as well keep a single reference to them
 var WINNT = Services.appinfo.OS == 'WINNT';

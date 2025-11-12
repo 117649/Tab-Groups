@@ -46,7 +46,7 @@ ChromeUtils.defineESModuleGetters(this, {
 	console: "resource://gre/modules/Console.sys.mjs",
 	PluralForm: "chrome://" + objPathString + "-resource/content/modules/utils/PluralForm.sys.mjs",
 });
-XPCOMUtils.defineLazyServiceGetter(Services, "navigator", "@mozilla.org/network/protocol;1?name=http", "nsIHttpProtocolHandler");
+XPCOMUtils.defineLazyServiceGetter(Services, "navigator", "@mozilla.org/network/protocol;1?name=http", Ci.nsIHttpProtocolHandler);
 
 // See the definition of these in bootstrap.js
 var AddonData = null;

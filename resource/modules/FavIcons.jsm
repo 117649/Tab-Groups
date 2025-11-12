@@ -18,7 +18,7 @@ this.FavIcons = {
 	},
 
 	init: function() {
-		XPCOMUtils.defineLazyServiceGetter(this, "_favIconService", "@mozilla.org/browser/favicon-service;1", "nsIFaviconService");
+		XPCOMUtils.defineLazyServiceGetter(this, "_favIconService", "@mozilla.org/browser/favicon-service;1", Ci.nsIFaviconService);
 	},
 
 	uninit: function() {
