@@ -1115,9 +1115,10 @@ input.name:focus {
 	border-bottom-color: rgba(128,128,128,0.25);
 }
 
-input.name:not(:focus)::-moz-placeholder {
+input.name:placeholder-shown:not(:focus) {
 	background-image: var(--group-titlebar-edit-icon);
 	background-repeat: no-repeat;
+	background-position-y: center;
 }
 
 input.name.unnamed-group:not(:focus) {
