@@ -246,7 +246,7 @@ function listenOnce(aSubject, type, handler, capture) {
 }
 
 function callOnLoad(aSubject, aCallback, beforeComplete) {
-	if(aSubject.document.readyState == 'complete' || beforeComplete) {
+	if((aSubject.document.readyState == 'complete' && !aSubject.document.isInitialDocument) || beforeComplete) {
 		try { aCallback(aSubject); }
 		catch(ex) { Cu.reportError(ex); }
 		return;

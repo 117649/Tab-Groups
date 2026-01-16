@@ -107,7 +107,7 @@ this.Windows = {
 
 		for(let watcher of this.watchers) {
 			// 'windowtype' attr is undefined until the window loads
-			if(!noBefore && aSubject.document.readyState != 'complete' && watcher.type) {
+			if(!noBefore && (aSubject.document.readyState != 'complete' || aSubject.document.isInitialDocument) && watcher.type) {
 				scheduleOnLoad = true;
 			}
 
