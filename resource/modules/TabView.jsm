@@ -282,7 +282,8 @@ this.TabView = {
 	targetWindow.TabView.afterUndoCloseTab();
 	if (tabsRemoved && blankTabToRemove)`);
 		if (!code.startsWith("function")) code = 'function ' + code;
-		Piggyback.add('TabView', parent, 'undoCloseTab', Cu.evalInSandbox(`(${code})`, Globals.getSandbox(parent.undoCloseTab)));
+		Piggyback.add('TabView', parent, 'undoCloseTab',
+			Cu.evalInSandbox(`(${code})`, Globals.getSandbox(parent.undoCloseTab), null, window.location + `?${objName}.undoCloseTab`, 1));
 
 		Piggyback.add('TabView', gBrowser, 'updateTitlebar', () => {
 			if(this.isVisible()) {

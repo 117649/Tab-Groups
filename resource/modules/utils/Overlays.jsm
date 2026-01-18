@@ -786,7 +786,7 @@ this.Overlays = {
 		}
 	},
 
-	insertInlineEventHandler: (node, textContent) => Cu.evalInSandbox(`(function(event){${textContent}})`, Globals.getSandbox(node)),
+	insertInlineEventHandler: (node, textContent) => Cu.evalInSandbox(`(function(event){${textContent}})`, Globals.getSandbox(node), null, node.baseURI + `?${objName}.Inline#${node.id}`, 1),
 
 	isCSPstrict: function (aWindow) {
 		return !(aWindow.document.csp ?? aWindow.document.policyContainer.csp).getAllowsInline(

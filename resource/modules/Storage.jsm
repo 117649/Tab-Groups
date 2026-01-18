@@ -223,7 +223,7 @@ Modules.LOADMODULE = function() {
       }
 
       win.selected = oldWin.selected;`).replace(/\nexport /, '')
-			+ `\n_migrationScope.SessionMigration = SessionMigration ;`, Storage._migrationScope);
+			+ `\n_migrationScope.SessionMigration = SessionMigration ;`, Storage._migrationScope, null, `${ESModSM}?${objName}.Piggyback`, 1);
 		SessionMigration.migrate = Storage._migrationScope.SessionMigration.migrate;
 		SessionMigration.migrate['_Piggyback_'] = orig;
 	});

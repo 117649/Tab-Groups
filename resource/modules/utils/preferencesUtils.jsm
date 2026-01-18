@@ -219,11 +219,11 @@ this.delayPreferences = {
 			let sb = Globals.getSandbox(node);
 			if (node.hasAttribute("onsyncfrompreference")) {
 				window.Preferences.addSyncFromPrefListener(node, x =>
-					Cu.evalInSandbox(`(function(){${node.getAttribute("onsyncfrompreference")}})`, sb).call(x));
+					Cu.evalInSandbox(`(function(){${node.getAttribute("onsyncfrompreference")}})`, sb, null, `${objName}.onsyncfrompreference`, 1).call(x));
 			}
 			if(node.hasAttribute("onsynctopreference")) {
 				window.Preferences.addSyncToPrefListener(node, x =>
-					Cu.evalInSandbox(`(function(){${node.getAttribute("onsynctopreference")}})`, sb).call(x));
+					Cu.evalInSandbox(`(function(){${node.getAttribute("onsynctopreference")}})`, sb, null, `${objName}.onsynctopreference`, 1).call(x));
 			}
 			node._pref.setElementValue(node);
 
