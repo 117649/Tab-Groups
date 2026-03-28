@@ -1096,28 +1096,9 @@ this.UI = {
 
 		// Otherwise, find it from the web content area.
 		if(!viewportRatio) {
-			let wrongDims = false;
-			let tab = Tabs.selected;
 
-			// If we already have a valid previous ratio, don't update the ratio if the tab is in responsive mode or the devtools are open.
-			// (Version restriction because the devtools were initialized differently before this,
-			// and I don't feel adding backwards compatibility just for this is justified for ESR at this point.)
-			wrongDims = gWindow.gDevToolsBrowser && gWindow.gDevToolsBrowser.hasToolboxOpened(gWindow);
-			if(!wrongDims) {
-				wrongDims = gWindow.ResponsiveUI && gWindow.ResponsiveUI.ResponsiveUIManager && gWindow.ResponsiveUI.ResponsiveUIManager.isActiveForTab(tab);
-			}
-
-			if(wrongDims) {
-				if(this._viewportRatio) { return; }
-
-				// If we don't yet have a valid ratio, we "borrow" it from the dimensions of the browser panel, it's not perfect, but it'll do for now.
-				let linkedPanel = gBrowser.getNotificationBox(tab.linkedBrowser);
-				viewportRatio = linkedPanel.clientWidth / linkedPanel.clientHeight;
-			}
-			else {
-				// Assume the dimensions of the currently active tab for the screen ratio. This is what thumbnails will represent after all.
-				viewportRatio = gBrowser.selectedBrowser.clientWidth / gBrowser.selectedBrowser.clientHeight;
-			}
+			// Assume the dimensions of the browser panel for the screen ratio, it's not perfect, but it'll do for now. 
+			viewportRatio = gBrowser.tabpanels.clientWidth / gBrowser.tabpanels.clientHeight;
 
 			// Make sure the thumbnails don't become too stretched or too flat, they lose all their value if their contents can't be distinguished properly.
 			// For example, in ultra wide screens, or with the devtools open, the thumbnails would be a very thin stretched image; hardly useful...
