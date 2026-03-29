@@ -54,6 +54,8 @@ this.TabItem = function(tab, options = {}) {
 		"busy", "progress", "soundplaying", "muted", "tabmix_tabState", "protected"
 	], this, false, false);
 
+	if(this.tab.parentElement.tagName == "tab-split-view-wrapper") toggleAttribute(this.container, "split", tab.nextSibling, 'l', 'r');
+
 	this.addClass(Array.from(this.tab.classList).find(x => x.startsWith("identity-color-")));
 
 	TabItems.register(this);
@@ -439,6 +441,8 @@ this.TabItem.prototype = {
 			this.container.classList[v ? 'add' : 'remove']('tabHidden');
 			this._hidden = v;
 		}
+		if(this.tab.parentElement.tagName == "tab-split-view-wrapper" && (this.tab.nextSibling ?? this.tab.previousSibling)._tabViewTabItem.hidden != v) 
+			(this.tab.nextSibling ?? this.tab.previousSibling)._tabViewTabItem.hidden = v; // if is half of split, hide another. 
 		return this._hidden;
 	},
 
@@ -794,6 +798,12 @@ this.TabItems = {
 					this.unlink(tab);
 				}
 				break;
+
+			// When a split is added, a tab is moved.
+			case "TabMove":
+				toggleAttribute(tab._tabViewTabItem.container, "split", tab.parentElement.tagName == "tab-split-view-wrapper" && // Only 1 moves when reverse.
+					!toggleAttribute((tab.nextSibling ?? tab.previousSibling)._tabViewTabItem.container, "split", tab.nextSibling, 'r', 'l'), tab.nextSibling ? 'l' : 'r');
+				break;
 		}
 	},
 
@@ -829,6 +839,7 @@ this.TabItems = {
 		Tabs.listen("TabOpen", this);
 		Tabs.listen("TabAttrModified", this);
 		Tabs.listen("TabClose", this);
+		Tabs.listen("TabMove", this);
 
 		let activeGroupItem = GroupItems.getActiveGroupItem();
 		let activeGroupItemId = activeGroupItem ? activeGroupItem.id : null;
@@ -851,6 +862,7 @@ this.TabItems = {
 		Tabs.unlisten("TabOpen", this);
 		Tabs.unlisten("TabAttrModified", this);
 		Tabs.unlisten("TabClose", this);
+		Tabs.unlisten("TabMove", this);
 
 		for(let tabItem of this) {
 			tabItem.destroy();
@@ -1062,7 +1074,8 @@ this.TabItems = {
 	link: function(tab, options) {
 		try {
 			// Don't add an item for temporary tabs created by us.
-			if(gTabView._closedLastVisibleTab === tab || gTabView._closedLastVisibleTab === true || tab.label?.startsWith("about:firefoxview") || tab.linkedBrowser.contentDocument?.URL?.startsWith("about:firefoxview")) { return; }
+			if(gTabView._closedLastVisibleTab === tab || gTabView._closedLastVisibleTab === true 
+				|| tab.label?.startsWith("about:firefoxview") || tab.linkedBrowser.contentDocument?.URL?.startsWith("about:firefoxview")) { return; }
 
 			new TabItem(tab, options); // sets tab._tabViewTabItem to itself
 		}

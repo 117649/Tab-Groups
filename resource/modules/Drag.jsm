@@ -970,13 +970,14 @@ this.TabDrag.prototype = {
 			let ii = dropTarget.children.indexOf(this.item);
 			if(this.sibling) {
 				options.index = dropTarget.children.indexOf(this.sibling);
-				if(this.sibling.container.classList.contains('space-after')) {
+				if(this.sibling.tab.parentElement.tagName == "tab-split-view-wrapper" ? !this.sibling.tab.nextSibling : this.sibling.container.classList.contains('space-after')) {
 					options.index++;
 				}
 				// Don't count the item currently being dragged, it will be removed from the array so this index won't match.
 				let ii = dropTarget.children.indexOf(this.item);
 				if(ii > -1 && ii < options.index) {
 					options.index--;
+					if(this.item.tab.parentElement.tagName == "tab-split-view-wrapper") options.index--; // Need remove 2 if is split.
 				}
 			}
 			else if(dropTarget.isStacked) {

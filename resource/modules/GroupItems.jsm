@@ -1402,6 +1402,7 @@ this.GroupItem.prototype = {
 	add: function(item, options = {}) {
 		try {
 			let wasAlreadyInThisGroupItem = false;
+			let isHalf = item.tab.parentElement.tagName == "tab-split-view-wrapper" && !options.isAnotherHalf;
 			if(item.parent) {
 				// safeguard to remove the item from its previous group
 				if(item.parent !== this) {
@@ -1411,6 +1412,7 @@ this.GroupItem.prototype = {
 					let oldIndex = this.children.indexOf(item);
 					if(oldIndex != -1) {
 						this.children.splice(oldIndex, 1);
+						if(isHalf) this.children.splice(this.children.indexOf((item.tab.nextSibling ?? item.tab.previousSibling)._tabViewTabItem), 1);
 						wasAlreadyInThisGroupItem = true;
 					}
 				}
@@ -1421,6 +1423,8 @@ this.GroupItem.prototype = {
 			if(options.index !== undefined && options.index < index && options.index > -1) {
 				index = options.index;
 			}
+			if(options.isAnotherHalf)
+				index = this.children.indexOf((item.tab.nextSibling ?? item.tab.previousSibling)._tabViewTabItem) + (item.tab.nextSibling ? 0 : 1);
 			this.children.splice(index, 0, item);
 
 			if(!wasAlreadyInThisGroupItem) {
@@ -1452,6 +1456,9 @@ this.GroupItem.prototype = {
 			this._sendToSubscribers("childAdded", { item: item });
 
 			UI.setReorderTabsOnHide(this);
+			
+			// If this item is being added from a split view, also add the other in the split view to this group.
+			if(isHalf) this.add((item.tab.nextSibling ?? item.tab.previousSibling)._tabViewTabItem, { isAnotherHalf: true });
 		}
 		catch(ex) {
 			Cu.reportError(ex);
@@ -1833,7 +1840,16 @@ this.GroupItem.prototype = {
 				html['+objName+'_UUID="'+_UUID+'"] #group'+this.id+' .tab:not(.create-new),\n\
 				html['+objName+'_UUID="'+_UUID+'"] .expandedTray[group="'+this.id+'"] .tab:not(.create-new) {\n\
 					width: '+tabWidth+'px;\n\
+					&[split] {\n\
+						width: '+tabWidth/2+'px;\n\
+					}\n\
 					height: '+tabHeight+'px;\n\
+					&[split="l"] {\n\
+						padding-inline-end: 0px;\n\
+					}\n\
+					&[split="r"] {\n\
+						padding-inline-start: 0px;\n\
+					}\n\
 					padding: '+tabPadding+'px;\n\
 					font-size: '+fontSize+'px;\n\
 				}\n\
@@ -1841,20 +1857,20 @@ this.GroupItem.prototype = {
 				html['+objName+'_UUID="'+_UUID+'"] .expandedTray[group="'+this.id+'"] .thumb {\n\
 					height: calc(100% - '+lineHeight+'px);\n\
 				}\n\
-				html['+objName+'_UUID="'+_UUID+'"] #group'+this.id+' .tab-container:not([columns="1"]) .tab.space-before,\n\
-				html['+objName+'_UUID="'+_UUID+'"] .expandedTray[group="'+this.id+'"] .tab-container:not([columns="1"]) .tab.space-before {\n\
+				html['+objName+'_UUID="'+_UUID+'"] #group'+this.id+' .tab-container:not([columns="1"]) .tab.space-before:not([split="r"]),\n\
+				html['+objName+'_UUID="'+_UUID+'"] .expandedTray[group="'+this.id+'"] .tab-container:not([columns="1"]) .tab.space-before:not([split="r"]) {\n\
 					margin-inline-start: '+spaceWidth+'px !important;\n\
 				}\n\
-				html['+objName+'_UUID="'+_UUID+'"] #group'+this.id+' .tab-container:not([columns="1"]) .tab.space-after,\n\
-				html['+objName+'_UUID="'+_UUID+'"] .expandedTray[group="'+this.id+'"] .tab-container:not([columns="1"]) .tab.space-after {\n\
+				html['+objName+'_UUID="'+_UUID+'"] #group'+this.id+' .tab-container:not([columns="1"]) .tab.space-after:not([split="l"]),\n\
+				html['+objName+'_UUID="'+_UUID+'"] .expandedTray[group="'+this.id+'"] .tab-container:not([columns="1"]) .tab.space-after:not([split="l"]) {\n\
 					margin-inline-end: '+spaceWidth+'px !important;\n\
 				}\n\
-				html['+objName+'_UUID="'+_UUID+'"] #group'+this.id+' .tab-container[columns="1"] .tab.space-before,\n\
-				html['+objName+'_UUID="'+_UUID+'"] .expandedTray[group="'+this.id+'"] .tab-container[columns="1"] .tab.space-before {\n\
+				html['+objName+'_UUID="'+_UUID+'"] #group'+this.id+' .tab-container[columns="1"] .tab.space-before:not([split="r"]),\n\
+				html['+objName+'_UUID="'+_UUID+'"] .expandedTray[group="'+this.id+'"] .tab-container[columns="1"] .tab.space-before:not([split="r"]) {\n\
 					margin-top: '+spaceHeight+'px !important;\n\
 				}\n\
-				html['+objName+'_UUID="'+_UUID+'"] #group'+this.id+' .tab-container[columns="1"] .tab.space-after,\n\
-				html['+objName+'_UUID="'+_UUID+'"] .expandedTray[group="'+this.id+'"] .tab-container[columns="1"] .tab.space-after {\n\
+				html['+objName+'_UUID="'+_UUID+'"] #group'+this.id+' .tab-container[columns="1"] .tab.space-after:not([split="l"]),\n\
+				html['+objName+'_UUID="'+_UUID+'"] .expandedTray[group="'+this.id+'"] .tab-container[columns="1"] .tab.space-after:not([split="l"]) {\n\
 					margin-bottom: '+spaceHeight+'px !important;\n\
 				}\n';
 

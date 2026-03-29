@@ -118,6 +118,10 @@
             tab-group:not(:has(tab:not([hidden="true"]))) .tab-group-label-container {
 				display: none;
             }
+
+            #tabbrowser-tabs tab-split-view-wrapper:has(> [hidden]){
+                display: none !important;;
+            }
         </html:style>
     </html>
 </overlay>
