@@ -431,7 +431,7 @@ this.TabView = {
 			if(show) this._iframe.setAttribute("show","");
 			else this._iframe.removeAttribute("show");
 			document.body.style.opacity = !show ? null : 0;
-			(window.gURLBar.textbox ?? window.gURLBar).style.display = !show ? null : "none";
+			[...window.document.getElementsByClassName('urlbar')].forEach(x => x.style.display = !show ? null : "none");
 		};
 		document.documentElement.appendChild(this._iframe);
 	},
