@@ -176,18 +176,8 @@ Modules.LOADMODULE = function() {
 		// Update our button's label, to reflect the groups data in the new/different session.
 		if(window.TabView) {
 			window.TabView.setButtonLabel();
+			window.TabView._initFrame();
 		}
-
-		if(window.TabView && !window.TabView._iframe && window.TabView._initialized) window.TabView._initFrame(() => {
-			window.TabView._window[objName].GroupItems.resumeArrange();
-			window.TabView._window[objName].TabItems.resumePainting();
-			window.TabView._window[objName].GroupItems.pauseArrange();
-			window.TabView._window[objName].TabItems.pausePainting();
-			window.gBrowser.tabs.forEach(t => t.addEventListener('SSTabRestored', _ => {
-				window.TabView._window[objName].TabItems.startHeartbeatHidden();
-				window.TabView._window[objName].TabItems.update(t);
-			}, {once: true}));
-		});
 	}
 
 	Storage._obs = function obs(subject, topic) {

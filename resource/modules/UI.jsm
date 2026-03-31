@@ -695,6 +695,9 @@ this.UI = {
 
 			// fire an iframe initialized event so everyone knows tab view is initialized.
 			dispatch(window, { type: "tabviewframeinitialized", cancelable: false });
+			GroupItems.resumeArrange();
+			GroupItems.pauseArrange();
+			TabItems.resumePainting();
 		}
 		catch(ex) {
 			Cu.reportError(ex);
@@ -1233,7 +1236,6 @@ this.UI = {
 		// Flush pending updates
 		PinnedItems.flushUpdates();
 		GroupItems.resumeArrange();
-		TabItems.resumePainting();
 
 		this.showActiveTab();
 		this.checkSessionRestore();
@@ -1258,7 +1260,6 @@ this.UI = {
 
 		try {
 			GroupItems.pauseArrange();
-			TabItems.pausePainting();
 
 			this.reorderTabsBasedOnTabItemOrder();
 

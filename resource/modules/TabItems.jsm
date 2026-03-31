@@ -744,11 +744,11 @@ this.TabItems = {
 	_canvasFragment: null,
 	items: new Set(),
 	paintingPaused: 0,
-	_heartbeatHiddenTiming: 20000, // milliseconds between calls when TabView is hidden (for discarding canvases)
+	_heartbeatHiddenTiming: 10000, // milliseconds between calls when TabView is hidden (for discarding canvases)
 	_heartbeatTiming: 200, // milliseconds between calls
 	_maxTimeForUpdating: 200, // milliseconds that consecutive updates can take
 	_maxTimeForCachedThumbs: 25,
-	_maxNumberForUpdate: 100,
+	_maxNumberForUpdate: 50, // its 2020s continuous updating at parallel should be doable. also half the delay of hidden heartbeat
 	_lastUpdateTime: Date.now(),
 	reconnectingPaused: false,
 
@@ -788,6 +788,7 @@ this.TabItems = {
 
 			// When a tab's content is loaded, show the canvas and hide the cached data if necessary.
 			case "TabAttrModified":
+			case "SSTabRestored":
 				this.update(tab);
 				break;
 
@@ -838,6 +839,7 @@ this.TabItems = {
 
 		Tabs.listen("TabOpen", this);
 		Tabs.listen("TabAttrModified", this);
+		Tabs.listen("SSTabRestored", this);
 		Tabs.listen("TabClose", this);
 		Tabs.listen("TabMove", this);
 
@@ -861,6 +863,7 @@ this.TabItems = {
 
 		Tabs.unlisten("TabOpen", this);
 		Tabs.unlisten("TabAttrModified", this);
+		Tabs.unlisten("SSTabRestored", this);
 		Tabs.unlisten("TabClose", this);
 		Tabs.unlisten("TabMove", this);
 
@@ -1149,41 +1152,35 @@ this.TabItems = {
 	// This periodically checks for tabs waiting to be updated, and calls _update on them.
 	// Should only be called by startHeartbeat and resumePainting.
 	_checkHeartbeat: async function() {
-		if(this.isPaintingPaused()) {
-			// With tab view hidden, the heartbeat instead turns stale tabs canvas into images, and discards the canvas.
-			if(!UI.isTabViewVisible()) {
-				if(!this.startHeartbeatHidden.thumbUpdate && this._tabsWaitingForUpdate.getItems().length)
-				this.startHeartbeatHidden.thumbUpdate = new Promise(async _ =>{
-					await Promise.allSettled(this._tabsWaitingForUpdate.getItems().splice(0, this._maxNumberForUpdate).map(x=>this._update(x)));
-					delete this.startHeartbeatHidden.thumbUpdate;
-				});
+		// With tab view hidden, the heartbeat instead turns stale tabs canvas into images, and discards the canvas.
+		if(!UI.isTabViewVisible()) {
+			let accumTime = 0;
+			while(accumTime < this._maxTimeForUpdating && !this._staleTabs.isEmpty()) {
+				let updateBegin = Date.now();
 
-				let accumTime = 0;
-				while(accumTime < this._maxTimeForUpdating && !this._staleTabs.isEmpty()) {
-					let updateBegin = Date.now();
-
-					let tabItem = this._staleTabs.peek();
-					this._staleTabs.remove(tabItem);
-					await tabItem.destroyCanvas();
-					if(tabItem.parent && tabItem.parent.stale) {
-						// It's likely it could have had a cached thumbnail (hidden leftover from disabling thumbs in a group).
-						tabItem.hideCachedThumb();
-					}
-
-					let updateEnd = Date.now();
-					let deltaTime = updateEnd - updateBegin;
-					accumTime += deltaTime;
+				let tabItem = this._staleTabs.peek();
+				this._staleTabs.remove(tabItem);
+				await tabItem.destroyCanvas();
+				if(tabItem.parent && tabItem.parent.stale) {
+					// It's likely it could have had a cached thumbnail (hidden leftover from disabling thumbs in a group).
+					tabItem.hideCachedThumb();
 				}
 
-				// If there are possibly still stale tabs, recheck in a while.
-				if(!this._staleTabs.isEmpty() || this._tabsWaitingForUpdate.hasItems()) {
-					this.startHeartbeatHidden();
-				}
-				// Otherwise we finish by removing unused icon colors from FavIcons, to free up a little extra memory.
-				else {
-					FavIcons.cleanupStaleColors();
-				}
+				let updateEnd = Date.now();
+				let deltaTime = updateEnd - updateBegin;
+				accumTime += deltaTime;
 			}
+
+			// If there are possibly still stale tabs, recheck in a while.
+			if(!this._staleTabs.isEmpty() || this._tabsWaitingForUpdate.hasItems()) {
+				this.startHeartbeatHidden();
+			}
+			// Otherwise we finish by removing unused icon colors from FavIcons, to free up a little extra memory.
+			else {
+				FavIcons.cleanupStaleColors();
+			}
+		}
+		if(this.isPaintingPaused()) {
 			return;
 		}
 

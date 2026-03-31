@@ -840,14 +840,6 @@ this.paneSession = {
 		this.restoreInNewBtn.hidden = true;
 		this.importfinishedNotice.hidden = false;
 		this.importfinishedNotice.scrollIntoView();
-
-		gWindow[objName].TabView._initFrame(() => {
-			gWindow[objName].TabView._window[objName].GroupItems.resumeArrange();
-			gWindow[objName].TabView._window[objName].TabItems.resumePainting();
-			gWindow[objName].TabView._window[objName].GroupItems.pauseArrange();
-			gWindow[objName].TabView._window[objName].TabItems.pausePainting();
-			gWindow[objName].TabView._window[objName].TabItems.startHeartbeatHidden();
-		});
 	},
 
 	restoreInNewWindow: async function() {

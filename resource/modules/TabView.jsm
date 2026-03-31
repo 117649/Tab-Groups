@@ -316,13 +316,7 @@ this.TabView = {
 
 		this._initialized = true;
 
-		window.PlacesUIUtils.canLoadToolbarContentPromise.then(this._initFrame(() => {
-			this._window[objName].GroupItems.resumeArrange();
-			this._window[objName].TabItems.resumePainting();
-			this._window[objName].GroupItems.pauseArrange();
-			this._window[objName].TabItems.pausePainting();
-			this._window[objName].TabItems.startHeartbeatHidden();
-		}));
+		this._initFrame();
 	},
 
 	uninit: function() {
