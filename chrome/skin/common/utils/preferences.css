@@ -20,7 +20,7 @@ groupbox {
 }
 
 /* to avoid overflowing panes unnecessarily, see https://github.com/Quicksaver/Tab-Groups/issues/263 */
-#mainPrefPane > .header[collapsed="true"] {
+#mainPrefPane > .header[collapsed] {
 	display: none;
 }
 
@@ -187,7 +187,7 @@ radio.highlight {
 	-moz-appearance: none;
 }
 
-[collapsed="true"] {
+[collapsed] {
 	border: none;
 	padding: 0 !important;
 	margin: 0;
