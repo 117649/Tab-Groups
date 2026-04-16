@@ -360,7 +360,7 @@ function shutdown(aData, aReason) {
 		}
 	}
 
-	Modules.unload("utils/sandboxUtils");
+	Modules?.unload("utils/sandboxUtils");
 	removeOnceListener();
 }
 
