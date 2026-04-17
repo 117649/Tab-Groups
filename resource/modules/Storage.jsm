@@ -145,21 +145,11 @@ Modules.LOADMODULE = function() {
 			if (groupsData.totalNumber > 1) {
 				if (aWindow.__SS_lastSessionWindowID) {
 					aWindow["_" + objPathString + "__SS_lastSessionWindowID"] = aWindow.__SS_lastSessionWindowID;
-					aWindow.__SS_lastSessionWindowID = "_" + objPathString + "_removed_" + AddonData.initTime;
-					let t = Storage._scope._LastSession.getState()?.windows
-						.find(w => w.__lastSessionWindowID == aWindow["_" + objPathString + "__SS_lastSessionWindowID"]);
-					if (t) {
-						t["_" + objPathString + "__lastSessionWindowID"] = t.__lastSessionWindowID;
-						delete t.__lastSessionWindowID;
-					}
+					aWindow.__SS_lastSessionWindowID = true;
 				}
-			} else {
-				if (aWindow["_" + objPathString + "__SS_lastSessionWindowID"]) {
-					aWindow.__SS_lastSessionWindowID = aWindow["_" + objPathString + "__SS_lastSessionWindowID"];
-					let t = Storage._scope._LastSession.getState()?.windows
-						.find(w => w["_" + objPathString + "__lastSessionWindowID"] == aWindow["_" + objPathString + "__SS_lastSessionWindowID"]);
-					if (t) t.__lastSessionWindowID = t["_" + objPathString + "__lastSessionWindowID"];
-				}
+			} else if (aWindow["_" + objPathString + "__SS_lastSessionWindowID"]) {
+				aWindow.__SS_lastSessionWindowID = aWindow["_" + objPathString + "__SS_lastSessionWindowID"];
+				delete aWindow["_" + objPathString + "__SS_lastSessionWindowID"];
 			}
 		}
 	};
@@ -182,9 +172,7 @@ Modules.LOADMODULE = function() {
 
 	Storage._obs = function obs(subject, topic) {
 		try { Storage._prepWindowToRestoreInto(window); } catch (e) { Cu.reportError(e); }
-	}
-	Storage._obs();
-	Services.obs.addObserver(Storage._obs, "sessionstore-windows-restored");
+	};
 	Services.obs.addObserver(Storage._obs, "sessionstore-initiating-manual-restore");
 	window.addEventListener("SSWindowRestoring", Storage._WindowRestoring);
 	window.addEventListener("SSWindowRestored", Storage._WindowRestored);
@@ -220,13 +208,10 @@ Modules.LOADMODULE = function() {
 };
 
 Modules.UNLOADMODULE = function() {
-	Services.obs.removeObserver(Storage._obs, "sessionstore-windows-restored");
 	Services.obs.removeObserver(Storage._obs, "sessionstore-initiating-manual-restore");
 	if (window["_" + objPathString + "__SS_lastSessionWindowID"]) {
 		window.__SS_lastSessionWindowID = window["_" + objPathString + "__SS_lastSessionWindowID"];
-		let t = Storage._scope._LastSession.getState()?.windows
-			.find(w => w["_" + objPathString + "__lastSessionWindowID"] == window["_" + objPathString + "__SS_lastSessionWindowID"]);
-		if (t) t.__lastSessionWindowID = t["_" + objPathString + "__lastSessionWindowID"];
+		delete window["_" + objPathString + "__SS_lastSessionWindowID"];
 	}
 	window.removeEventListener("SSWindowRestoring", Storage._WindowRestoring);
 	window.removeEventListener("SSWindowRestored", Storage._WindowRestored);
