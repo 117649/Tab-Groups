@@ -1683,7 +1683,7 @@ this.TabCanvas.prototype = {
 			}
 
 			try {
-				await PageThumbs.captureToCanvas(browser, canvas);
+				await PageThumbs.captureTabPreviewThumbnail(browser, canvas);
 			} catch (ex) { reject(ex) }
 
 			ctx = this.canvas.getContext('2d');
