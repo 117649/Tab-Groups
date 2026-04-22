@@ -907,7 +907,6 @@ Modules.LOADMODULE = function() {
 	Prefs.setDefaults({ url: defaultValue }, 'newtab', 'browser');
 
 	Modules.load('AllTabs');
-	Modules.load('compatibilityFix/windowFixes');
 	Modules.load('CatchRules');
 	Overlays.overlayWindow(window, 'OTabView', TabView);
 };
@@ -916,7 +915,6 @@ Modules.UNLOADMODULE = function() {
 	Overlays.removeOverlayWindow(window, 'OTabView');
 	Modules.unload('CatchRules');
 	Modules.unload('AllTabs');
-	Modules.unload('compatibilityFix/windowFixes');
 
 	delete window.TabView;
 };
