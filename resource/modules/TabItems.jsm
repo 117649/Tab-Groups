@@ -54,7 +54,7 @@ this.TabItem = function(tab, options = {}) {
 		"busy", "progress", "soundplaying", "muted", "tabmix_tabState", "protected"
 	], this, false, false);
 
-	if(this.tab.parentElement.tagName == "tab-split-view-wrapper") toggleAttribute(this.container, "split", tab.nextSibling, 'l', 'r');
+	if(this.tab.splitview) toggleAttribute(this.container, "split", tab.nextSibling, 'l', 'r');
 
 	this.addClass(Array.from(this.tab.classList).find(x => x.startsWith("identity-color-")));
 
@@ -441,7 +441,7 @@ this.TabItem.prototype = {
 			this.container.classList[v ? 'add' : 'remove']('tabHidden');
 			this._hidden = v;
 		}
-		if(this.tab.parentElement.tagName == "tab-split-view-wrapper" && (this.tab.nextSibling ?? this.tab.previousSibling)._tabViewTabItem.hidden != v) 
+		if(this.tab.splitview && (this.tab.nextSibling ?? this.tab.previousSibling)._tabViewTabItem.hidden != v) 
 			(this.tab.nextSibling ?? this.tab.previousSibling)._tabViewTabItem.hidden = v; // if is half of split, hide another. 
 		return this._hidden;
 	},
@@ -802,7 +802,7 @@ this.TabItems = {
 
 			// When a split is added, a tab is moved.
 			case "TabMove":
-				toggleAttribute(tab._tabViewTabItem.container, "split", tab.parentElement.tagName == "tab-split-view-wrapper" && // Only 1 moves when reverse.
+				toggleAttribute(tab._tabViewTabItem.container, "split", tab.splitview && // Only 1 moves when reverse.
 					!toggleAttribute((tab.nextSibling ?? tab.previousSibling)._tabViewTabItem.container, "split", tab.nextSibling, 'r', 'l'), tab.nextSibling ? 'l' : 'r');
 				break;
 		}

@@ -1402,7 +1402,7 @@ this.GroupItem.prototype = {
 	add: function(item, options = {}) {
 		try {
 			let wasAlreadyInThisGroupItem = false;
-			let isHalf = item.tab.parentElement.tagName == "tab-split-view-wrapper" && !options.isAnotherHalf;
+			let isHalf = item.tab.splitview && !options.isAnotherHalf;
 			if(item.parent) {
 				// safeguard to remove the item from its previous group
 				if(item.parent !== this) {
