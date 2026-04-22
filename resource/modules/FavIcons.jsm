@@ -27,15 +27,15 @@ this.FavIcons = {
 
 	// Gets the "favicon link URI" for the given xul:tab, or null if unavailable.
 	getFavIconUrlForTab: function(tab, callback) {
-		this._isImageDocument(tab).then((isImageDoc) => {
-			if(isImageDoc) {
+		try {
+			if(tab.linkedBrowser.documentContentType.startsWith("image/")) {
 				callback(tab.pinned ? tab.image : null);
 			} else {
 				this._getFavIconForNonImageDocument(tab, callback);
 			}
-		}).catch(() => {
+		} catch {
 			callback(null);
-		});
+		};
 	},
 
 	// Retrieves the favicon for a tab containing a non-image document.
@@ -72,56 +72,6 @@ this.FavIcons = {
 			} else {
 				callback(null);
 			}
-		});
-	},
-
-	// Checks whether an image is loaded into the given tab.
-	_isImageDocument: function(tab) {
-		return new Promise((resolve, reject) => {
-			// sometimes on first open, we don't get a response right away because the message isn't actually sent, although I have no clue why...
-			// We have to take care to only do this while the TabView frame exists, otherwise it can easily enter an endless loop, e.g. when updating the add-on.
-			let receiver = {
-				timer: null,
-				count: 0,
-
-				reject: function() {
-					// We don't need to separate this from resolve, since rejecting it will prevent any subsequent resolves.
-					reject(null);
-					this.end(null);
-				},
-
-				receiveMessage: function(m) {
-					this.end(m.data);
-				},
-
-				fire: function() {
-					this.count++;
-					if(this.count > 10) {
-						this.reject();
-					} else {
-						Messenger.messageBrowser(tab.linkedBrowser, "isImageDocument");
-
-						if(!this.timer) {
-							this.timer = Timers.create(() => {
-								this.fire();
-							}, 1000, 'slack');
-						}
-					}
-				},
-
-				end: function(response) {
-					this.timer.cancel();
-					Messenger.unlistenBrowser(tab.linkedBrowser, "isImageDocument", this);
-					resolve(response);
-					// It may not exist anymore? Not sure if it's possible but it doesn't really matter at this point, let's just not stop shutdown.
-					try { FavIcons.waiting.delete(this); }
-					catch(ex) {}
-				}
-			};
-
-			this.waiting.add(receiver);
-			Messenger.listenBrowser(tab.linkedBrowser, "isImageDocument", receiver);
-			receiver.fire();
 		});
 	},
 

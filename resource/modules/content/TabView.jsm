@@ -54,13 +54,6 @@ this.TabView = {
 				Frames.message(frame, 'isDocumentLoaded', isLoaded);
 				break;
 			}
-			// Checks if the currently active document is an image document or not.
-			case 'isImageDocument': {
-				let isImageDocument = (content && content.ImageDocument && content.document instanceof content.ImageDocument);
-
-				Frames.message(frame, 'isImageDocument', isImageDocument);
-				break;
-			}
 			case 'waitForDocumentLoad': {
 				let waitForLoad = function() {
 					content.removeEventListener("load", waitForLoad, true);
@@ -83,7 +76,6 @@ this.TabView = {
 		frame.addEventListener("timeupdate", this, true);
 
 		Frames.listen(frame, "isDocumentLoaded", this);
-		Frames.listen(frame, "isImageDocument", this);
 		Frames.listen(frame, "waitForDocumentLoad", this);
 		Frames.listen(frame, "getContentSize", this);
 	},
@@ -94,7 +86,6 @@ this.TabView = {
 		frame.removeEventListener("timeupdate", this, true);
 
 		Frames.unlisten(frame, "isDocumentLoaded", this);
-		Frames.unlisten(frame, "isImageDocument", this);
 		Frames.unlisten(frame, "waitForDocumentLoad", this);
 		Frames.unlisten(frame, "getContentSize", this);
 	}
