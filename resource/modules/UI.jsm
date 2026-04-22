@@ -147,9 +147,6 @@ this.UI = {
 	// has the user clicked the close button in the notice in this window already
 	_noticeDismissed: false,
 
-	// To enable context menus on a delay when entering tab view, so it doesn't conflict with FireGestures.
-	_contextMenusEnabled: false,
-
 	// For the thumbnails ratio, set every time we enter tab view and the window is resized while in tab view.
 	_viewportRatio: 1,
 
@@ -342,8 +339,6 @@ this.UI = {
 				break;
 
 			case 'contextmenu':
-				if(!this._contextMenusEnabled) { break; }
-
 				// When right-clicking a group title, we're actually right-clicking its shield if the cursor isn't already there.
 				// So we focus it now and pretend like it was already focused.
 				if(e.target.classList.contains('title-shield')) {
@@ -1217,11 +1212,6 @@ this.UI = {
 			// (Canvases of background tabs can't be updated until those tabs send an actual repaint signal, because until then
 			// the dimensions of those tabs won't reflect the actual viewport dimensions, and we end up with black/blank edges in the canvas.)
 			this.updateViewportRatio(true);
-
-			this._contextMenusEnabled = false;
-			Timers.init('showTabView', () => {
-				this._contextMenusEnabled = true;
-			}, 50);
 		}
 		catch(ex) {
 			Cu.reportError(ex);
