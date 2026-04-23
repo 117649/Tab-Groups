@@ -59,6 +59,10 @@
 		color: rgb(166,166,166);
 	}
 
+	.tab-thumb-container {
+		background-color: rgb(18,18,18);
+	}
+
 	.expandedTray,
 	.undo:not(.inGroupSelector),
 	#actions .grouped,

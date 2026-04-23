@@ -1670,7 +1670,7 @@ body:not(.single) .notapplicable-single {
 	max-height: 600px;
 	display: flex;
 	flex-direction: column;
-	overflow: auto;
+	overflow: clip;
 	padding: 26px;
 	background: var(--item-background);
 	font-size: 20px;
