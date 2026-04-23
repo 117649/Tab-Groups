@@ -1670,7 +1670,7 @@ body:not(.single) .notapplicable-single {
 	max-height: 600px;
 	display: flex;
 	flex-direction: column;
-	overflow: auto;
+	overflow: clip;
 	padding: 26px;
 	background: var(--item-background);
 	font-size: 20px;
@@ -1699,6 +1699,7 @@ body:not(.single) .notapplicable-single {
 	/* subtract own border and padding */
 	width: 100%;
 	font-size: 26px;
+	box-sizing: border-box;
 }
 
 #groupOptions-title:focus {
@@ -1747,6 +1748,7 @@ body:not(.single) .notapplicable-single {
 }
 
 #groupOptions-catchRules-container {
+	display: flex;
 	flex: 1 1 auto;
 	min-height: 150px;
 	position: relative;
