@@ -789,10 +789,10 @@ this.Overlays = {
 	insertInlineEventHandler: (node, textContent) => Cu.evalInSandbox(`(function(event){${textContent}})`, Globals.getSandbox(node), null, node.baseURI + `?${objName}.Inline#${node.id}`, 1),
 
 	isCSPstrict: function (aWindow) {
-		return !(aWindow.document.csp ?? aWindow.document.policyContainer.csp).getAllowsInline(
+		return (Globals.evtInline ?? (Globals.evtInline = new WeakMap())).getOrInsertComputed(aWindow, _ => !(aWindow.document.csp ?? aWindow.document.policyContainer.csp).getAllowsInline(
 			Ci.nsIContentSecurityPolicy.SCRIPT_SRC_ATTR_DIRECTIVE,
 			false, "", false, null, null, "", 0, 1
-		)
+		))
 	},
 
 	getWidgetData: function(aWindow, node, palette) {
@@ -1021,6 +1021,7 @@ this.Overlays = {
 	},
 
 	loadInto: function(aWindow, overlay) {
+		const cspStrict = this.isCSPstrict(aWindow);
 		for(let overlayNode of overlay.childNodes) {
 			// Special case for overlaying preferences to options dialogs
 			if(overlayNode.nodeName == 'preferences') {
@@ -1065,7 +1066,6 @@ this.Overlays = {
 				var toolboxes = aWindow.document.querySelectorAll('toolbox');
 				for(let toolbox of toolboxes) {
 					var palette = toolbox.palette;
-
 					if(palette
 					&& aWindow.gCustomizeMode._stowedPalette
 					&& aWindow.gCustomizeMode._stowedPalette.id == overlayNode.id
@@ -1097,7 +1097,7 @@ this.Overlays = {
 									Globals.widgets[button.id] = button;
 								}
 
-								if (this.isCSPstrict(aWindow)) button => [...button.attributes].forEach((a) => a.name.startsWith("on")
+								if (cspStrict) button => [...button.attributes].forEach((a) => a.name.startsWith("on")
 									&& (button.setAttribute("an" + a.name, button.getAttribute(a.name)), button.removeAttribute(a.name)));
 								// add the button if not found either in a toolbar or the palette
 								button = aWindow.document.importNode(button, true);
@@ -1133,7 +1133,7 @@ this.Overlays = {
 					// Why bother, id is the same already
 					if(attr.name == 'id') { continue; }
 
-					if(this.isCSPstrict(aWindow) && attr.name.startsWith("on")){
+					if(cspStrict && attr.name.startsWith("on")){
 						node.addEventListener(attr.name.replace(/^on/, ''), this.insertInlineEventHandler(node, attr.textContent));
 						attr.name = "an" + attr.name;
 					}
@@ -1151,12 +1151,12 @@ this.Overlays = {
 				this.loadInto(aWindow, overlayNode);
 			}
 			else if(overlayNode.parentNode.nodeName != 'overlay' || overlayNode.hasAttribute("insertafter") || overlayNode.hasAttribute("insertbefore")) {
-				if (this.isCSPstrict(aWindow)) [overlayNode, ...overlayNode.querySelectorAll("*")].forEach((el) => [...el.attributes].forEach((a) =>
+				if (cspStrict) [overlayNode, ...overlayNode.querySelectorAll("*")].forEach((el) => [...el.attributes].forEach((a) =>
 					a.name.startsWith("on") && (el.setAttribute("an" + a.name, el.getAttribute(a.name)), el.removeAttribute(a.name))));
 
 				var node = aWindow.document.importNode(overlayNode, true);
 
-				if (this.isCSPstrict(aWindow)) [node, ...node.querySelectorAll("*")].forEach((el) => [...el.attributes].forEach((a) => {
+				if (cspStrict) [node, ...node.querySelectorAll("*")].forEach((el) => [...el.attributes].forEach((a) => {
 					if (a.name.startsWith("anon"))
 						el.addEventListener(a.name.replace(/^anon/, ''), this.insertInlineEventHandler(el, a.textContent));
 				}));
