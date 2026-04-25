@@ -908,11 +908,11 @@ Modules.LOADMODULE = function() {
 
 	Modules.load('AllTabs');
 	Modules.load('CatchRules');
-	Overlays.overlayWindow(window, 'OTabView', TabView);
+	Overlays.overlayWindow(window, 'TabView_', TabView);
 };
 
 Modules.UNLOADMODULE = function() {
-	Overlays.removeOverlayWindow(window, 'OTabView');
+	Overlays.removeOverlayWindow(window, 'TabView_');
 	Modules.unload('CatchRules');
 	Modules.unload('AllTabs');
 
