@@ -72,7 +72,7 @@ Modules.UTILS = true;
 //						returns (bool) false otherwise
 //	(optional) loaded - if true it will only return true if the overlay has been actually loaded into the window, rather than just added to the array. Defaults to false.
 //	see overlayWindow()
-// runWhenSheetsLoaded(aMethod) -	will wait until any stylesheets referenced in overlays are actually loaded before calling aMethod;
+// runWhenSheetsLoaded(aWindow, aMethod) -	will wait until any stylesheets referenced in overlays are actually loaded before calling aMethod;
 //					will call imediatelly if all stylesheets are already loaded
 //	aMethod - (function) to be called
 this.Overlays = {
@@ -550,27 +550,31 @@ this.Overlays = {
 			action.originalParent = action.original.parent;
 		}
 		if(action.paletteID && !action.palette) {
-			var toolboxes = aWindow.document.querySelectorAll('toolbox');
+			// Modern Firefox CustomizeMode uses a *visible* customization palette and
+			// temporarily re-points `gNavToolbox.palette` to it. The stowed/hidden
+			// palette reference is private (#stowedPalette) and not API-stable.
+			// We therefore only resolve palettes through toolboxes + gNavToolbox.
+			let toolboxes = aWindow.document.querySelectorAll('toolbox');
 			for(let toolbox of toolboxes) {
-				if(toolbox.palette) {
-					if(toolbox.palette.id == action.paletteID) {
-						action.palette = toolbox.palette;
-					}
-					else if(toolbox.palette == aWindow.gCustomizeMode.visiblePalette
-					&& aWindow.gCustomizeMode._stowedPalette.id == action.paletteID) {
-						action.palette = aWindow.gCustomizeMode._stowedPalette;
-					}
+				let palette = toolbox.palette;
+				if(!palette) { continue; }
 
-					if(!action.node && action.nodeID) {
-						for(let child of action.palette.childNodes) {
-							if(child.id == action.nodeID) {
-								action.node = child;
-								break;
-							}
-						}
-					}
-
+				if(palette.id == action.paletteID) {
+					action.palette = palette;
 					break;
+				}
+			}
+
+			if(!action.palette && aWindow.gNavToolbox?.palette?.id == action.paletteID) {
+				action.palette = aWindow.gNavToolbox.palette;
+			}
+
+			if(action.palette && !action.node && action.nodeID) {
+				for(let child of action.palette.childNodes) {
+					if(child.id == action.nodeID) {
+						action.node = child;
+						break;
+					}
 				}
 			}
 		}
@@ -639,7 +643,7 @@ this.Overlays = {
 
 					case 'removeChild':
 						if(action.node && action.original && action.original.parent) {
-							this.registerAreas(aWindow, node);
+							this.registerAreas(aWindow, action.node);
 
 							if(action.original.pos !== undefined && action.original.pos < action.original.parent.childNodes.length) {
 								action.original.parent.insertBefore(action.node, action.original.parent.childNodes[action.original.pos]);
@@ -691,19 +695,8 @@ this.Overlays = {
 
 							var widget = CustomizableUI.getWidget(action.node.id);
 							if(widget && widget.provider == CustomizableUI.PROVIDER_API) {
-								// see note below (on createWidget)
-								// var placement = CustomizableUI.getPlacementOfWidget(action.node.id, aWindow);
-								// var areaType = (placement) ? CustomizableUI.getAreaType(placement.area) : null;
-								// if(areaType == CustomizableUI.TYPE_TOOLBAR) {
-								// 	this.tempAppendAllToolbars(aWindow, placement.area);
-								// }
-
 								try { CustomizableUI.destroyWidget(action.node.id); }
 								catch(ex) { Cu.reportError(ex); }
-
-								// if(areaType == CustomizableUI.TYPE_TOOLBAR) {
-								// 	this.tempRestoreAllToolbars(aWindow, placement.area);
-								// }
 							}
 						}
 						break;
@@ -721,49 +714,46 @@ this.Overlays = {
 								}
 							}
 
-							aWindow.removeEventListener('unload', action.node._menuEntries);
+							let entries = action.node._menuEntries;
+							if(entries) {
+								aWindow.removeEventListener('unload', entries);
 
-							// remove the context menu entries associated with this toolbar
-							var contextMenu = aWindow.document.getElementById('toolbar-context-menu');
-							var panelMenu = aWindow.document.getElementById('customizationPanelItemContextMenu');
-							var paletteMenu = aWindow.document.getElementById('customizationPaletteItemContextMenu');
+								// remove the context menu entries associated with this toolbar
+								let contextMenu = aWindow.document.getElementById('toolbar-context-menu');
+								let panelMenu = aWindow.document.getElementById('customizationPanelItemContextMenu');
 
-							if(action.node._menuEntries.add.str) {
-								action.node._menuEntries.add.palette.remove();
-							}
-
-							if(action.node._menuEntries.move.str) {
-								contextMenu.removeEventListener('popupshowing', action.node._menuEntries.move.context);
-								panelMenu.removeEventListener('popupshowing', action.node._menuEntries.move.panel);
-								action.node._menuEntries.move.context.remove();
-								action.node._menuEntries.move.panel.remove();
-							}
-							if(action.node._menuEntries.remove.str) {
-								contextMenu.removeEventListener('popupshowing', action.node._menuEntries.remove);
-								if(action.node._menuEntries.remove.context.getAttribute('label') == action.node._menuEntries.remove.str) {
-									setAttribute(action.node._menuEntries.remove.context, 'label',
-										action.node._menuEntries.remove.context.getAttribute('originalLabel'));
-									toggleAttribute(action.node._menuEntries.remove.context, 'accesskey',
-										action.node._menuEntries.remove.context.hasAttribute('originalAccesskey'),
-										action.node._menuEntries.remove.context.getAttribute('originalAccesskey'));
-									removeAttribute(action.node._menuEntries.remove.context, 'originalLabel');
-									removeAttribute(action.node._menuEntries.remove.context, 'originalAccesskey');
+								if(entries.add?.str && entries.add.palette) {
+									entries.add.palette.remove();
 								}
-							}
-							if(action.node._menuEntries.main.str) {
-								action.node._menuEntries.main.context.remove();
-							}
 
-							delete action.node._menuEntries;
+								if(entries.move?.str) {
+									contextMenu?.removeEventListener('popupshowing', entries.move.context);
+									panelMenu?.removeEventListener('popupshowing', entries.move.panel);
+									entries.move.context?.remove();
+									entries.move.panel?.remove();
+								}
+								if(entries.remove?.str) {
+									contextMenu?.removeEventListener('popupshowing', entries.remove);
+									let removeEntry = entries.remove.context;
+									if(removeEntry && removeEntry.getAttribute('label') == entries.remove.str) {
+										setAttribute(removeEntry, 'label', removeEntry.getAttribute('originalLabel'));
+										toggleAttribute(removeEntry, 'accesskey',
+											removeEntry.hasAttribute('originalAccesskey'),
+											removeEntry.getAttribute('originalAccesskey'));
+										removeAttribute(removeEntry, 'originalLabel');
+										removeAttribute(removeEntry, 'originalAccesskey');
+									}
+								}
+								if(entries.main?.str) {
+									entries.main.context?.remove();
+								}
+
+								delete action.node._menuEntries;
+							}
 
 							if(CustomizableUI.getAreaType(action.node.id)) {
-								// see note in runRegisterToolbar(), we need this in all toolbars as well
-								// this.tempAppendAllToolbars(aWindow, action.node.id);
-
 								try { CustomizableUI.unregisterArea(action.node.id); }
 								catch(ex) { Cu.reportError(ex); }
-
-								// this.tempRestoreAllToolbars(aWindow, action.node.id);
 							}
 						}
 						break;
@@ -824,64 +814,20 @@ this.Overlays = {
 		}
 
 		if(data.type == 'custom') {
-			data.palette = palette;
+			// Modern CustomizableUI + CustomizeMode manage palette population and
+			// wrapper creation internally. Our job is to supply a stable `onBuild`
+			// implementation that can construct the widget for any window/document.
+			data.onBuild = function(aDocument) {
+				// If already present in this window, reuse it.
+				let existing = aDocument.getElementById(this.id);
+				if(existing) { return existing; }
 
-			data.onBuild = function(aDocument, aDestroy) {
-				// Find the node in the DOM tree
-				var node = aDocument.getElementById(this.id);
+				let template = Globals.widgets?.[this.id];
+				if(!template) { return null; }
 
-				// If it doesn't exist, find it in a palette.
-				// We make sure the button is in either place at all times.
-				if(!node) {
-					var toolboxes = aDocument.querySelectorAll('toolbox');
-					toolbox_loop: for(let toolbox of toolboxes) {
-						var palette = toolbox.palette;
-						if(!palette) { continue; }
-
-						if(palette == aDocument.defaultView.gCustomizeMode.visiblePalette) {
-							palette = aDocument.defaultView.gCustomizeMode._stowedPalette;
-						}
-						for(let child of palette.childNodes) {
-							if(child.id == this.id) {
-								node = child;
-								break toolbox_loop;
-							}
-						}
-					}
-				}
-
-				// If it doesn't exist there either, CustomizableUI is using the widget information before it has been overlayed (i.e. opening a new window).
-				// We get a placeholder for it, then we'll replace it later when the window overlays.
-				if(!node && !aDestroy) {
-					var node = aDocument.importNode(Globals.widgets[this.id], true);
-					setAttribute(node, 'CUI_placeholder', 'true');
-					node.collapsed = true;
-				}
-
-				return node;
+				let built = aDocument.importNode(template, true);
+				return built;
 			};
-
-			// unregisterArea()'ing the toolbar can nuke the nodes, we need to make sure ours are moved to the palette
-			data.onWidgetAfterDOMChange = function(aNode) {
-				if(aNode.id == this.id
-				&& !aNode.parentNode
-				&& !trueAttribute(aNode.ownerDocument.documentElement, 'customizing') // it always ends up in the palette in this case
-				&& this.palette) {
-					this.palette.appendChild(aNode);
-				}
-			};
-
-			data.onWidgetDestroyed = function(aId) {
-				if(aId == this.id) {
-					Windows.callOnAll((aWindow) => {
-						var node = data.onBuild(aWindow.document, true);
-						if(node) { node.remove(); }
-					}, 'navigator:browser');
-					CustomizableUI.removeListener(this);
-				}
-			};
-
-			CustomizableUI.addListener(data);
 		}
 
 		return data;
@@ -1063,48 +1009,46 @@ this.Overlays = {
 
 			// Correctly add or remove toolbar buttons to the toolbox palette
 			if(overlayNode.nodeName == 'toolbarpalette') {
-				var toolboxes = aWindow.document.querySelectorAll('toolbox');
-				for(let toolbox of toolboxes) {
-					var palette = toolbox.palette;
-					if(palette
-					&& aWindow.gCustomizeMode._stowedPalette
-					&& aWindow.gCustomizeMode._stowedPalette.id == overlayNode.id
-					&& palette == aWindow.gCustomizeMode.visiblePalette) {
-						palette = aWindow.gCustomizeMode._stowedPalette;
+				// `BrowserToolbarPalette` is the *gNavToolbox palette* for browser.xhtml.
+				// Customize mode can temporarily swap `gNavToolbox.palette` to point at the
+				// visible customization palette, so the correct behavior is to always use
+				// `gNavToolbox.palette` when the overlay targets BrowserToolbarPalette.
+				//
+				// For other palettes, match by id against toolbox.palette.id.
+				let palettesToHandle = [];
+				if(overlayNode.id == "BrowserToolbarPalette") {
+					if(aWindow.gNavToolbox?.palette) {
+						palettesToHandle.push(aWindow.gNavToolbox.palette);
 					}
-
-					if(palette && (palette.id == overlayNode.id || (overlayNode.id == "BrowserToolbarPalette" && toolbox == aWindow.gNavToolbox))) {
-						buttons_loop: for(let button of overlayNode.childNodes) {
-							if(button.id) {
-								var existButton = aWindow.document.getElementById(button.id);
-
-								// If it's a placeholder created by us to deal with CustomizableUI, just use it.
-								if(trueAttribute(existButton, 'CUI_placeholder')) {
-									removeAttribute(existButton, 'CUI_placeholder');
-									existButton.collapsed = false;
-									this.appendButton(aWindow, palette, existButton);
-									continue buttons_loop;
-								}
-
-								// we shouldn't be changing widgets, or adding with same id as other nodes
-								if(existButton) {
-									continue buttons_loop;
-								}
-
-								// Save a copy of the widget node in the sandbox,
-								// so CUI can use it when opening a new window without having to wait for the overlay.
-								if(!Globals.widgets[button.id]) {
-									Globals.widgets[button.id] = button;
-								}
-
-								if (cspStrict) button => [...button.attributes].forEach((a) => a.name.startsWith("on")
-									&& (button.setAttribute("an" + a.name, button.getAttribute(a.name)), button.removeAttribute(a.name)));
-								// add the button if not found either in a toolbar or the palette
-								button = aWindow.document.importNode(button, true);
-								this.appendButton(aWindow, palette, button);
-							}
+				} else {
+					let toolboxes = aWindow.document.querySelectorAll('toolbox');
+					for(let toolbox of toolboxes) {
+						let palette = toolbox.palette;
+						if(palette && palette.id == overlayNode.id) {
+							palettesToHandle.push(palette);
 						}
-						break;
+					}
+				}
+
+				for(let palette of palettesToHandle) {
+					buttons_loop: for(let button of overlayNode.childNodes) {
+						if(button.id) {
+							// If the node already exists in the window, it's already built/placed.
+							if(aWindow.document.getElementById(button.id)) {
+								continue buttons_loop;
+							}
+
+							// Keep a template so `onBuild` can construct nodes for any window.
+							if(!Globals.widgets[button.id]) {
+								Globals.widgets[button.id] = button;
+							}
+
+							if (cspStrict) button => [...button.attributes].forEach((a) => a.name.startsWith("on")
+								&& (button.setAttribute("an" + a.name, button.getAttribute(a.name)), button.removeAttribute(a.name)));
+							// add the button if not found either in a toolbar or the palette
+							button = aWindow.document.importNode(button, true);
+							this.appendButton(aWindow, palette, button);
+						}
 					}
 				}
 				continue;
@@ -1187,13 +1131,14 @@ this.Overlays = {
 	registerAreas: function(aWindow, node) {
 		if(node.nodeName == 'toolbar' && node.id && !trueAttribute(node, 'ignoreCUI') && !CustomizableUI.getAreaType(node.id)) {
 			try {
-				var barArgs = {
-					type: CustomizableUI.TYPE_TOOLBAR,
-					legacy: true,
-					defaultCollapsed: null
-				};
+				// CustomizableUI.registerArea only accepts public properties here.
+				// `defaultCollapsed` is internal-only and will throw if passed by external callers.
+				let barArgs = { type: CustomizableUI.TYPE_TOOLBAR };
 				if(trueAttribute(node, 'overflowable')) {
 					barArgs.overflowable = true;
+				}
+				if(!trueAttribute(node, 'customizable')) {
+					setAttribute(node, 'customizable', 'true');
 				}
 				CustomizableUI.registerArea(node.id, barArgs);
 			} catch(ex) { Cu.reportError(ex); }
@@ -1202,74 +1147,6 @@ this.Overlays = {
 		for(let child of node.childNodes) {
 			this.registerAreas(aWindow, child);
 		}
-	},
-
-	// The binding containing the _init() method doesn't hold until the toolbar is visible either, apparently...
-	// This tricks it into applying the binding, by temporarily moving the toolbar to a "visible" node in the document
-	runRegisterToolbar: function(aWindow, node) {
-		if(!node._init) {
-			this.tempAppendToolbar(aWindow, node);
-			this.tempRestoreToolbar(node);
-		}
-	},
-
-	tempAppendToolbar: function(aWindow, node) {
-		if(node.tempAppend) {
-			Cu.reportError('tempAppend already exists!');
-			return;
-		}
-
-		node.tempAppend = {
-			parent: node.parentNode,
-			sibling: node.nextSibling,
-			container: aWindow.document.createXULElement('box')
-		};
-
-		setAttribute(node.tempAppend.container, 'style', 'position: fixed; top: 4000px; left: 4000px; opacity: 0.001;');
-		aWindow.document.documentElement.appendChild(node.tempAppend.container);
-
-		try { node.tempAppend.container.appendChild(node); }
-		catch(ex) { Cu.reportError(ex); }
-	},
-
-	tempRestoreToolbar: function(node) {
-		if(node.tempAppend) {
-			try { node.tempAppend.parent.insertBefore(node.tempAppend.container.firstChild, node.tempAppend.sibling); }
-			catch(ex) { Cu.reportError(ex); }
-
-			node.tempAppend.container.parentNode.removeChild(node.tempAppend.container);
-			delete node.tempAppend;
-		}
-	},
-
-	tempAppendAllToolbars: function(aWindow, aToolbarId) {
-		Windows.callOnAll((bWindow) => {
-			var wToolbar = bWindow.document.getElementById(aToolbarId);
-			if(wToolbar && !wToolbar._init) {
-				this.tempAppendToolbar(bWindow, wToolbar);
-			}
-		}, aWindow.document.documentElement.getAttribute('windowtype'));
-	},
-
-	tempRestoreAllToolbars: function(aWindow, aToolbarId) {
-		Windows.callOnAll((bWindow) => {
-			var wToolbar = bWindow.document.getElementById(aToolbarId);
-			if(wToolbar) {
-				this.tempRestoreToolbar(wToolbar);
-			}
-		}, aWindow.document.documentElement.getAttribute('windowtype'));
-	},
-
-	// moves a toolbar without triggering its _init() method
-	safeMoveToolbar: function(aToolbar, aParent, aSibling) {
-		var backupInit = aToolbar._init;
-		aToolbar._init = function() { return; }
-		if(aSibling) {
-			aParent.insertBefore(aToolbar, aSibling);
-		} else {
-			aParent.appendChild(aToolbar);
-		}
-		aToolbar._init = backupInit;
 	},
 
 	addToolbars: function(aWindow, node) {
@@ -1285,9 +1162,9 @@ this.Overlays = {
 				toggleAttribute(node, 'mode', toolbox.getAttribute('mode'), toolbox.getAttribute('mode'));
 			}
 
-			// The toolbar doesn't run the constructor until it is visible. And we want it to run regardless if it is visible or not.
-			// This will just do nothing if it has been run already.
-			this.runRegisterToolbar(aWindow, node);
+			// Ensure CustomizableUI registers and builds the toolbar area node.
+			// This is required for placements restoration and for overflowable toolbars.
+			this.registerToolbarNode(node);
 
 			// CUI doesn't add these entries automatically to the menus, they're a nice addition to the UX
 			node._menuEntries = {
@@ -1298,11 +1175,12 @@ this.Overlays = {
 				main: { str: node.getAttribute('menuMain'), key: node.getAttribute('menuMainAccesskey') },
 
 				getNode: function(aNode) {
-					aNode = aWindow.gCustomizeMode._getCustomizableChildForNode(aNode);
-					if(aNode && aNode.localName == "toolbarpaletteitem" && aNode.firstChild) {
-						aNode = aNode.firstChild;
+					if(!aNode) { return null; }
+					let wrapper = aNode.closest?.("toolbarpaletteitem");
+					if(wrapper?.id?.startsWith("wrapper-") && wrapper.firstElementChild) {
+						return wrapper.firstElementChild;
 					}
-					return aNode;
+					return aNode.closest?.("toolbarbutton,toolbaritem") || aNode;
 				},
 
 				getInToolbar: function(aNode, toolbar) {
@@ -1317,6 +1195,11 @@ this.Overlays = {
 				},
 
 				disableEntry: function(aNode, entry) {
+					if(!aNode) {
+						entry.disabled = true;
+						return;
+					}
+
 					// if we're customizing and the node is already wrapped, we can quickly check for the wrapper's removable tag
 					if(aNode.nodeName == 'toolbarpaletteitem' && aNode.id.startsWith('wrapper-')) {
 						entry.disabled = !trueAttribute(aNode, 'removable');
@@ -1330,13 +1213,7 @@ this.Overlays = {
 						return;
 					}
 
-					// special case for the PanelUI-button, until https://bugzilla.mozilla.org/show_bug.cgi?id=996571 is resolved
-					if(aNode.id == 'PanelUI-button' || aNode.id == 'nav-bar-overflow-button') {
-						entry.disabled = !trueAttribute(aNode, 'removable');
-						return;
-					}
-
-					entry.disabled = !CustomizableUI.isWidgetRemovable(aNode.id);
+					entry.disabled = !CustomizableUI.isWidgetRemovable(aNode);
 				},
 
 				hideOnSelf: function(aNode, entry) {
@@ -1347,6 +1224,7 @@ this.Overlays = {
 				// because if there's multiple toolbars added through this time, there will also be multiple of these entries,
 				// we only need to show one of these
 				showOnlyFirstMain: function(menu, aNode) {
+					aNode = this.getNode(aNode);
 					var hide = !aNode || this.getInToolbar(aNode, aWindow.document.getElementById('nav-bar'));
 
 					var mains = menu.getElementsByClassName('customize-context-moveToToolbar');
@@ -1361,8 +1239,9 @@ this.Overlays = {
 
 				addCommand: function(aNode) {
 					aNode = this.getNode(aNode);
+					if(!aNode?.id) { return; }
 					CustomizableUI.addWidgetToArea(aNode.id, this.toolbarID);
-					if(!aWindow.gCustomizeMode._customizing) {
+					if(!aWindow.CustomizationHandler?.isCustomizing?.()) {
 						CustomizableUI.dispatchToolboxEvent("customizationchange");
 					}
 				},
@@ -1395,7 +1274,7 @@ this.Overlays = {
 				node._menuEntries.add.palette = aWindow.document.createXULElement('menuitem');
 				node._menuEntries.add.palette._toolbar = node;
 				setAttribute(node._menuEntries.add.palette, 'class', 'customize-context-addTo-'+node.id);
-				setAttribute(node._menuEntries.add.palette, 'oncommand', 'this._toolbar._menuEntries.addCommand(document.popupNode);');
+				node._menuEntries.add.palette.addEventListener('command', () => { node._menuEntries.addCommand(aWindow.document.popupNode); });
 				setAttribute(node._menuEntries.add.palette, 'label', node._menuEntries.add.str);
 				toggleAttribute(node._menuEntries.add.palette, 'accesskey', node._menuEntries.add.key, node._menuEntries.add.key);
 				paletteMenu.appendChild(node._menuEntries.add.palette);
@@ -1405,7 +1284,7 @@ this.Overlays = {
 				node._menuEntries.move.context = aWindow.document.createXULElement('menuitem');
 				node._menuEntries.move.context._toolbar = node;
 				setAttribute(node._menuEntries.move.context, 'class', 'customize-context-moveTo-'+node.id);
-				setAttribute(node._menuEntries.move.context, 'oncommand', 'this._toolbar._menuEntries.addCommand(document.popupNode);');
+				node._menuEntries.move.context.addEventListener('command', () => { node._menuEntries.addCommand(aWindow.document.popupNode); });
 				setAttribute(node._menuEntries.move.context, 'label', node._menuEntries.move.str);
 				toggleAttribute(node._menuEntries.move.context, 'accesskey', node._menuEntries.move.key, node._menuEntries.move.key);
 
@@ -1422,7 +1301,7 @@ this.Overlays = {
 				node._menuEntries.move.panel = aWindow.document.createXULElement('menuitem');
 				node._menuEntries.move.panel._toolbar = node;
 				setAttribute(node._menuEntries.move.panel, 'class', 'customize-context-moveTo-'+node.id);
-				setAttribute(node._menuEntries.move.panel, 'oncommand', 'this._toolbar._menuEntries.addCommand(document.popupNode);');
+				node._menuEntries.move.panel.addEventListener('command', () => { node._menuEntries.addCommand(aWindow.document.popupNode); });
 				setAttribute(node._menuEntries.move.panel, 'label', node._menuEntries.move.str);
 				toggleAttribute(node._menuEntries.move.panel, 'accesskey', node._menuEntries.move.key, node._menuEntries.move.key);
 
@@ -1464,7 +1343,7 @@ this.Overlays = {
 			if(node._menuEntries.main.str) {
 				node._menuEntries.main.context = aWindow.document.createXULElement('menuitem');
 				setAttribute(node._menuEntries.main.context, 'class', 'customize-context-moveToToolbar');
-				setAttribute(node._menuEntries.main.context, 'oncommand', 'gCustomizeMode.addToToolbar(document.popupNode)');
+				node._menuEntries.main.context.addEventListener('command', () => { aWindow.gCustomizeMode.addToToolbar(aWindow.document.popupNode); });
 				setAttribute(node._menuEntries.main.context, 'label', node._menuEntries.main.str);
 				toggleAttribute(node._menuEntries.main.context, 'accesskey', node._menuEntries.main.key, node._menuEntries.main.key);
 
@@ -1947,59 +1826,22 @@ this.Overlays = {
 	},
 
 	appendButton: function(aWindow, palette, node) {
-		if(!node.parentNode) {
-			palette.appendChild(node);
-		}
-		var id = node.id;
+		// Legacy entry-point used by older overlay logic. Modernized to avoid
+		// manual palette shuffling: register the widget + ensure it is built/placed
+		// in this window. Customize mode will handle palette presentation.
+		let id = node?.id;
+		if(!id) { return node; }
 
-		var widget = CustomizableUI.getWidget(id);
+		let widget = CustomizableUI.getWidget(id);
 		if(!widget || widget.provider != CustomizableUI.PROVIDER_API) {
-			// this needs the binding applied on the toolbar in order for the widget to be immediatelly placed there,
-			// and since its placements won't be restored until it's created, we have to search for it in all existing areas
-			// var areaId = null;
-			// var areas = CustomizableUI.areas;
-			// for(let area of areas) {
-			// 	// this will throw if called too early for an area whose placements have not been fetched yet,
-			// 	// it's ok because once they are, the widget will be placed in it anyway
-			// 	try { var inArea = CustomizableUI.getWidgetIdsInArea(area); }
-			// 	catch(ex) { continue; }
-
-			// 	if(inArea.indexOf(id) > -1) {
-			// 		if(CustomizableUI.getAreaType(area) != CustomizableUI.TYPE_TOOLBAR) { break; }
-
-			// 		areaId = area;
-			// 		this.tempAppendAllToolbars(aWindow, area);
-			// 		break;
-			// 	}
-			// }
-
 			try { CustomizableUI.createWidget(this.getWidgetData(aWindow, node, palette)); }
 			catch(ex) { Cu.reportError(ex); }
-
-			// if(areaId) {
-			// 	this.tempRestoreAllToolbars(aWindow, areaId);
-			// }
 		}
 
-		else {
-			// var placement = CustomizableUI.getPlacementOfWidget(id, aWindow);
-			// var areaNode = (placement) ? aWindow.document.getElementById(placement.area) : null;
-			// if(areaNode && areaNode.nodeName == 'toolbar' && !areaNode._init) {
-			// 	this.tempAppendToolbar(aWindow, areaNode);
-			// }
+		try { CustomizableUI.ensureWidgetPlacedInWindow(id, aWindow); }
+		catch(ex) { Cu.reportError(ex); }
 
-			try { CustomizableUI.ensureWidgetPlacedInWindow(id, aWindow); }
-			catch(ex) { Cu.reportError(ex); }
-
-			// if(areaNode) {
-			// 	this.tempRestoreToolbar(areaNode);
-			// }
-		}
-
-		this.traceBack(aWindow, {
-			action: 'appendButton',
-			node: node
-		});
+		this.traceBack(aWindow, { action: 'appendButton', node: node });
 		return node;
 	},
 
@@ -2068,7 +1910,7 @@ this.Overlays = {
 	},
 
 	// if all the appended stylesheets aren't loaded yet, these methods will be postponed until they are, otherwise they will run immediatelly
-	runWhenSheetsLoaded: function(aMethod) {
+	runWhenSheetsLoaded: function(aWindow, aMethod) {
 		if(!aWindow[this._obj+'_wait']) {
 			aMethod();
 			return;
@@ -2077,17 +1919,18 @@ this.Overlays = {
 	},
 
 	// toolbar nodes can't be registered before they're appended to the DOM, otherwise all hell breaks loose
-	registerToolbarNode: function(aToolbar, aExistingChildren) {
+	registerToolbarNode: function(aToolbar) {
 		if(!aToolbar || !aToolbar.id) { return; } // is this even possible?
 
 		// attempt at improving multi-window support, as sometimes the toolbars would force a re-register of a second window with CUI when it's closed, no clue why though...
 		if(aToolbar.ownerDocument.defaultView.closed || aToolbar.ownerDocument.defaultView.willClose) { return; }
 
 		if(!aToolbar.ownerDocument.getElementById(aToolbar.id)) {
-			aSync(function() { CustomizableUI.registerToolbarNode(aToolbar, aExistingChildren); }, 250);
+			aSync(() => { this.registerToolbarNode(aToolbar); }, 250);
 			return;
 		}
-		this._registerToolbarNode(aToolbar, aExistingChildren);
+		try { CustomizableUI.registerToolbarNode(aToolbar); }
+		catch(ex) { Cu.reportError(ex); }
 
 		// the nodes insertion seems to fall somewhere between oveflow being initialized already but not listening to onOverflow events apparently
 		if(aToolbar.overflowable && aToolbar.overflowable.initialized && aToolbar.customizationTarget.scrollLeftMax > 0 && !trueAttribute(aToolbar, 'overflowing')) {
@@ -2105,8 +1948,6 @@ Modules.LOADMODULE = function() {
 	Browsers.register(Overlays, 'pagehide');
 	Browsers.register(Overlays, 'SidebarUnloaded');
 	Observers.add(Overlays, 'window-overlayed');
-
-	// Piggyback.add('Overlays', CUIBackstage.CustomizableUIInternal, 'registerToolbarNode', Overlays.registerToolbarNode);
 };
 
 Modules.UNLOADMODULE = function() {
@@ -2124,8 +1965,6 @@ Modules.UNLOADMODULE = function() {
 		if(!(aWindow.document instanceof aWindow.XMLDocument)) { return; } // at least for now I'm only overlaying xul documents
 		Overlays.unloadAll(aWindow);
 	});
-
-	// Piggyback.revert('Overlays', CUIBackstage.CustomizableUIInternal, 'registerToolbarNode');
 
 	delete Globals.widgets;
 };
