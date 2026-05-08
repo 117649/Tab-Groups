@@ -544,7 +544,7 @@ this.DnDprefs = {
 			dragValue = "after";
 		} else {
 			let targetParent = targetNode.parentNode;
-			let position = Array.indexOf(targetParent.children, targetNode);
+			let position = Array.prototype.indexOf.call(targetParent.children, targetNode);
 			if(position == -1) {
 				dragOverItem = targetParent.lastChild;
 				dragValue = "after";
