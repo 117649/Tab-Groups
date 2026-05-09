@@ -195,8 +195,9 @@ this.Messenger = {
 
 	receiveMessage: function(m) {
 		// Initialize any frame script with the modules that should be loaded in all tabs of that window.
-		if(m.target.ownerGlobal) {
-			let modules = m.target.ownerGlobal[objName+'Content'];
+		let targetGlobal = m.target.documentGlobal ?? m.target.ownerGlobal;
+		if(targetGlobal) {
+			let modules = targetGlobal[objName+'Content'];
 			if(modules) {
 				for(let module of modules) {
 					this.messageBrowser(m.target, 'loadInWindow', module);

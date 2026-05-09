@@ -8,7 +8,7 @@ Modules.UTILS = true;
 ChromeUtils.defineLazyGetter(this, "gWindow", function() {
 	// TODO: investigate when exactly I can use windowRoot
 	return	window.windowRoot
-		? window.windowRoot.ownerGlobal
+		? window.windowRoot.documentGlobal ?? window.windowRoot.ownerGlobal 
 		: window.QueryInterface(Ci.nsIInterfaceRequestor)
 			.getInterface(Ci.nsIWebNavigation)
 			.QueryInterface(Ci.nsIDocShellTreeItem)
