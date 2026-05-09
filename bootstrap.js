@@ -97,6 +97,7 @@ Globals.getSandbox = function (obj) {
 ChromeUtils.defineESModuleGetters(this, {AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
 	PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
 	PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
+	NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
 
 // easy and useful helpers for when I'm debugging
 	console: "resource://gre/modules/Console.sys.mjs"});
@@ -299,7 +300,7 @@ async function startup(aData, aReason) {
 
 	// Set the default strings for the add-on
 	let defaultsURI = AddonData.resourceURI.spec+'resource/defaults.js';
-	Services.scriptloader.loadSubScript(defaultsURI, this);
+	Cu.evalInSandbox(readFromJarURI(Services.io.newURI(defaultsURI)), this, null, defaultsURI);
 
 	// Get the utils.jsm module into our sandbox
 	ChromeUtils.defineESModuleGetters(this, {PluralForm: "chrome://"+objPathString+"-resource/content/modules/utils/PluralForm.sys.mjs"});
@@ -367,7 +368,7 @@ function shutdown(aData, aReason) {
 function install(aData, aReason) {
 	// Set the default strings for the add-on
 	let defaultsURI = aData.resourceURI.spec+'resource/defaults.js';
-	Services.scriptloader.loadSubScript(defaultsURI, this);
+	Cu.evalInSandbox(readFromJarURI(Services.io.newURI(defaultsURI)), this, null, defaultsURI);
 
 	if(typeof(onInstall) == 'function') {
 		onInstall(aData, aReason);
@@ -378,4 +379,11 @@ function uninstall(aData, aReason) {
 	if(typeof(onUninstall) == 'function') {
 		onUninstall(aData, aReason);
 	}
+}
+
+function readFromJarURI(jarURI) {
+	const input = Services.io.newChannelFromURI(jarURI, null, Services.scriptSecurityManager.getSystemPrincipal(),
+		null, Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL, Ci.nsIContentPolicy.TYPE_OTHER).open();
+	try { return NetUtil.readInputStreamToString(input, input.available(), { charset: "UTF-8" });
+	} finally { try { input.close(); } catch (ex) {} }
 }
