@@ -23,7 +23,7 @@ body.classic .groupItem,
 
 /* Side buttons */
 
-body:-moz-any(.classic,[lwtheme]) #actions {
+body:is(.classic,[lwtheme]) #actions {
 	border-top-color: ThreeDHighlight;
 }
 

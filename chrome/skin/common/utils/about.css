@@ -428,7 +428,7 @@ h5 {
 	opacity: 0.8;
 }
 
-#share-links .share-link:-moz-any(:hover,:focus,:active) {
+#share-links .share-link:is(:hover,:focus,:active) {
 	outline: 0;
 	opacity: 1;
 }

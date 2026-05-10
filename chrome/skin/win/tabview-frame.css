@@ -57,7 +57,7 @@ body.classic:not([lwtheme]) {
 			text-shadow: 0 0 9px white, 0 0 9px white, 0 0 9px white, 0 0 14px white, 0 0 14px white, 0 0 14px white;
 		}
 
-		body:not([lwtheme]):not([darktheme]) .groupSelector:-moz-any(:hover,.dragOver,.activeGroupItem) .group-title {
+		body:not([lwtheme]):not([darktheme]) .groupSelector:is(:hover,.dragOver,.activeGroupItem) .group-title {
 			text-shadow: 0 0 2px rgba(0,0,0,0.5);
 		}
 	}

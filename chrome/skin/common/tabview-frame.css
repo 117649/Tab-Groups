@@ -663,7 +663,7 @@ body:not(.grid) #gridNewGroup {
 	display: none;
 }
 
-body:-moz-any(.DraggingTab,.DraggingGroup) .tab.create-new,
+body:is(.DraggingTab,.DraggingGroup) .tab.create-new,
 .groupItem.thumbing .tab.create-new {
 	opacity: 0;
 }
@@ -688,7 +688,7 @@ body:-moz-any(.DraggingTab,.DraggingGroup) .tab.create-new,
 	opacity: 0.3;
 }
 
-.create-new:-moz-any(:hover,.dragOver) > .create-new-border {
+.create-new:is(:hover,.dragOver) > .create-new-border {
 	opacity: 0.75;
 }
 
@@ -777,11 +777,11 @@ body:-moz-any(.DraggingTab,.DraggingGroup) .tab.create-new,
 	-moz-margin-end: 24px;
 }
 
-.tab-container.noThumbs .tab:-moz-any([soundplaying],[mute]) .tab-label {
+.tab-container.noThumbs .tab:is([soundplaying],[mute]) .tab-label {
 	-moz-margin-end: 48px;
 }
 
-.tab-container.noThumbs .tab:-moz-any(:not(.noFavicon),[busy]) .tab-label {
+.tab-container.noThumbs .tab:is(:not(.noFavicon),[busy]) .tab-label {
 	-moz-margin-start: 24px;
 }
 
@@ -887,12 +887,12 @@ body[lwtheme] #groupSelector:not([brighttext]) .groupSelector.activeGroupItem {
 	color: rgb(0,0,0);
 }
 
-body:not([lwtheme]) .groupSelector:-moz-any(:hover,.dragOver,.activeGroupItem),
-body[lwtheme] #groupSelector[brighttext] .groupSelector:-moz-any(:hover,.dragOver,.activeGroupItem) {
+body:not([lwtheme]) .groupSelector:is(:hover,.dragOver,.activeGroupItem),
+body[lwtheme] #groupSelector[brighttext] .groupSelector:is(:hover,.dragOver,.activeGroupItem) {
   background-color: var(--group-selector-hover-color);
 }
 
-body[lwtheme] #groupSelector:not([brighttext]) .groupSelector:-moz-any(:hover,.dragOver,.activeGroupItem) {
+body[lwtheme] #groupSelector:not([brighttext]) .groupSelector:is(:hover,.dragOver,.activeGroupItem) {
   background-color: var(--hover-color);
 }
 
@@ -1131,7 +1131,7 @@ input.name.unnamed-group:not(:focus) {
 	color: rgba(128,128,128,0.9);
 }
 
-input.name:focus::-moz-placeholder {
+input.name:focus::placeholder {
 	color: transparent;
 }
 
@@ -1706,12 +1706,12 @@ body:not(.single) .notapplicable-single {
 	text-overflow: clip;
 }
 
-#groupOptions-title::-moz-placeholder {
+#groupOptions-title::placeholder {
 	font-style: italic;
 	color: rgba(128,128,128,1);
 }
 
-#groupOptions-title:focus::-moz-placeholder {
+#groupOptions-title:focus::placeholder {
 	color: transparent;
 }
 
