@@ -1672,6 +1672,21 @@ this.UI = {
 			return;
 		}
 
+		if(Search.inSearch && Prefs.searchMode == 'highlight') {
+			if(e.key == "Enter") {
+				if(!e.shiftKey && Search.currentItem) { Search.currentItem.zoomIn(e); }
+				return;
+			}
+			if((new Set([ "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight" ])).has(e.key)) {
+				if(Search.navigateInDirection(e.key)) {
+					Search.setActive(Search.currentItem._tabItem);
+				}
+				e.preventDefault();
+				e.stopPropagation();
+				return;
+			}
+		}
+
 		// Finds what tab is closest to the active tab in the direction provided by the pressed arrow key.
 		let getClosestBy = (norm) => {
 			// The starting point is of course the active tab if it exists.

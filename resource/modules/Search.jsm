@@ -444,20 +444,7 @@ this.Search = {
 
 				e.preventDefault();
 				e.stopPropagation();
-				let i = (this.currentItem) ? this.ordered.indexOf(this.currentItem) : -1;
-				if(e.key == "ArrowDown" || (e.key == "Tab" && !e.shiftKey)) {
-					i++;
-					if(i >= this.ordered.length) {
-						i = 0;
-					}
-				} else {
-					i--;
-					if(i < 0) {
-						i = this.ordered.length -1;
-					}
-				}
-				let item = this.ordered[i] || null;
-				this.focusItem(item);
+				let item = this.navigate(e.key == "ArrowDown" || (e.key == "Tab" && !e.shiftKey));
 
 				// Make sure the item is in view. .scrollIntoView() just scrolls indiscriminately...
 				if(item) {
@@ -761,10 +748,72 @@ this.Search = {
 		}
 	},
 
+	navigate: function(forward) {
+		let i = this.currentItem ? this.ordered.indexOf(this.currentItem) : -1;
+		i += forward ? 1 : -1;
+		if(i >= this.ordered.length) { i = 0; }
+		if(i < 0) { i = this.ordered.length -1; }
+
+		this.focusItem(this.ordered[i] || null);
+		return this.currentItem;
+	},
+
+	navigateInDirection: function(key) {
+		if(!this.currentItem) {
+			this.focusItem(this.ordered[0] || null);
+			return this.currentItem;
+		}
+
+		let currentRect = this.currentItem._tabItem.container.getBoundingClientRect();
+		let currentX = currentRect.left + currentRect.width / 2;
+		let currentY = currentRect.top + currentRect.height / 2;
+		let candidates = [];
+		for(let [order, item] of this.ordered.entries()) {
+			if(item == this.currentItem) { continue; }
+
+			let rect = item._tabItem.container.getBoundingClientRect();
+			if(!rect.width || !rect.height) { continue; }
+			candidates.push({
+				item,
+				order,
+				x: rect.left + rect.width / 2,
+				y: rect.top + rect.height / 2
+			});
+		}
+
+		let horizontal = key == "ArrowLeft" || key == "ArrowRight";
+		let forward = key == "ArrowRight" || key == "ArrowDown";
+		let directional = candidates.filter(candidate => horizontal
+			? (forward ? candidate.x > currentX : candidate.x < currentX)
+			: (forward ? candidate.y > currentY : candidate.y < currentY));
+
+		if(horizontal) {
+			// Cycle through exact stacked matches before choosing the nearest item in that direction.
+			let currentOrder = this.ordered.indexOf(this.currentItem);
+			let overlapping = candidates.filter(candidate => Math.abs(candidate.x - currentX) < 1 && Math.abs(candidate.y - currentY) < 1);
+			overlapping.sort((a, b) => a.order - b.order);
+			let stacked = forward
+				? overlapping.find(candidate => candidate.order > currentOrder)
+				: overlapping.reverse().find(candidate => candidate.order < currentOrder);
+			if(stacked) {
+				this.focusItem(stacked.item);
+				return this.currentItem;
+			}
+		}
+
+		let nearest = directional.reduce((match, candidate) => {
+			let distance = Math.hypot(candidate.x - currentX, candidate.y - currentY);
+			return !match || distance < match.distance ? { item: candidate.item, distance } : match;
+		}, null);
+		if(nearest) { this.focusItem(nearest.item); }
+		return this.currentItem;
+	},
+
 	setActive: function(tabItem) {
 		if(tabItem.isAnAppItem) {
-			UI._dontHideTabView = true;
-			UI.goToTab(tabItem.tab);
+			// Keyboard focus must not select the pinned browser tab until the result is opened.
+			UI.clearActiveTab();
+			PinnedItems.makeActive(tabItem.tab);
 		} else if(tabItem.isATabItem) {
 			UI.setActive(tabItem);
 		}
