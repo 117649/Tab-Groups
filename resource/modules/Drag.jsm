@@ -970,14 +970,12 @@ this.TabDrag.prototype = {
 			let ii = dropTarget.children.indexOf(this.item);
 			if(this.sibling) {
 				options.index = dropTarget.children.indexOf(this.sibling);
-				if(this.sibling.tab.splitview ? !this.sibling.tab.nextSibling : this.sibling.container.classList.contains('space-after')) {
+				if(this.sibling.tab.splitview ? this.sibling.tab.splitview.tabs.at(-1) == this.sibling.tab : this.sibling.container.classList.contains('space-after')) {
 					options.index++;
 				}
-				// Don't count the item currently being dragged, it will be removed from the array so this index won't match.
-				let ii = dropTarget.children.indexOf(this.item);
+				// Only this item is removed before insertion; GroupItem.add() repositions its split partner afterward.
 				if(ii > -1 && ii < options.index) {
 					options.index--;
-					if(this.item.tab.splitview) options.index--; // Need remove 2 if is split.
 				}
 			}
 			else if(dropTarget.isStacked) {

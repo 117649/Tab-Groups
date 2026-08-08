@@ -54,7 +54,7 @@ this.TabItem = function(tab, options = {}) {
 		"busy", "progress", "soundplaying", "muted", "tabmix_tabState", "protected"
 	], this, false, false);
 
-	if(this.tab.splitview) toggleAttribute(this.container, "split", tab.nextSibling, 'l', 'r');
+	if(this.tab.splitview) TabItems.updateSplitView(this.tab);
 
 	this.addClass(Array.from(this.tab.classList).find(x => x.startsWith("identity-color-")));
 
@@ -324,7 +324,7 @@ this.TabItem.prototype = {
 		let tabData = Storage.getTabData(this.tab);
 		let groupItem;
 
-		if(TabItems.storageSanity(tabData)) {
+		if(TabItems.storageSanity(tabData) && !options.adopted) {
 			// Show the cached data while we're waiting for the tabItem to be updated.
 			// If the tab isn't restored yet this acts as a placeholder until it is.
 			this.showCachedData();
@@ -335,7 +335,9 @@ this.TabItem.prototype = {
 
 			if(tabData.groupID) {
 				groupItem = GroupItems.groupItem(tabData.groupID);
-			} else {
+			}
+			// A tab adopted from another window can retain a group ID that does not exist here.
+			if(!groupItem) {
 				groupItem = new GroupItem([], { immediately: true });
 			}
 
@@ -441,8 +443,9 @@ this.TabItem.prototype = {
 			this.container.classList[v ? 'add' : 'remove']('tabHidden');
 			this._hidden = v;
 		}
-		if(this.tab.splitview && (this.tab.nextSibling ?? this.tab.previousSibling)._tabViewTabItem.hidden != v) 
-			(this.tab.nextSibling ?? this.tab.previousSibling)._tabViewTabItem.hidden = v; // if is half of split, hide another. 
+		let splitItem = TabItems.getSplitSibling(this.tab)?._tabViewTabItem;
+		if(splitItem && splitItem.hidden != v)
+			splitItem.hidden = v; // if is half of split, hide another.
 		return this._hidden;
 	},
 
@@ -764,6 +767,27 @@ this.TabItems = {
 		}
 	},
 
+	getSplitSibling: function(tab) {
+		// Firefox can leave the wrapper reachable briefly while detaching a tab.
+		return tab?.splitview?.tabs?.includes(tab) ? tab.splitview.tabs.find(splitTab => splitTab != tab) || null : null;
+	},
+
+	updateSplitView: function(tab) {
+		let tabItem = tab?._tabViewTabItem;
+		if(!tabItem) { return; }
+
+		let splitTabs = tab.splitview?.tabs;
+		// Clear stale styling after removal or while Firefox is detaching the tab from its split wrapper.
+		if(!splitTabs?.includes(tab)) {
+			tabItem.container.removeAttribute("split");
+			return;
+		}
+
+		for(let [index, splitTab] of splitTabs.entries()) {
+			toggleAttribute(splitTab._tabViewTabItem?.container, "split", true, index ? 'r' : 'l');
+		}
+	},
+
 	// Called when a web page is painted.
 	receiveMessage: function(m) {
 		let tab = gBrowser.getTabForBrowser(m.target);
@@ -781,9 +805,20 @@ this.TabItems = {
 		if(tab.pinned) { return; }
 
 		switch(e.type) {
+			case "SplitViewCreated":
+			case "SplitViewRemoved":
+				// Firefox dispatches these on the tab container without identifying the affected tabs.
+				for(let tabItem of this) {
+					this.updateSplitView(tabItem.tab);
+				}
+				break;
+
 			// When a tab is opened, create the TabItem
 			case "TabOpen":
-				this.link(tab);
+				// Native adoption uses the destination's visible group; external TabView drags place their own items.
+				let adopted = e.detail?.adoptedTab && !DraggingGroup && !DraggingTab;
+				this.link(tab, adopted ? { adopted: true, groupItemId: GroupItems.getActiveGroupItem()?.id } : undefined);
+				if(adopted) { tab._tabViewTabItem?.parent?.reorderTabItemsBasedOnTabOrder(); }
 				break;
 
 			// When a tab's content is loaded, show the canvas and hide the cached data if necessary.
@@ -802,8 +837,7 @@ this.TabItems = {
 
 			// When a split is added, a tab is moved.
 			case "TabMove":
-				toggleAttribute(tab._tabViewTabItem.container, "split", tab.splitview && // Only 1 moves when reverse.
-					!toggleAttribute((tab.nextSibling ?? tab.previousSibling)._tabViewTabItem.container, "split", tab.nextSibling, 'r', 'l'), tab.nextSibling ? 'l' : 'r');
+				this.updateSplitView(tab);
 				break;
 		}
 	},
@@ -842,6 +876,8 @@ this.TabItems = {
 		Tabs.listen("SSTabRestored", this);
 		Tabs.listen("TabClose", this);
 		Tabs.listen("TabMove", this);
+		Tabs.listen("SplitViewCreated", this);
+		Tabs.listen("SplitViewRemoved", this);
 
 		let activeGroupItem = GroupItems.getActiveGroupItem();
 		let activeGroupItemId = activeGroupItem ? activeGroupItem.id : null;
@@ -866,6 +902,8 @@ this.TabItems = {
 		Tabs.unlisten("SSTabRestored", this);
 		Tabs.unlisten("TabClose", this);
 		Tabs.unlisten("TabMove", this);
+		Tabs.unlisten("SplitViewCreated", this);
+		Tabs.unlisten("SplitViewRemoved", this);
 
 		for(let tabItem of this) {
 			tabItem.destroy();

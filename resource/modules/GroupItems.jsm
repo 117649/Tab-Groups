@@ -1402,7 +1402,8 @@ this.GroupItem.prototype = {
 	add: function(item, options = {}) {
 		try {
 			let wasAlreadyInThisGroupItem = false;
-			let isHalf = item.tab.splitview && !options.isAnotherHalf;
+			let splitItem = TabItems.getSplitSibling(item.tab)?._tabViewTabItem;
+			let isHalf = !!splitItem && !options.isAnotherHalf;
 			if(item.parent) {
 				// safeguard to remove the item from its previous group
 				if(item.parent !== this) {
@@ -1412,7 +1413,6 @@ this.GroupItem.prototype = {
 					let oldIndex = this.children.indexOf(item);
 					if(oldIndex != -1) {
 						this.children.splice(oldIndex, 1);
-						if(isHalf) this.children.splice(this.children.indexOf((item.tab.nextSibling ?? item.tab.previousSibling)._tabViewTabItem), 1);
 						wasAlreadyInThisGroupItem = true;
 					}
 				}
@@ -1423,8 +1423,16 @@ this.GroupItem.prototype = {
 			if(options.index !== undefined && options.index < index && options.index > -1) {
 				index = options.index;
 			}
-			if(options.isAnotherHalf)
-				index = this.children.indexOf((item.tab.nextSibling ?? item.tab.previousSibling)._tabViewTabItem) + (item.tab.nextSibling ? 0 : 1);
+			if(options.isAnotherHalf && splitItem) {
+				index = this.children.indexOf(splitItem);
+				if(index != -1) {
+					// Keep both items in the same left-to-right order as Firefox's split view.
+					index += item.tab.splitview.tabs.indexOf(item.tab) > item.tab.splitview.tabs.indexOf(splitItem.tab) ? 1 : 0;
+				}
+				else {
+					index = this.children.length;
+				}
+			}
 			this.children.splice(index, 0, item);
 
 			if(!wasAlreadyInThisGroupItem) {
@@ -1457,8 +1465,12 @@ this.GroupItem.prototype = {
 
 			UI.setReorderTabsOnHide(this);
 			
-			// If this item is being added from a split view, also add the other in the split view to this group.
-			if(isHalf) this.add((item.tab.nextSibling ?? item.tab.previousSibling)._tabViewTabItem, { isAnotherHalf: true });
+			// If this item is being added from a split view, also add the other half without defeating the caller's batching/activation options.
+			if(isHalf) this.add(splitItem, {
+				isAnotherHalf: true,
+				dontArrange: options.dontArrange,
+				dontSetActive: options.dontSetActive
+			});
 		}
 		catch(ex) {
 			Cu.reportError(ex);
