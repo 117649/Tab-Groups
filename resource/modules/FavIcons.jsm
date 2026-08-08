@@ -103,6 +103,11 @@ this.FavIcons = {
 
 	// Returns the dominant color for a given favicon url.
 	getDominantColor: function(iconUrl, item) {
+		// Reusing the same icon must not acquire another hold for the same item.
+		if(item._iconUrl == iconUrl && this.colors.has(iconUrl)) {
+			return this.colors.get(iconUrl).promise;
+		}
+
 		// Keep track of how many tabs are using each icon, for cleanup purposes later.
 		if(item._iconUrl && item._iconUrl != iconUrl && this.colors.has(item._iconUrl)) {
 			let deferred = this.colors.get(item._iconUrl);
@@ -172,7 +177,7 @@ this.FavIcons = {
 				context.drawImage(icon, 0, 0);
 
 				// data is an array of a series of 4 one-byte values representing the rgba values of each pixel
-				let imageData = context.getImageData(0, 0, icon.height, icon.width);
+				let imageData = context.getImageData(0, 0, icon.width, icon.height);
 
 				// keep track of how many times a color appears in the image
 				let worker = new window.Worker('chrome://'+objPathString+'-resource/content/workers/findDominantColor.js');

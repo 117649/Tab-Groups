@@ -177,7 +177,7 @@ Modules.LOADMODULE = function() {
 	window.addEventListener("SSWindowRestoring", Storage._WindowRestoring);
 	window.addEventListener("SSWindowRestored", Storage._WindowRestored);
 
-	new Promise(async r => {
+	(async () => {
 		let { SessionMigration } = ChromeUtils.importESModule(ESModSM);
 		if (SessionMigration.migrate['_Piggyback_'])
 			return;
@@ -185,9 +185,9 @@ Modules.LOADMODULE = function() {
 		Cu.evalInSandbox((await (await window.fetch(ESModSM)).text())
 			.replace(`return tab;`, `
         // The tabgroup info is in the extData, so we need to get it out.
-        if (oldTab.extData && tabview - tab in oldTab.extData) {
-          tab.extData = { [undefined]: oldTab.extData[undefined] };
-        }
+		if (oldTab.extData && ${JSON.stringify(Storage.kTabIdentifier)} in oldTab.extData) {
+		  tab.extData = { [${JSON.stringify(Storage.kTabIdentifier)}]: oldTab.extData[${JSON.stringify(Storage.kTabIdentifier)}] };
+		}
 
         return tab;`
 			).replace(`win.selected = oldWin.selected;`, `
@@ -204,7 +204,7 @@ Modules.LOADMODULE = function() {
 			+ `\n_migrationScope.SessionMigration = SessionMigration ;`, Storage._migrationScope, null, `${ESModSM}?${objName}.Piggyback`, 1);
 		SessionMigration.migrate = Storage._migrationScope.SessionMigration.migrate;
 		SessionMigration.migrate['_Piggyback_'] = orig;
-	});
+	})().catch(ex => Cu.reportError(ex));
 };
 
 Modules.UNLOADMODULE = function() {

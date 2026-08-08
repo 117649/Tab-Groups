@@ -2953,6 +2953,9 @@ this.GroupItems = {
 		let shouldUpdateTabBar = false;
 		let shouldShowTabView = false;
 		let shouldKeepCurrentGroup = false;
+		let groupItem = groupItemId ? this.groupItem(groupItemId) : null;
+		// A stale menu or restored group id must not detach the tab before failing the move.
+		if(groupItemId && !groupItem) { return; }
 
 		// switch to the appropriate tab first.
 		if(tab.selected) {
@@ -2979,9 +2982,7 @@ this.GroupItems = {
 		}
 
 		// add tab item to a groupItem
-		let groupItem;
 		if(groupItemId) {
-			groupItem = this.groupItem(groupItemId);
 			//If tabs were moved, we need to make sure we don't override that move afterwards on reordering by tab item order.
 			if(UI._reorderTabItemsOnShow.has(groupItem)) {
 				groupItem.reorderTabItemsBasedOnTabOrder();

@@ -43,7 +43,7 @@ this.TabUtils = {
 		if(tab.isATabItem) {
 			return tab.fav._iconUrl;
 		}
-		if(tab.isAnAppTab) {
+		if(tab.isAnAppItem) {
 			return tab._iconUrl;
 		}
 		return tab.image;
@@ -53,6 +53,13 @@ this.TabUtils = {
 // Class: TabMatcher - A class that allows you to iterate over matching and not-matching tabs, given a case-insensitive search term.
 this.TabMatcher = function(term) {
 	this.term = term;
+	try {
+		this.pattern = new RegExp(term, "i");
+	}
+	catch(ex) {
+		// An unfinished expression such as "[" should behave as literal search text instead of breaking search.
+		this.pattern = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "i");
+	}
 	this.matches = null;
 	this.nonmatches = null;
 	this.cancelled = false;
@@ -80,9 +87,7 @@ this.TabMatcher.prototype = {
 	// Given an array of <TabItem>s and <xul:tab>s returns a new array of tabs whose name matched the search term, sorted by lexical closeness.
 	_filterAndSortForMatches: function() {
 		let tabs = this.tabs.filter((tab) => {
-			let name = TabUtils.nameOf(tab);
-			let url = TabUtils.URLOf(tab);
-			return name.match(new RegExp(this.term, "i")) || url.match(new RegExp(this.term, "i"));
+			return this.pattern.test(TabUtils.nameOf(tab)) || this.pattern.test(TabUtils.URLOf(tab));
 		});
 
 		tabs.sort((x, y) => {
@@ -97,9 +102,7 @@ this.TabMatcher.prototype = {
 	// Given an array of <TabItem>s returns an unsorted array of tabs whose name does not match the the search term.
 	_filterForUnmatches: function() {
 		return this.tabs.filter((tab) => {
-			let name = TabUtils.nameOf(tab);
-			let url = TabUtils.URLOf(tab);
-			return !name.match(new RegExp(this.term, "i")) && !url.match(new RegExp(this.term, "i"));
+			return !this.pattern.test(TabUtils.nameOf(tab)) && !this.pattern.test(TabUtils.URLOf(tab));
 		});
 	},
 

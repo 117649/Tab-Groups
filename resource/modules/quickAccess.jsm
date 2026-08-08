@@ -115,10 +115,10 @@ this.quickAccess = {
 				// Make sure the item is in view. .scrollIntoView() just scrolls indiscriminately...
 				// The +1 and -1 helps deal with borders.
 				if(item) {
-					let offsetTop = item.boxObject.screenY;
-					let offsetHeight = item.boxObject.height;
-					let boxTop = this.contents.boxObject.screenY;
-					let boxHeight = this.contents.boxObject.height;
+					let offsetTop = item.screenY;
+					let offsetHeight = item.getBoundingClientRect().height;
+					let boxTop = this.contents.screenY;
+					let boxHeight = this.contents.getBoundingClientRect().height;
 					if(offsetTop + offsetHeight > boxTop + boxHeight) {
 						let scrollTop = offsetTop + offsetHeight - (boxTop + boxHeight);
 						scrollTop = Math.min(this.contents.scrollTop + scrollTop +1, this.contents.scrollTopMax);

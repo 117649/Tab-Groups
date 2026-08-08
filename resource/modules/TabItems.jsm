@@ -237,7 +237,7 @@ this.TabItem.prototype = {
 				break;
 
 			case 'dragstart':
-				switch(this.lastMoudeDownTarget) {
+				switch(this.lastMouseDownTarget) {
 					case this.closeBtn:
 					case this.audioBtn:
 						e.preventDefault();
@@ -1685,8 +1685,11 @@ this.TabCanvas.prototype = {
 			}
 		}
 
-		return new Promise(async (resolve, reject) => {
+		let updateReject;
+		return new Promise((resolve, reject) => {
+			updateReject = reject;
 			this.updating._rejects.push(reject);
+			(async () => {
 			// If this canvas has started to be destroyed, stop it, it's better to update it than to create a new one.
 			if (this.destroying) {
 				this.destroying.reject();
@@ -1720,9 +1723,7 @@ this.TabCanvas.prototype = {
 				ctx.scale(scaleX, scaleY);
 			}
 
-			try {
-				await PageThumbs.captureTabPreviewThumbnail(browser, canvas);
-			} catch (ex) { reject(ex) }
+			await PageThumbs.captureTabPreviewThumbnail(browser, canvas);
 
 			ctx = this.canvas.getContext('2d');
 			let hasHadThumb = this.tabItem?._hasHadThumb;
@@ -1765,7 +1766,7 @@ this.TabCanvas.prototype = {
 			if (painted) {
 				if (browser._documentURI?.asciiSpec != "about:blank") { // non-blank tab.
 					let cb = new Uint32Array(ctx.getImageData(0, 0, canvas.width, canvas.height).data.buffer);
-					if (cb.filter(x => x != 4294967295).length / cb.length < 0.001) return false; // more then 99.9% of image is white shot is invalid.
+					if (cb.reduce((count, x) => count + (x != 4294967295), 0) / cb.length < 0.001) return false; // more then 99.9% of image is white shot is invalid.
 				}
 				// Force persist the first thumb we get, to avoid showing stored black thumbs.
 				// Even though we don't actually persist those, browser-ctrlTab.js always persists the first thumb of a tab when it is first restored,
@@ -1776,7 +1777,11 @@ this.TabCanvas.prototype = {
 			}
 
 			return painted;
-		}).catch(e => { }).finally(_ => { if (this.updating) this.updating._rejects = this.updating._rejects.filter(x => x) });
+			})().then(resolve, reject);
+		}).catch(e => { }).finally(_ => {
+			// Keep only callbacks for thumbnail updates that are still running.
+			if(this.updating) this.updating._rejects = this.updating._rejects.filter(x => x != updateReject);
+		});
 	},
 
 	toImage: function() {
