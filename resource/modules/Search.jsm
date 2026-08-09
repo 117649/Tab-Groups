@@ -89,11 +89,10 @@ this.TabMatcher.prototype = {
 		let tabs = this.tabs.filter((tab) => {
 			return this.pattern.test(TabUtils.nameOf(tab)) || this.pattern.test(TabUtils.URLOf(tab));
 		});
+		let scores = new Map(tabs.map(tab => [ tab, this._scorePatternMatch(this.term, TabUtils.nameOf(tab)) ]));
 
 		tabs.sort((x, y) => {
-			let yScore = this._scorePatternMatch(this.term, TabUtils.nameOf(y));
-			let xScore = this._scorePatternMatch(this.term, TabUtils.nameOf(x));
-			return yScore - xScore;
+			return scores.get(y) - scores.get(x);
 		});
 
 		return tabs;
