@@ -767,45 +767,38 @@ this.Search = {
 		let currentRect = this.currentItem._tabItem.container.getBoundingClientRect();
 		let currentX = currentRect.left + currentRect.width / 2;
 		let currentY = currentRect.top + currentRect.height / 2;
-		let candidates = [];
+		let horizontal = key == "ArrowLeft" || key == "ArrowRight";
+		let forward = key == "ArrowRight" || key == "ArrowDown";
+		let currentOrder = this.ordered.indexOf(this.currentItem);
+		let stacked = null;
+		let nearest = null;
+		let nearestDistance = Infinity;
 		for(let [order, item] of this.ordered.entries()) {
 			if(item == this.currentItem) { continue; }
 
 			let rect = item._tabItem.container.getBoundingClientRect();
 			if(!rect.width || !rect.height) { continue; }
-			candidates.push({
-				item,
-				order,
-				x: rect.left + rect.width / 2,
-				y: rect.top + rect.height / 2
-			});
-		}
+			let x = rect.left + rect.width / 2;
+			let y = rect.top + rect.height / 2;
 
-		let horizontal = key == "ArrowLeft" || key == "ArrowRight";
-		let forward = key == "ArrowRight" || key == "ArrowDown";
-		let directional = candidates.filter(candidate => horizontal
-			? (forward ? candidate.x > currentX : candidate.x < currentX)
-			: (forward ? candidate.y > currentY : candidate.y < currentY));
+			// Sideways navigation cycles exact stacked matches before spatial navigation.
+			if(horizontal && Math.abs(x - currentX) < 1 && Math.abs(y - currentY) < 1
+			&& (forward ? order > currentOrder && !stacked : order < currentOrder)) {
+				stacked = item;
+			}
 
-		if(horizontal) {
-			// Cycle through exact stacked matches before choosing the nearest item in that direction.
-			let currentOrder = this.ordered.indexOf(this.currentItem);
-			let overlapping = candidates.filter(candidate => Math.abs(candidate.x - currentX) < 1 && Math.abs(candidate.y - currentY) < 1);
-			overlapping.sort((a, b) => a.order - b.order);
-			let stacked = forward
-				? overlapping.find(candidate => candidate.order > currentOrder)
-				: overlapping.reverse().find(candidate => candidate.order < currentOrder);
-			if(stacked) {
-				this.focusItem(stacked.item);
-				return this.currentItem;
+			if(horizontal
+				? (forward ? x <= currentX : x >= currentX)
+				: (forward ? y <= currentY : y >= currentY)) { continue; }
+
+			let distance = (x - currentX) ** 2 + (y - currentY) ** 2;
+			if(distance < nearestDistance) {
+				nearest = item;
+				nearestDistance = distance;
 			}
 		}
 
-		let nearest = directional.reduce((match, candidate) => {
-			let distance = Math.hypot(candidate.x - currentX, candidate.y - currentY);
-			return !match || distance < match.distance ? { item: candidate.item, distance } : match;
-		}, null);
-		if(nearest) { this.focusItem(nearest.item); }
+		if(stacked || nearest) { this.focusItem(stacked || nearest); }
 		return this.currentItem;
 	},
 
