@@ -3248,7 +3248,7 @@ this.GroupItems = {
 
 		// Do we need to re-arrange anything?
 		let lastArrange = this._lastArrange;
-		let arrange = !lastArrange || !lastArrange.count != count || !lastArrange.bounds.equals(bounds) || lastArrange.dynamicSize != Prefs.gridDynamicSize;
+		let arrange = !lastArrange || lastArrange.count != count || !lastArrange.bounds.equals(bounds) || lastArrange.dynamicSize != Prefs.gridDynamicSize;
 		if(!arrange) {
 			for(let i = 0; i < groups.length; i++) {
 				if(groups[i] != lastArrange.groups[i]) {
