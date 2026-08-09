@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 2.5.6
+// VERSION 2.6.2
 
 // This will be the GroupDrag object created when a group is dragged or resized.
 this.DraggingGroup = null;
@@ -692,6 +692,10 @@ this.DraggingTab = null;
 this.TabDrag = function(e, tabItem) {
 	DraggingTab = this;
 	this.item = tabItem;
+	if(!TabItems.selectedItems.has(tabItem)) { TabItems.clearSelection(); TabItems._selectionAnchor = tabItem; }
+	this.items = TabItems.selectedItems.has(tabItem) ? Array.from(TabItems.selectedItems).sort((a, b) => a.tab._tPos - b.tab._tPos) : [ tabItem ];
+	this.tabs = this.items.map(item => item.tab);
+	this.draggedTab = tabItem.tab;
 	this.container = tabItem.container;
 	e.dataTransfer.setData("text/plain", "tabview-tab");
 
@@ -753,7 +757,7 @@ this.TabDrag.prototype = {
 
 		let sibling;
 		if(this.item.isATabItem) {
-			sibling = !this.item.isStacked && this.item.parent.children[this.item.parent.children.indexOf(this.item) +1];
+			sibling = !this.item.isStacked && this.item.parent.children.slice(this.item.parent.children.indexOf(this.item) +1).find(item => !this.items.includes(item));
 		} else if(this.item.isAnAppItem) {
 			sibling = this.item.nextSibling;
 		}
@@ -816,6 +820,27 @@ this.TabDrag.prototype = {
 			node.classList[method]('dragOver');
 			Listeners[method](node, 'drop', this);
 		}
+	},
+
+	// Split partners are selected together; GroupItem.add() moves the second half with the first.
+	getMovableItems: function() { return this.items.filter(item => !TabItems.getSplitSibling(item.tab) || item.tab.splitview.tabs[0] == item.tab); },
+
+	moveItemsToGroup: function(groupItem, index) {
+		let sourceGroups = new Set(this.items.map(item => item.parent).filter(Boolean));
+		for(let item of this.items) { item.parent?.remove(item, { dontArrange: true, dontClose: true }); }
+
+		for(let item of this.getMovableItems()) {
+			groupItem.add(item, { index: index, dontArrange: true, dontSetActive: true });
+			index += TabItems.getSplitSibling(item.tab) ? 2 : 1;
+		}
+
+		for(let sourceGroup of sourceGroups) {
+			if(sourceGroup != groupItem && !sourceGroup.closeIfEmpty()) {
+				sourceGroup._unfreezeItemSize(true);
+				sourceGroup.arrange();
+			}
+		}
+		groupItem.arrange();
 	},
 
 	dropHere: function(sibling) {
@@ -919,7 +944,7 @@ this.TabDrag.prototype = {
 	},
 
 	pinItem: function() {
-		let tab = this.item.tab;
+		let tab = this.draggedTab;
 		if(!tab.pinned) {
 			Listeners.remove(this.container, 'dragend', this);
 			gBrowser.pinTab(tab);
@@ -930,7 +955,7 @@ this.TabDrag.prototype = {
 	},
 
 	unpinItem: function() {
-		let tab = this.item.tab;
+		let tab = this.draggedTab;
 		if(tab.pinned) {
 			Listeners.remove(this.container, 'dragend', this);
 			gBrowser.unpinTab(tab);
@@ -951,15 +976,19 @@ this.TabDrag.prototype = {
 			dropTarget = dropTarget.groupItem;
 
 			// If dropping in the same group as it comes from, no-op.
-			if(dropTarget == this.item.parent) { return; }
+			if(this.items.every(item => dropTarget == item.parent)) { return; }
 
 			// When dragging a pinned tab into a group, we need to unpin it first, so that we have a tab item that we can drag.
 			this.unpinItem();
 
 			// See the note below on dropping onto a stacked group case.
 			dropTarget._activeTab = null;
-			dropTarget.add(this.item, { dontArrange: true, dontSetActive: true });
-			dropTarget.reorderTabItemsBasedOnTabOrder(true);
+			if(this.items.length > 1) {
+				this.moveItemsToGroup(dropTarget, dropTarget.children.filter(item => !this.items.includes(item)).length);
+			} else {
+				dropTarget.add(this.item, { dontArrange: true, dontSetActive: true });
+				dropTarget.reorderTabItemsBasedOnTabOrder(true);
+			}
 		}
 		// If we have a valid drop target (group), add the item to it.
 		else if(dropTarget.isAGroupItem) {
@@ -970,7 +999,7 @@ this.TabDrag.prototype = {
 			let ii = dropTarget.children.indexOf(this.item);
 			if(this.sibling) {
 				options.index = dropTarget.children.indexOf(this.sibling);
-				if(this.sibling.tab.splitview ? this.sibling.tab.splitview.tabs.at(-1) == this.sibling.tab : this.sibling.container.classList.contains('space-after')) {
+				if(TabItems.getSplitSibling(this.sibling.tab) ? this.sibling.tab.splitview.tabs.at(-1) == this.sibling.tab : this.sibling.container.classList.contains('space-after')) {
 					options.index++;
 				}
 				// Only this item is removed before insertion; GroupItem.add() repositions its split partner afterward.
@@ -991,10 +1020,31 @@ this.TabDrag.prototype = {
 					options.dontArrange = true;
 				}
 			}
-			dropTarget.add(this.item, options);
+			if(this.items.length > 1) {
+				let children = dropTarget.children.filter(item => !this.items.includes(item));
+				let index = children.indexOf(this.sibling);
+				if(!this.sibling || index == -1) { index = children.length; }
+				else if(TabItems.getSplitSibling(this.sibling.tab) ? this.sibling.tab.splitview.tabs.at(-1) == this.sibling.tab : this.sibling.container.classList.contains('space-after')) { index++; }
+				this.moveItemsToGroup(dropTarget, index);
+			} else {
+				dropTarget.add(this.item, options);
+			}
 		}
 		// If the drop target is the pinned tabs area, we should make sure the tab is pinned. Things are a little easier than as above though.
 		else if(dropTarget == PinnedItems.tray) {
+			if(this.items.length > 1) {
+				Listeners.remove(this.container, 'dragend', this);
+				let sibling = this.sibling;
+				if(sibling?.classList.contains('space-after')) { sibling = sibling.nextSibling; }
+				for(let tab of this.tabs) { gBrowser.pinTab(tab); }
+				for(let tab of this.tabs) { PinnedItems.add(tab, sibling); }
+				this.item = PinnedItems.get(this.draggedTab);
+				this.container = this.item.container;
+				Listeners.add(this.container, 'dragend', this);
+				PinnedItems.reorderTabsBasedOnAppItemOrder();
+				return;
+			}
+
 			// Pin the tab first, so that our handlers can first remove the original tab item, and then register it as an app tab.
 			this.pinItem();
 
@@ -1031,7 +1081,7 @@ this.TabDrag.prototype = {
 				options.bounds = new Rect(e.offsetX - (tabWidth /2), e.offsetY - (tabHeight /2), tabWidth, tabHeight);
 			}
 
-			new GroupItem([ this.item ], options);
+			new GroupItem(this.items.length > 1 ? this.getMovableItems() : [ this.item ], options);
 		}
 	},
 

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.3.58
+// VERSION 1.3.63
 
 // Used to scroll groups automatically, for instance when dragging a tab over a group's overflown edges.
 this.Synthesizer = {
@@ -221,6 +221,7 @@ this.UI = {
 				break;
 
 			case 'mousedown': {
+				if(e.button == 0 && !e.target.closest?.('.tab')) { TabItems.clearSelection(); }
 				if(this.isTabViewVisible() && (
 					(this?._currentTab?._tabViewTabItem.closeBtn == e.target)||
 					(this?._currentTab?._tabViewTabItem.container._item.parent.closeButton == e.target))) {
@@ -339,6 +340,7 @@ this.UI = {
 				break;
 
 			case 'contextmenu':
+				if(e.button && !e.target.closest?.('.tab')) { TabItems.clearSelection(); }
 				// When right-clicking a group title, we're actually right-clicking its shield if the cursor isn't already there.
 				// So we focus it now and pretend like it was already focused.
 				if(e.target.classList.contains('title-shield')) {
@@ -614,7 +616,7 @@ this.UI = {
 			Listeners.add(gTabView.groupContextNewTab, 'command', this);
 
 			// When you click on the background/empty part of TabView, we create a new groupItem.
-			Listeners.add(GroupItems.workSpace, 'mousedown', this);
+			Listeners.add(window, 'mousedown', this, true);
 			Listeners.add(GroupItems.workSpace, 'dblclick', this);
 			Listeners.add(GroupItems.workSpace, 'dragover', this);
 			Listeners.add(this.groupSelector, 'wheel', this, true);
@@ -714,7 +716,7 @@ this.UI = {
 		Listeners.remove(gWindow, "SSWindowStateReady", this);
 		Listeners.remove(this.sessionRestoreNotice, 'click', this);
 
-		try{Listeners.remove(GroupItems.workSpace, 'mousedown', this);}catch(ex){}
+		Listeners.remove(window, 'mousedown', this, true);
 		try{Listeners.remove(GroupItems.workSpace, 'dblclick', this);}catch(ex){}
 		try{Listeners.remove(GroupItems.workSpace, 'dragover', this);}catch(ex){}
 		Listeners.remove(this.groupSelector, 'wheel', this, true);
@@ -969,6 +971,7 @@ this.UI = {
 
 	// To close the current tab, as commanded by the keyboard shortcut.
 	closeActiveTab: function() {
+		if(TabItems.selectedItems.size) { return TabItems.closeSelected(TabItems.selectedItems.values().next().value); }
 		if(this._activeTab) {
 			this._activeTab.closedManually = true;
 			this._activeTab.close();
@@ -1357,7 +1360,8 @@ this.UI = {
 
 		if(this.isTabViewVisible()) {
 			// We may want to select a pinned tab without leaving tab view.
-			if(this._dontHideTabView) {
+			// Native multi-tab commands such as Unload can select another tab before the context menu closes.
+			if(this._dontHideTabView || gTabView._contextSelectedTab) {
 				this._dontHideTabView = false;
 				if(tab.pinned) {
 					this.clearActiveTab();

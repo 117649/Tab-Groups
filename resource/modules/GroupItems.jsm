@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.7.21
+// VERSION 1.7.22
 
 // Class: GroupItem - A single groupItem in the TabView window.
 // Parameters:
@@ -2947,7 +2947,7 @@ this.GroupItems = {
 
 		// given tab is already contained in target group
 		let tabItem = tab._tabViewTabItem;
-		if(tabItem.parent && tabItem.parent.id == groupItemId) { return; }
+		if(tabItem.parent && tabItem.parent.id == groupItemId) { return tabItem.parent; }
 
 		let shouldFocusTab = false;
 		let shouldUpdateTabBar = false;
@@ -3009,6 +3009,7 @@ this.GroupItems = {
 		} else if(shouldShowTabView) {
 			UI.showTabView();
 		}
+		return tabItem.parent;
 	},
 
 	// Removes all hidden groups' data and its browser tabs.

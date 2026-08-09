@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.3.12
+// VERSION 1.4.4
 
 ChromeUtils.defineESModuleGetters(this, {PageThumbs: "resource://gre/modules/PageThumbs.sys.mjs",
 	PageThumbsStorage: "resource://gre/modules/PageThumbs.sys.mjs",
@@ -227,10 +227,10 @@ this.TabItem.prototype = {
 					// press close button or middle mouse click
 					if(e.target == this.closeBtn || e.button == 1) {
 						this.closedManually = true;
-						this.close();
+						TabItems.closeSelected(this);
 					} else if(e.target == this.audioBtn) {
 						this.tab.toggleMuteAudio();
-					} else if(!this.parent.isDragging) {
+					} else if(!this.parent.isDragging && !TabItems.select(this, e)) {
 						this.zoomIn();
 					}
 				}
@@ -252,7 +252,7 @@ this.TabItem.prototype = {
 				break;
 
 			case 'dragenter':
-				if(DraggingTab && !this.isStacked) {
+				if(DraggingTab && !this.isStacked && !DraggingTab.items.includes(this)) {
 					DraggingTab.dropHere(this);
 				}
 				break;
@@ -297,6 +297,8 @@ this.TabItem.prototype = {
 
 	// Watching several attributes in tabs, at least "progress" doesn't fire TabAttrModified events, and "busy" seems a bit unreliable.
 	attrWatcher: function(tab, attr) {
+		// Preserve unread during temporary context selection, but allow real transitions such as unloaded.
+		if(attr == "tabmix_tabState" && gTabView._contextUnreadTab == tab && !tab.hasAttribute(attr)) { tab.removeAttribute("visited"); tab.setAttribute(attr, "unread"); return; }
 		switch(attr) {
 			case "busy":
 			case "progress":
@@ -746,6 +748,8 @@ this.TabItems = {
 	_cachedThumbFragment: null,
 	_canvasFragment: null,
 	items: new Set(),
+	selectedItems: new Set(),
+	_selectionAnchor: null,
 	paintingPaused: 0,
 	_heartbeatHiddenTiming: 10000, // milliseconds between calls when TabView is hidden (for discarding canvases)
 	_heartbeatTiming: 200, // milliseconds between calls
@@ -775,6 +779,53 @@ this.TabItems = {
 		return tab?.splitview?.tabs?.includes(tab) ? tab.splitview.tabs.find(splitTab => splitTab != tab) || null : null;
 	},
 
+	_setSelected: function(item, selected, includeSplit = true) {
+		if(!item || !this.items.has(item)) { return; }
+		this.selectedItems[selected ? 'add' : 'delete'](item);
+		item.container.classList[selected ? 'add' : 'remove']('multiselected');
+		if(includeSplit) { this._setSelected(this.getSplitSibling(item.tab)?._tabViewTabItem, selected, false); }
+	},
+
+	clearSelection: function() {
+		for(let item of this.selectedItems) { item.container.classList.remove('multiselected'); }
+		this.selectedItems.clear();
+		this._selectionAnchor = null;
+	},
+
+	// Returns true when a modified click changed the selection and must not open the tab.
+	select: function(item, e) {
+		let accel = (DARWIN && e.metaKey) || (!DARWIN && e.ctrlKey);
+		if(!accel && !e.shiftKey) { this.clearSelection(); this._selectionAnchor = item; return false; }
+
+		if(e.shiftKey) {
+			let items = item.parent.children;
+			let anchor = this._selectionAnchor?.parent == item.parent ? this._selectionAnchor : item;
+			if(!accel) { this.clearSelection(); }
+
+			let start = items.indexOf(anchor);
+			let end = items.indexOf(item);
+			for(let i = Math.min(start, end); i <= Math.max(start, end); i++) { this._setSelected(items[i], true); }
+			// The next Shift range starts at this click, never at a stale endpoint or another group.
+			this._selectionAnchor = item;
+		} else {
+			this._setSelected(item, !this.selectedItems.has(item));
+			this._selectionAnchor = item;
+		}
+
+		return true;
+	},
+
+	closeSelected: function(item) {
+		if(!this.selectedItems.has(item)) { item.close(); return; }
+		let items = Array.from(this.selectedItems).sort((a, b) => b.tab._tPos - a.tab._tPos);
+		this.clearSelection();
+		for(let selectedItem of items) {
+			if(!selectedItem.tab) { continue; }
+			selectedItem.closedManually = true;
+			selectedItem.close();
+		}
+	},
+
 	updateSplitView: function(tab) {
 		let tabItem = tab?._tabViewTabItem;
 		if(!tabItem) { return; }
@@ -789,6 +840,8 @@ this.TabItems = {
 		for(let [index, splitTab] of splitTabs.entries()) {
 			toggleAttribute(splitTab._tabViewTabItem?.container, "split", true, index ? 'r' : 'l');
 		}
+		// A split created from an already selected tab must join both halves to the selection.
+		if(splitTabs.some(splitTab => this.selectedItems.has(splitTab._tabViewTabItem))) { for(let splitTab of splitTabs) { this._setSelected(splitTab._tabViewTabItem, true); } }
 	},
 
 	// Called when a web page is painted.
@@ -912,6 +965,7 @@ this.TabItems = {
 			tabItem.destroy();
 		}
 
+		this.clearSelection();
 		this.items = new Set();
 		this._lastUpdateTime = Date.now();
 		this._tabsWaitingForUpdate?.clear();
@@ -1380,6 +1434,8 @@ this.TabItems = {
 	// Removes the given <TabItem> from the master list.
 	unregister: function(item) {
 		this.items.delete(item);
+		this.selectedItems.delete(item);
+		if(this._selectionAnchor == item) { this._selectionAnchor = null; }
 		this._tabsWaitingForUpdate.remove(item.tab);
 		this._tabsNeedingLabelsUpdate.delete(item);
 		this._staleTabs.remove(item);

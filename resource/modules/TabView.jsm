@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.1.23
+// VERSION 1.2.3
 
 this.__defineGetter__('gBrowser', function() { return window.gBrowser; });
 this.__defineGetter__('gTaskbarTabGroup', function() { return window.gTaskbarTabGroup; });
@@ -17,6 +17,9 @@ this.TabView = {
 	_window: null,
 	_initialized: false,
 	_closedLastVisibleTab: null,
+	_contextSelectedTab: null,
+	_contextUnreadTab: null,
+	_contextCommandPending: false,
 	_isFrameLoading: false,
 
 	_initFrameCallbacks: [],
@@ -138,6 +141,10 @@ this.TabView = {
 
 			case 'popuphidden':
 				switch(e.target.id) {
+					case this.kTabContextMenuId:
+						if(!this._contextCommandPending) { this._restoreTabContextSelection(); }
+						break;
+
 					case this.kGroupContextMenu:
 						this.groupContextMenu._anchorItem = null;
 						break;
@@ -242,6 +249,7 @@ this.TabView = {
 		Listeners.add(this.tooltip, "popupshowing", this, true);
 		Listeners.add(this.tabMenuPopup, "popupshowing", this);
 		Listeners.add($('tabContextMenu'), "popupshowing", this);
+		Listeners.add($('tabContextMenu'), "popuphidden", this);
 		Listeners.add(this.groupContextMenu, "popuphidden", this);
 		Tabs.listen("TabClose", this);
 		Tabs.listen("TabSelect", this);
@@ -292,6 +300,22 @@ this.TabView = {
 			}
 			return true;
 		}, Piggyback.MODE_BEFORE);
+		if(gBrowser.explicitUnloadTabs) {
+			Piggyback.add('TabView', gBrowser, 'explicitUnloadTabs', function(...args) {
+				let result = this._explicitUnloadTabs(...args);
+				if(!TabView._contextSelectedTab) { return result; }
+
+				// Unloading the active tab selects a replacement asynchronously; keep TabView open until that finishes.
+				TabView._contextCommandPending = true;
+				return Promise.resolve(result).finally(() => {
+					TabView._contextCommandPending = false;
+					if(!TabView._contextSelectedTab) { return; }
+					// Reselecting a successfully unloaded tab would immediately load it again.
+					if(!TabView._contextSelectedTab.linkedPanel) { TabView._contextSelectedTab = gBrowser.selectedTab; }
+					TabView._restoreTabContextSelection();
+				});
+			});
+		}
 
 		if(gTaskbarTabGroup) {
 			Piggyback.add('TabView', gTaskbarTabGroup, 'newTab', function(tab) {
@@ -360,6 +384,7 @@ this.TabView = {
 		}
 		Piggyback.revert('TabView', window.SessionWindowUI ?? window, 'undoCloseTab');
 		Piggyback.revert('TabView', gBrowser, 'updateTitlebar');
+		Piggyback.revert('TabView', gBrowser, 'explicitUnloadTabs');
 
 		Prefs.unlisten('groupTitleInButton', this);
 		Listeners.remove(window, 'beforecustomization', this);
@@ -373,6 +398,7 @@ this.TabView = {
 		Listeners.remove(this.tooltip, "popupshowing", this, true);
 		Listeners.remove(this.tabMenuPopup, "popupshowing", this);
 		Listeners.remove($('tabContextMenu'), "popupshowing", this);
+		Listeners.remove($('tabContextMenu'), "popuphidden", this);
 		Listeners.remove(this.groupContextMenu, "popuphidden", this);
 		Tabs.unlisten("TabClose", this);
 		Tabs.unlisten("TabSelect", this);
@@ -433,6 +459,7 @@ this.TabView = {
 	_deinitFrame: function() {
 		// nothing to do
 		if(!this._window && !this._iframe) { return; }
+		this._restoreTabContextSelection();
 
 		// hide() will actually fail to complete properly if this method is called while tab view is visible,
 		// because it implies a degree of asynchronicity in the process.
@@ -614,6 +641,29 @@ this.TabView = {
 	},
 
 	openTabContextMenu: function(e, tab, anchor) {
+		if(this._contextCommandPending) { return; }
+
+		let tabItems = this._window?.[objName]?.TabItems;
+		if(tabItems && !tabItems.selectedItems.has(tab._tabViewTabItem)) { tabItems.clearSelection(); }
+		this._restoreTabContextSelection();
+		this._clearNativeTabSelection();
+		if(tabItems?.selectedItems.has(tab._tabViewTabItem) && tabItems.selectedItems.size > 1 && gBrowser.addToMultiSelectedTabs) {
+			this._contextUnreadTab = tab._tabViewTabItem.container.hasAttribute('unread') ? tab : null;
+			this._contextSelectedTab = gBrowser.selectedTab;
+			for(let item of tabItems.selectedItems) { if(item.tab.hidden) { gBrowser.showTab(item.tab); } }
+			if(!tabItems.selectedItems.has(gBrowser.selectedTab?._tabViewTabItem)) {
+				this._window[objName].UI._dontHideTabView = true;
+				gBrowser.selectedTab = tab;
+			}
+			if(tabItems.selectedItems.has(gBrowser.selectedTab?._tabViewTabItem)) {
+				for(let item of tabItems.selectedItems) { gBrowser.addToMultiSelectedTabs(item.tab); }
+				gBrowser.lastMultiSelectedTab = tab;
+			} else {
+				this._window[objName].UI._dontHideTabView = false;
+				this._restoreTabContextSelection();
+			}
+		}
+
 		// The tab context menu is constructed based on the triggerNode property of the original event.
 		// Because we're in tabview, the triggerNode cannot actually be the tab itself, so we fake it here
 		// to avoid having to replace that whole handler just to open the popup correctly.
@@ -631,6 +681,29 @@ this.TabView = {
 		} else {
 			this.tabContextMenu.openPopup(null, 'after_pointer', e.clientX +1, e.clientY +1, true, false, fakeEvent);
 		}
+	},
+
+	_clearNativeTabSelection: function() {
+		if(gBrowser.removeFromMultiSelectedTabs) {
+			// clearMultiSelectedTabs() skips hidden group tabs because Firefox filters them from selectedTabs.
+			for(let tab of gBrowser.tabs) { if(tab.multiselected) { gBrowser.removeFromMultiSelectedTabs(tab); } }
+		} else { gBrowser.clearMultiSelectedTabs?.(); }
+	},
+
+	_restoreTabContextSelection: function() {
+		if(!this._contextSelectedTab) { return; }
+
+		let tabView = this._window?.[objName];
+		this._clearNativeTabSelection();
+		if(this._contextSelectedTab.ownerDocument.defaultView == window && !this._contextSelectedTab.closing && gBrowser.selectedTab != this._contextSelectedTab) {
+			if(tabView) { tabView.UI._dontHideTabView = true; }
+			gBrowser.selectedTab = this._contextSelectedTab;
+		}
+		this._contextSelectedTab = null;
+		if(this._contextUnreadTab && !this._contextUnreadTab.closing && this._contextUnreadTab.getAttribute('tabmix_tabState') != 'unloaded') { this._contextUnreadTab.removeAttribute('visited'); this._contextUnreadTab.setAttribute('tabmix_tabState', 'unread'); }
+		this._contextUnreadTab = null;
+		// Restore group visibility after selected tabs were temporarily exposed to Firefox's native menu.
+		if(tabView?.GroupItems.getActiveGroupItem()) { tabView.GroupItems._updateTabBar(); }
 	},
 
 	onCloseLastTab: function(tab) {
@@ -684,8 +757,16 @@ this.TabView = {
 
 	moveTabTo: function(tab, groupItemId, focusIfSelected) {
 		this._initFrame(() => {
-			gBrowser.ungroupTab?.call(tab);
-			this._window[objName].GroupItems.moveTabToGroupItem(tab, groupItemId, focusIfSelected);
+			let tabItems = this._window[objName].TabItems;
+			let tabs = tabItems.selectedItems.has(tab._tabViewTabItem) && tabItems.selectedItems.size > 1 ?
+				Array.from(tabItems.selectedItems, item => item.tab).sort((a, b) => a._tPos - b._tPos) :
+				(tab.multiselected ? gBrowser.selectedTabs : [ tab ]);
+			let targetGroupItemId = groupItemId;
+			for(let selectedTab of tabs) {
+				gBrowser.ungroupTab?.call(selectedTab);
+				let groupItem = this._window[objName].GroupItems.moveTabToGroupItem(selectedTab, targetGroupItemId, focusIfSelected);
+				if(!targetGroupItemId && groupItem) { targetGroupItemId = groupItem.id; }
+			}
 		});
 	},
 
