@@ -9,6 +9,19 @@ ChromeUtils.defineESModuleGetters(this, {PageThumbUtils: "resource://gre/modules
 this.TabView = {
 	// This module will only be initialized in frame scripts from windows that need it.
 	moduleName: 'TabView',
+	_paintTimers: new WeakMap(),
+
+	queuePaint: function(frame) {
+		if(this._paintTimers.has(frame)) { return; }
+
+		// Paint events can fire every frame; send only the latest notification in each short burst.
+		let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+		this._paintTimers.set(frame, timer);
+		timer.init(() => {
+			this._paintTimers.delete(frame);
+			Frames.message(frame, "MozAfterPaint");
+		}, 200, Ci.nsITimer.TYPE_ONE_SHOT);
+	},
 
 	handleEvent: function(e) {
 		let frame = e.currentTarget;
@@ -27,7 +40,7 @@ this.TabView = {
 			case 'MozAfterPaint':
 				// Sends an asynchronous message when the "onMozAfterPaint" event is fired.
 				if(e.clientRects.length) {
-					Frames.message(frame, "MozAfterPaint");
+					this.queuePaint(frame);
 				}
 				break;
 
@@ -35,7 +48,7 @@ this.TabView = {
 				// <video> may not fire paint events during playback.
 				// fake paint events so we can still update thumbnails
 				if(e.target.localName == "video") {
-					Frames.message(frame, "MozAfterPaint");
+					this.queuePaint(frame);
 				}
 				break;
 		}
@@ -81,6 +94,10 @@ this.TabView = {
 	},
 
 	onFrameDeleted: function(frame) {
+		if(this._paintTimers.has(frame)) {
+			this._paintTimers.get(frame).cancel();
+			this._paintTimers.delete(frame);
+		}
 		frame.removeEventListener("DOMWillOpenModalDialog", this);
 		frame.removeEventListener("MozAfterPaint", this);
 		frame.removeEventListener("timeupdate", this, true);
