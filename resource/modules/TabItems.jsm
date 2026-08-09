@@ -751,7 +751,10 @@ this.TabItems = {
 	_heartbeatTiming: 200, // milliseconds between calls
 	_maxTimeForUpdating: 200, // milliseconds that consecutive updates can take
 	_maxTimeForCachedThumbs: 25,
-	_maxNumberForUpdate: 50, // its 2020s continuous updating at parallel should be doable. also half the delay of hidden heartbeat
+	// Scale sublinearly with the backlog so large sessions finish sooner without creating unbounded capture bursts.
+	_maxNumberForUpdate: function(pending) {
+		return Math.min(16, Math.max(4, Math.round(Math.sqrt(pending) / 2.5)));
+	},
 	_lastUpdateTime: Date.now(),
 	reconnectingPaused: false,
 
@@ -1237,7 +1240,7 @@ this.TabItems = {
 		while(accumTime < this._maxTimeForUpdating && items.length) {
 			then = now;
 
-			await Promise.allSettled(items.splice(0, this._maxNumberForUpdate).map(x=>this._update(x)));
+			await Promise.allSettled(items.splice(0, this._maxNumberForUpdate(items.length)).map(x=>this._update(x)));
 
 			// Maintain a simple average of time for each tabitem update
 			// We can use this as a base by which to delay things like tab zooming, so there aren't any hitches.
