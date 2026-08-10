@@ -2213,9 +2213,9 @@ this.GroupItem.prototype = {
 	},
 
 	// Reorders the tabs in the tab bar based on the arrangment of the tabs shown in the groupItem.
-	reorderTabsBasedOnTabItemOrder: function() {
+	reorderTabsBasedOnTabItemOrder: function(movedTabs) {
 		let tabs = this.children.map(tabItem => tabItem.tab);
-		GroupItems.reorderTabsBasedOnGivenOrder(tabs);
+		GroupItems.reorderTabsBasedOnGivenOrder(tabs, movedTabs);
 	},
 
 	// Gets the <Item> that should be displayed on top when in stack mode.
@@ -2887,10 +2887,13 @@ this.GroupItems = {
 	},
 
 	// Reorders the tabs in the tab bar based on the arrangment of the tabs in the given array.
-	reorderTabsBasedOnGivenOrder: function(tabs) {
-		let indices;
+	reorderTabsBasedOnGivenOrder: function(tabs, movedTabs = []) {
+		let indices, tabIndices = new Map(tabs.map((tab, index) => [tab, index]));
+		movedTabs = new Set(movedTabs);
 
-		tabs.forEach(function(tab, index) {
+		// Move dragged tabs first so crossing a native-group edge does not pull the intervening tab into that group.
+		new Set([...movedTabs, ...tabs]).forEach(function(tab) {
+			let index = tabIndices.get(tab);
 			if(!indices) {
 				indices = tabs.map(tab => tab._tPos);
 			}
@@ -2900,7 +2903,8 @@ this.GroupItems = {
 			let targetRange = new Range(start, end);
 
 			if(!targetRange.contains(tab._tPos)) {
-				gBrowser.moveTabTo(tab, start);
+				// Current Firefox requires explicit ungrouping when the dragged tab crosses either group edge.
+				gBrowser.moveTabTo(tab, gBrowser.moveTabTo.length == 1 ? { tabIndex: start, forceUngrouped: movedTabs.has(tab) && tab.group && (start < tab.group.tabs[0]._tPos || start > tab.group.tabs.at(-1)._tPos) } : start);
 				indices = null;
 			}
 		});

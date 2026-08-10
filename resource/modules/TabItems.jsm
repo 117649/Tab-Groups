@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.4.4
+// VERSION 1.5.0
 
 ChromeUtils.defineESModuleGetters(this, {PageThumbs: "resource://gre/modules/PageThumbs.sys.mjs",
 	PageThumbsStorage: "resource://gre/modules/PageThumbs.sys.mjs",
@@ -55,6 +55,7 @@ this.TabItem = function(tab, options = {}) {
 	], this, false, false);
 
 	if(this.tab.splitview) TabItems.updateSplitView(this.tab);
+	TabItems.updateNativeGroup(this.tab);
 
 	this.addClass(Array.from(this.tab.classList).find(x => x.startsWith("identity-color-")));
 
@@ -844,6 +845,13 @@ this.TabItems = {
 		if(splitTabs.some(splitTab => this.selectedItems.has(splitTab._tabViewTabItem))) { for(let splitTab of splitTabs) { this._setSelected(splitTab._tabViewTabItem, true); } }
 	},
 
+	updateNativeGroup: function(tab, color) {
+		let item = tab?._tabViewTabItem, group = tab?.group;
+		toggleAttribute(item?.container, "nativegroup", group);
+		// Resolve Firefox's chrome-only variable because custom properties do not cross into the TabView iframe.
+		item?.container.style.setProperty("--native-tab-group-color", color ?? (group ? gWindow.getComputedStyle(group).getPropertyValue("--tab-group-color") : ""));
+	},
+
 	// Called when a web page is painted.
 	receiveMessage: function(m) {
 		let tab = gBrowser.getTabForBrowser(m.target);
@@ -855,12 +863,22 @@ this.TabItems = {
 	},
 
 	handleEvent: function(e) {
-		let tab = e.target;
+		let tab = e.type == "TabGrouped" || e.type == "TabUngrouped" ? e.detail : e.target;
 
 		// We don't care about pinned tabs here
 		if(tab.pinned) { return; }
 
 		switch(e.type) {
+			case "TabGroupUpdate":
+				let groupColor = gWindow.getComputedStyle(tab).getPropertyValue("--tab-group-color");
+				for(let groupTab of tab.tabs) {
+					this.updateNativeGroup(groupTab, groupColor);
+				}
+				break;
+			case "TabGrouped":
+			case "TabUngrouped":
+				this.updateNativeGroup(tab);
+				break;
 			case "SplitViewCreated":
 			case "SplitViewRemoved":
 				// Firefox dispatches these on the tab container without identifying the affected tabs.
@@ -932,6 +950,9 @@ this.TabItems = {
 		Tabs.listen("SSTabRestored", this);
 		Tabs.listen("TabClose", this);
 		Tabs.listen("TabMove", this);
+		Listeners.add(gWindow, "TabGrouped", this);
+		Listeners.add(gWindow, "TabUngrouped", this);
+		Listeners.add(gWindow, "TabGroupUpdate", this);
 		Tabs.listen("SplitViewCreated", this);
 		Tabs.listen("SplitViewRemoved", this);
 
@@ -958,6 +979,9 @@ this.TabItems = {
 		Tabs.unlisten("SSTabRestored", this);
 		Tabs.unlisten("TabClose", this);
 		Tabs.unlisten("TabMove", this);
+		Listeners.remove(gWindow, "TabGrouped", this);
+		Listeners.remove(gWindow, "TabUngrouped", this);
+		Listeners.remove(gWindow, "TabGroupUpdate", this);
 		Tabs.unlisten("SplitViewCreated", this);
 		Tabs.unlisten("SplitViewRemoved", this);
 

@@ -989,6 +989,7 @@ this.TabDrag.prototype = {
 				dropTarget.add(this.item, { dontArrange: true, dontSetActive: true });
 				dropTarget.reorderTabItemsBasedOnTabOrder(true);
 			}
+			dropTarget.reorderTabsBasedOnTabItemOrder(this.tabs);
 		}
 		// If we have a valid drop target (group), add the item to it.
 		else if(dropTarget.isAGroupItem) {
@@ -1029,6 +1030,8 @@ this.TabDrag.prototype = {
 			} else {
 				dropTarget.add(this.item, options);
 			}
+			// Apply native-group membership on drop so TabView's group cue updates immediately.
+			dropTarget.reorderTabsBasedOnTabItemOrder(this.tabs);
 		}
 		// If the drop target is the pinned tabs area, we should make sure the tab is pinned. Things are a little easier than as above though.
 		else if(dropTarget == PinnedItems.tray) {

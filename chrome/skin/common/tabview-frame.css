@@ -1387,6 +1387,20 @@ body.DraggingTab .appTabIcon {
 
 /* Various interaction effects */
 
+/* Native-group color accents existing content without replacing its interaction states. */
+.tab[nativegroup] {
+	box-shadow: inset 0 -8px 12px -4px var(--native-tab-group-color);
+}
+.tab-container:is(.noThumbs, .onlyIcons) .tab[nativegroup] {
+	box-shadow: inset 0 0 12px -2px var(--native-tab-group-color);
+}
+.tab-container:not(.noThumbs):not(.onlyIcons) .tab[nativegroup] .tab-thumb-container {
+	box-shadow: 0 0 8px 1px var(--native-tab-group-color);
+}
+.tab-container.onlyIcons .tab[nativegroup]:not([busy]) .favicon-container {
+	box-shadow: var(--favicon-tile-shadow), 0 0 8px 1px var(--native-tab-group-color);
+}
+
 .groupItem:not(.thumbing) .tab:not(.stacked).focus,
 .groupItem:not(.thumbing) .tab:not(.stacked):hover,
 .expandedTray .tab.focus,
