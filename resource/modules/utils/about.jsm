@@ -335,7 +335,7 @@ this.about = {
 	},
 
 	openAddonsMgr: function() {
-		gWindow.BrowserOpenAddonsMgr();
+		window.browsingContext.topChromeWindow.switchToTabHavingURI('about:addons', true);
 	}
 };
 

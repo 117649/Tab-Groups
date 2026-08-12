@@ -2,20 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 2.4.16
+// VERSION 2.4.17
 Modules.UTILS = true;
 
-ChromeUtils.defineLazyGetter(this, "gWindow", function() {
-	// TODO: investigate when exactly I can use windowRoot
-	return	window.windowRoot
-		? window.windowRoot.documentGlobal ?? window.windowRoot.ownerGlobal 
-		: window.QueryInterface(Ci.nsIInterfaceRequestor)
-			.getInterface(Ci.nsIWebNavigation)
-			.QueryInterface(Ci.nsIDocShellTreeItem)
-			.rootTreeItem
-			.QueryInterface(Ci.nsIInterfaceRequestor)
-			.getInterface(Ci.nsIDOMWindow);
-});
+ChromeUtils.defineLazyGetter(this, "gWindow", () => window.parent);
 ChromeUtils.defineESModuleGetters(this, {FileUtils: "resource://gre/modules/FileUtils.sys.mjs"});
 Cu.importGlobalProperties(['TextEncoder']);
 Cu.importGlobalProperties(['TextDecoder']);
