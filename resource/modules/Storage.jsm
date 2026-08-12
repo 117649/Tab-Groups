@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.2.1
+// VERSION 1.2.2
 
 this.Storage = {
 	kGroupIdentifier: "tabview-group",
@@ -208,7 +208,8 @@ Modules.LOADMODULE = function() {
 };
 
 Modules.UNLOADMODULE = function() {
-	Services.obs.removeObserver(Storage._obs, "sessionstore-initiating-manual-restore");
+	// An update can reach here after Firefox already discarded either resource.
+	try { Services.obs.removeObserver(Storage._obs, "sessionstore-initiating-manual-restore"); } catch(ex) {}
 	if (window["_" + objPathString + "__SS_lastSessionWindowID"]) {
 		window.__SS_lastSessionWindowID = window["_" + objPathString + "__SS_lastSessionWindowID"];
 		delete window["_" + objPathString + "__SS_lastSessionWindowID"];
@@ -220,5 +221,5 @@ Modules.UNLOADMODULE = function() {
 		SessionMigration.migrate = SessionMigration.migrate['_Piggyback_']
 		delete SessionMigration.migrate['_Piggyback_'];
 	}
-	Cu.nukeSandbox(Storage._migrationScope);
+	try { Cu.nukeSandbox(Storage._migrationScope); } catch(ex) {}
 };

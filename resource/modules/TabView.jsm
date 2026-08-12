@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.2.3
+// VERSION 1.2.4
 
 this.__defineGetter__('gBrowser', function() { return window.gBrowser; });
 this.__defineGetter__('gTaskbarTabGroup', function() { return window.gTaskbarTabGroup; });
@@ -345,6 +345,9 @@ this.TabView = {
 
 	uninit: function() {
 		if(!this._initialized) { return; }
+		// Remove the frame before optional integrations can interrupt update teardown.
+		this._initialized = false;
+		this._deinitFrame();
 
 		if(gTaskbarTabGroup) {
 			Piggyback.revert('TabView', gTaskbarTabGroup, 'newTab');
@@ -354,7 +357,8 @@ this.TabView = {
 		PageThumbs.removeExpirationFilter(this);
 
 		Piggyback.revert('TabView', window, 'WindowIsClosing');
-		if (window.Tabmix && !((window.SessionWindowUI ?? window)._undoCloseTab.toLocaleString()?.includes('TMP_ClosedTabs'))) {
+		// Tab Mix Plus may remove this compatibility hook before update shutdown reaches us.
+		if (window.Tabmix && (window.SessionWindowUI ?? window)._undoCloseTab?.toLocaleString()?.includes('TMP_ClosedTabs') === false) {
 			if (window.SessionWindowUI) {
 				const lazy = {};
 				const modules = {
@@ -409,8 +413,6 @@ this.TabView = {
 			delete tab.__hidden;
 		}
 
-		this._initialized = false;
-		this._deinitFrame();
 	},
 
 	filterForThumbnailExpiration() {
@@ -459,12 +461,17 @@ this.TabView = {
 	_deinitFrame: function() {
 		// nothing to do
 		if(!this._window && !this._iframe) { return; }
-		this._restoreTabContextSelection();
 
 		// hide() will actually fail to complete properly if this method is called while tab view is visible,
 		// because it implies a degree of asynchronicity in the process.
-		// So we force tab view to disappear in that case, to make sure the user isn't left with a blank empty window.
-		this.hide(true);
+		// Always restore the browser surface even if frame-side cleanup fails during an add-on update.
+		try { this._restoreTabContextSelection(); this.hide(true); }
+		catch(ex) { Cu.reportError(ex); }
+		finally {
+			this._iframe?.show?.(false);
+			(window.TabsInTitlebar || window.CustomTitlebar).allowedBy("tabview-open", true);
+			window.document.addEventListener("keydown", gBrowser, {mozSystemGroup: true});
+		}
 
 		Listeners.remove(this._window, "tabviewframeinitialized", this);
 		Listeners.remove(this._window, 'tabviewshown', this);
@@ -482,7 +489,8 @@ this.TabView = {
 		}
 
 		if(this._window) {
-			removeObject(this._window);
+			try { removeObject(this._window); }
+			catch(ex) { Cu.reportError(ex); }
 			this._window = null;
 		}
 

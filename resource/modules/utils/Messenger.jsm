@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.6.0
+// VERSION 1.6.1
 Modules.UTILS = true;
 
 // Messenger - 	Aid object to communicate with browser content scripts (e10s).
@@ -227,7 +227,7 @@ this.Messenger = {
 	cleanWindow: function(aWindow) {
 		if(aWindow[objName+'Content']) {
 			for(let module of aWindow[objName+'Content']) {
-				this.messageWindow(aWindow, 'unloadFromWindow', module);
+				Messenger.messageWindow(aWindow, 'unloadFromWindow', module);
 			}
 			delete aWindow[objName+'Content'];
 		}
