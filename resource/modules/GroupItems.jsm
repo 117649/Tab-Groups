@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.7.22
+// VERSION 1.7.23
 
 // Class: GroupItem - A single groupItem in the TabView window.
 // Parameters:
@@ -65,7 +65,8 @@ this.GroupItem = function(listOfEls, options = {}) {
 	this._savedCatchRules = this.catchRules;
 
 	// The prompt text for the title field.
-	this.defaultName = Strings.get('TabView', 'groupItemUnnamed', [ [ "$num", this.id ] ]);
+	// Restored labels stay stable; a new unnamed group follows the highest one still in use.
+	this._setDisplayID(options.displayID || options.id || GroupItems.getNextDisplayID());
 
 	if(Utils.isPoint(options.userSize)) {
 		this.userSize = new Point(options.userSize);
@@ -251,6 +252,7 @@ this.GroupItem.prototype = {
 		let data = {
 			bounds: this.getBounds({ classic: true }),
 			slot: this.slot,
+			displayID: this.displayID,
 			userSize: null,
 			stackTabs: this.stackTabs,
 			showThumbs: this.showThumbs,
@@ -393,11 +395,17 @@ this.GroupItem.prototype = {
 	getTitle: function(placeholder) {
 		return this.title.value || (placeholder ? this.defaultName : '');
 	},
+	_setDisplayID: function(id) {
+		this.displayID = id;
+		this.defaultName = Strings.get('TabView', 'groupItemUnnamed', [ [ "$num", id ] ]);
+		this.title?.setAttribute('placeholder', this.defaultName);
+	},
 
 	// Sets the title of this groupItem with the given string
 	setTitle: function(value) {
 		let title = this.title.value || "";
 		if(value !== undefined) {
+			if(title && !value) { this._setDisplayID(GroupItems.getNextDisplayID()); }
 			title = value || "";
 			this.title.value = title;
 		}
@@ -2469,6 +2477,10 @@ this.GroupItems = {
 		return result;
 	},
 
+	getNextDisplayID: function() {
+		return Math.max(0, ...[...this].filter(group => !group.getTitle()).map(group => group.displayID)) + 1;
+	},
+
 	// Saves GroupItems state, as well as the state of all of the groupItems.
 	saveAll: function() {
 		this._save();
@@ -2548,6 +2560,7 @@ this.GroupItems = {
 							groupItem.showUrls = data.showUrls;
 							groupItem.catchOnce = data.catchOnce;
 							groupItem.catchRules = data.catchRules;
+							groupItem._setDisplayID(data.displayID || data.id);
 							groupItem.setTitle(data.title);
 							groupItem.setBounds(data.bounds, true);
 							toggleAttribute(groupItem.container, 'draggable', UI.grid);
