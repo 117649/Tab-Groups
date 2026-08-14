@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.3.63
+// VERSION 1.3.64
 
 // Used to scroll groups automatically, for instance when dragging a tab over a group's overflown edges.
 this.Synthesizer = {
@@ -621,6 +621,10 @@ this.UI = {
 			Listeners.add(GroupItems.workSpace, 'dragover', this);
 			Listeners.add(this.groupSelector, 'wheel', this, true);
 			Listeners.add(this.groupSelector, 'dragover', this);
+			// Tab receivers stay ready; group receivers exist only during another window's group drag.
+			Listeners.add(window, 'dragenter', TabDrag.handleEvent, true);
+			Listeners.add(document.documentElement, 'dragexit', TabDrag.handleEvent, true);
+			for(let type of [ 'dragend', 'drop' ]) { Listeners.add(window, type, TabDrag.handleEvent); }
 
 			Messenger.listenWindow(gWindow, "DOMWillOpenModalDialog", this);
 
@@ -707,6 +711,7 @@ this.UI = {
 
 	// Should be called when window is unloaded.
 	uninit: function() {
+		if(DraggingGroup && !DraggingGroup.external) { DraggingGroup.end(); }
 		Listeners.remove(window, 'keyup', this);
 		Listeners.remove(window, 'keypress', this, true);
 		Listeners.remove(window, 'contextmenu', this);
@@ -721,6 +726,9 @@ this.UI = {
 		try{Listeners.remove(GroupItems.workSpace, 'dragover', this);}catch(ex){}
 		Listeners.remove(this.groupSelector, 'wheel', this, true);
 		Listeners.remove(this.groupSelector, 'dragover', this);
+		Listeners.remove(window, 'dragenter', TabDrag.handleEvent, true);
+		Listeners.remove(document.documentElement, 'dragexit', TabDrag.handleEvent, true);
+		for(let type of [ 'dragend', 'drop' ]) { Listeners.remove(window, type, TabDrag.handleEvent); }
 
 		Listeners.remove(this.exitBtn, 'click', this);
 		Listeners.remove(this.optionsBtn, 'click', this);

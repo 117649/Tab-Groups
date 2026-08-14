@@ -1063,6 +1063,25 @@ body.classic .groupItem.dragging * {
 	cursor: grabbing !important;
 }
 
+body.classic.DraggingGroup .groupItem:not(.dragging),
+body.classic.DraggingGroup .groupItem:not(.dragging) * {
+	cursor: grab !important;
+}
+
+body.ReceivingGroup {
+	box-shadow: inset 0 0 0 4px var(--group-active-border-color);
+}
+
+.external-group-preview {
+	position: absolute;
+	z-index: var(--z-drag-group);
+	pointer-events: none;
+	border: 4px dashed var(--group-active-border-color);
+	background: var(--hover-color);
+	box-sizing: border-box;
+	opacity: .8;
+}
+
 .titlebar {
 	display: flex;
 	font-size: 12px;
