@@ -27,8 +27,8 @@ jobs:
           changelog_exist=$( [[ $(git rev-parse $previous_tag) != $(git rev-parse HEAD) ]] && echo true || echo false )
           echo "CHANGELOG_EXIST=$changelog_exist" >> $GITHUB_ENV
           date=$(date +'%Y%m%d.%H%M')
-          sed -i "s/2.1.4b1_r2.0/2.1.4b1_r$date/" install.rdf
-          echo "next version: $version-$date"
+          sed -i -E "s/2\.1\.4b1_r[^<]+/2.1.4b1_r$date/" install.rdf
+          echo "next version: 2.1.4b1_r$date"
           echo "XPI_NAME=${{ env.XPI_NAME }}$date" >> $GITHUB_ENV
 
       - name: Zip addon folder
@@ -44,7 +44,7 @@ jobs:
           fi
 
       - name: Create CHANGELOG
-        if: ${{ env.CHANGELOG_EXIST }}
+        if: env.CHANGELOG_EXIST == 'true'
         uses: requarks/changelog-action@v1.10.1
         with:
           token: ${{ github.token }}
@@ -54,7 +54,7 @@ jobs:
           includeInvalidCommits: true
 
       - name: Modify CHANGELOG
-        if: ${{ env.CHANGELOG_EXIST }}
+        if: env.CHANGELOG_EXIST == 'true'
         run: |
           node -e '
             let content = fs.readFileSync("CHANGELOG.md", "utf8");
@@ -76,7 +76,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [ ${{ env.CHANGELOG_EXIST }} ]; then
+          if [ "$CHANGELOG_EXIST" = true ]; then
             cat CHANGELOG.md | sed 's/dev-Build/dev-build/g' > CHANGELOG_FIXED.md
             gh release edit dev-build --draft=false --notes-file=CHANGELOG_FIXED.md
           else
