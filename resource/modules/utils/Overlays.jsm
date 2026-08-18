@@ -1009,17 +1009,13 @@ this.Overlays = {
 
 			// Correctly add or remove toolbar buttons to the toolbox palette
 			if(overlayNode.nodeName == 'toolbarpalette') {
-				// `BrowserToolbarPalette` is the *gNavToolbox palette* for browser.xhtml.
-				// Customize mode can temporarily swap `gNavToolbox.palette` to point at the
-				// visible customization palette, so the correct behavior is to always use
-				// `gNavToolbox.palette` when the overlay targets BrowserToolbarPalette.
+				// Register BrowserToolbarPalette widgets even if Firefox hasn't exposed the
+				// first window's live palette yet (notably on the first start after an update).
 				//
 				// For other palettes, match by id against toolbox.palette.id.
 				let palettesToHandle = [];
 				if(overlayNode.id == "BrowserToolbarPalette") {
-					if(aWindow.gNavToolbox?.palette) {
-						palettesToHandle.push(aWindow.gNavToolbox.palette);
-					}
+					palettesToHandle.push(aWindow.gNavToolbox?.palette || overlayNode);
 				} else {
 					let toolboxes = aWindow.document.querySelectorAll('toolbox');
 					for(let toolbox of toolboxes) {
