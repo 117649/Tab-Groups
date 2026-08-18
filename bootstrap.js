@@ -95,6 +95,7 @@ Globals.getSandbox = function (obj) {
 };
 
 ChromeUtils.defineESModuleGetters(this, {AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
+	NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
 	PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
 	PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
 
@@ -282,6 +283,14 @@ function continueStartup(aReason) {
 	}
 }
 
+// loadSubScript rejects the XPI's jar:file URI, so evaluate its text in this bootstrap sandbox.
+function loadDefaults(aData) {
+	let uri = aData.resourceURI.spec+'resource/defaults.js';
+	let stream = NetUtil.newChannel({uri, loadUsingSystemPrincipal: true}).open();
+	try { Cu.evalInSandbox(NetUtil.readInputStreamToString(stream, stream.available(), {charset: "UTF-8"}), this, null, uri, 1); }
+	finally { stream.close(); }
+}
+
 async function startup(aData, aReason) {
 	UNLOADED = false;
 	AddonData = aData;
@@ -298,8 +307,7 @@ async function startup(aData, aReason) {
 	});
 
 	// Set the default strings for the add-on
-	let defaultsURI = AddonData.resourceURI.spec+'resource/defaults.js';
-	Services.scriptloader.loadSubScript(defaultsURI, this);
+	loadDefaults(aData);
 
 	// Get the utils.jsm module into our sandbox
 	ChromeUtils.defineESModuleGetters(this, {PluralForm: "chrome://"+objPathString+"-resource/content/modules/utils/PluralForm.sys.mjs"});
@@ -366,8 +374,7 @@ function shutdown(aData, aReason) {
 
 function install(aData, aReason) {
 	// Set the default strings for the add-on
-	let defaultsURI = aData.resourceURI.spec+'resource/defaults.js';
-	Services.scriptloader.loadSubScript(defaultsURI, this);
+	loadDefaults(aData);
 
 	if(typeof(onInstall) == 'function') {
 		onInstall(aData, aReason);
