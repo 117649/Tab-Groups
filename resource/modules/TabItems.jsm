@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.5.0
+// VERSION 1.5.1
 
 ChromeUtils.defineESModuleGetters(this, {PageThumbs: "resource://gre/modules/PageThumbs.sys.mjs",
 	PageThumbsStorage: "resource://gre/modules/PageThumbs.sys.mjs",
@@ -748,6 +748,7 @@ this.TabItems = {
 	_fragment: null,
 	_cachedThumbFragment: null,
 	_canvasFragment: null,
+	_nativeGroupColors: new WeakMap(),
 	items: new Set(),
 	selectedItems: new Set(),
 	_selectionAnchor: null,
@@ -849,7 +850,9 @@ this.TabItems = {
 		let item = tab?._tabViewTabItem, group = tab?.group;
 		toggleAttribute(item?.container, "nativegroup", group);
 		// Resolve Firefox's chrome-only variable because custom properties do not cross into the TabView iframe.
-		item?.container.style.setProperty("--native-tab-group-color", color ?? (group ? gWindow.getComputedStyle(group).getPropertyValue("--tab-group-color") : ""));
+		if(group && color === undefined) { color = this._nativeGroupColors.get(group) ?? gWindow.getComputedStyle(group).getPropertyValue("--tab-group-color"); }
+		if(group) { this._nativeGroupColors.set(group, color); }
+		item?.container.style.setProperty("--native-tab-group-color", color ?? "");
 	},
 
 	// Called when a web page is painted.
@@ -889,10 +892,10 @@ this.TabItems = {
 
 			// When a tab is opened, create the TabItem
 			case "TabOpen":
-				// Native adoption uses the destination's visible group; external TabView drags place their own items.
-				let adopted = e.detail?.adoptedTab && !DraggingGroup && !DraggingTab;
+				// Ignore stale source storage for every adopted tab; external drags rehome the temporary item.
+				let adopted = e.detail?.adoptedTab;
 				this.link(tab, adopted ? { adopted: true, groupItemId: GroupItems.getActiveGroupItem()?.id } : undefined);
-				if(adopted) { tab._tabViewTabItem?.parent?.reorderTabItemsBasedOnTabOrder(); }
+				if(adopted && !DraggingGroup && !DraggingTab) { tab._tabViewTabItem?.parent?.reorderTabItemsBasedOnTabOrder(); }
 				break;
 
 			// When a tab's content is loaded, show the canvas and hide the cached data if necessary.

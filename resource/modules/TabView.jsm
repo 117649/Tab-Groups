@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.2.4
+// VERSION 1.2.5
 
 this.__defineGetter__('gBrowser', function() { return window.gBrowser; });
 this.__defineGetter__('gTaskbarTabGroup', function() { return window.gTaskbarTabGroup; });
@@ -450,8 +450,7 @@ this.TabView = {
 
 		this._iframe.setAttribute("src", "chrome://"+objPathString+"/content/tabview.xhtml");
 		this._iframe.show = show => {
-			if(show) this._iframe.setAttribute("show","");
-			else this._iframe.removeAttribute("show");
+			toggleAttribute(this._iframe, "show", show, "");
 			document.body.style.opacity = !show ? null : 0;
 			[...window.document.getElementsByClassName('urlbar')].forEach(x => x.style.display = !show ? null : "none");
 		};

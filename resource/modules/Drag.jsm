@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 2.7.1
+// VERSION 2.7.4
 
 // This will be the GroupDrag object created when a group is dragged or resized.
 this.DraggingGroup = null;
@@ -15,8 +15,7 @@ this.DraggingGroup = null;
 //   callback - a method that will be called when the drag operation ends
 this.GroupDrag = function(item, e, resizing, callback) {
 	if(DraggingGroup?.external) { DraggingGroup.end(); }
-	for(let preview of document.querySelectorAll('.external-group-preview')) { preview.remove(); }
-	document.body.classList.remove('ReceivingGroup');
+	GroupDrag.clearExternal();
 	DraggingGroup = this;
 	this.item = item;
 	this.container = item.container;
@@ -57,10 +56,15 @@ this.GroupDrag = function(item, e, resizing, callback) {
 
 this.GroupDrag.TYPE = "application/x-tabgroups-group";
 
+this.GroupDrag.clearExternal = function() {
+	for(let preview of document.querySelectorAll('.external-group-preview')) { preview.remove(); }
+	document.body.classList.remove('DraggingGroup', 'ReceivingGroup');
+};
+
 // Create the receiver in its own TabView sandbox so identity checks stay valid across windows.
 this.GroupDrag.receive = function(item, offsetX, offsetY) {
 	if(DraggingGroup?.external) { DraggingGroup.end(); }
-	for(let preview of document.querySelectorAll('.external-group-preview')) { preview.remove(); }
+	GroupDrag.clearExternal();
 	DraggingGroup = Object.create(GroupDrag.prototype);
 	Object.assign(DraggingGroup, { item, offsetX, offsetY, dropTarget: null, external: true });
 	if(UI.classic) { DraggingGroup.previewBounds = new Rect(item.getBounds({ classic: true })); DraggingGroup.safeWindowBounds = GroupItems.getSafeWindowBounds(); }
@@ -68,189 +72,6 @@ this.GroupDrag.receive = function(item, offsetX, offsetY) {
 	DraggingGroup.preview.className = 'external-group-preview';
 	document.body.appendChild(DraggingGroup.preview);
 	document.body.classList.add('DraggingGroup', 'ReceivingGroup');
-};
-
-// Keep adoption, source fallback, native-group restoration, and rollback in one transaction.
-// Firefox creates replacement tab nodes, so split views stay atomic and the selected tab moves last.
-this.CrossWindowTabs = {
-	moveGroup: function(sourceGroup, dropTarget, previewBounds) {
-		let tabs = sourceGroup.children.map(item => item.tab), sourceWindow = tabs[0]?.documentGlobal ?? sourceGroup.container.ownerDocument.defaultView.parent, selectedTab = tabs.find(tab => tab.selected);
-		let sourceFrame = sourceWindow?.tabGroups?.TabView?._window, tabSet = new Set(tabs);
-		if(sourceGroup._uninited || !sourceGroup.container.isConnected || sourceGroup.children.some(item => item.parent != sourceGroup)
-		|| !sourceFrame || sourceWindow == gWindow || PrivateBrowsing.isPrivate(sourceWindow) != PrivateBrowsing.isPrivate(gWindow)
-		|| tabs.some(tab => tab.documentGlobal != sourceWindow || tab.splitview?.tabs.some(splitTab => !tabSet.has(splitTab)))) { return false; }
-		sourceFrame = Cu.waiveXrays(sourceFrame);
-
-		// Group options come from another TabView sandbox, so clone them into this one.
-		let options = Cu.cloneInto(sourceGroup.getStorageData(), window), adoptedTabs = new Array(tabs.length), sourceBrowser = sourceWindow.gBrowser, targetGroup = null, shiftedGroups = [];
-		let activeIndex = sourceGroup.children.indexOf(sourceGroup._activeTab), selectedIndex = tabs.indexOf(selectedTab), nativeGroups = this._nativeGroups(tabs);
-		let resumeAutoclose = !sourceFrame.tabGroups.GroupItems._autoclosePaused;
-		let sourceSelectedTab = sourceBrowser.selectedTab, needsFallback = sourceFrame.tabGroups.GroupItems.getActiveGroupItem() == sourceGroup || selectedTab;
-		let fallbackGroup = needsFallback ? this._fallbackTab(sourceFrame, group => group.id != sourceGroup.id && !group.hidden && group.children[0]?.tab)?._tabViewTabItem.parent : null, fallbackCreated = false;
-		delete options.id;
-		delete options.displayID;
-		options.dontSetActive = true;
-		options.slot = dropTarget?.slot ?? GroupItems.nextSlot();
-		if(UI.classic && previewBounds) { options.bounds = previewBounds; }
-		try {
-			if(resumeAutoclose) { sourceFrame.tabGroups.GroupItems.pauseAutoclose(); }
-			// Never let Firefox choose a pinned tab or an empty group after moving the selected group.
-			if(needsFallback) {
-				sourceFrame.tabGroups.UI._dontHideTabView = true;
-				if(!fallbackGroup) { fallbackGroup = sourceFrame.tabGroups.GroupItems.newGroup(); fallbackCreated = true; fallbackGroup.newTab(); }
-				else { sourceFrame.tabGroups.UI.setActive(fallbackGroup); }
-				sourceFrame.tabGroups.GroupItems._updateTabBar();
-				sourceBrowser.selectedTab = fallbackGroup.getActiveTab().tab;
-			}
-			// The source already has a fallback; do not replace the destination selection.
-			adoptedTabs = this._adopt(tabs, selectedTab, gBrowser, adoptedTabs, false);
-			let items = adoptedTabs.map(tab => tab?._tabViewTabItem);
-			this._applyNativeGroups(gBrowser, nativeGroups, adoptedTabs);
-			if(dropTarget) { for(let group of GroupItems) { if(group.slot >= options.slot) { shiftedGroups.push(group); group.slot++; group.save(); } } }
-			targetGroup = new GroupItem(items, options);
-			if(selectedTab || activeIndex > -1) { targetGroup.setActiveTab(items[selectedTab ? selectedIndex : activeIndex]); }
-			targetGroup.reorderTabsBasedOnTabItemOrder(adoptedTabs);
-			if(!sourceWindow.closed && !sourceGroup.children.length) { sourceGroup.close({ immediately: true }); }
-		}
-		catch(ex) {
-			// Adoption is not atomic: move any replacement tabs back before exposing failure.
-			try {
-				if(targetGroup) { targetGroup.close({ immediately: true }); }
-				for(let group of shiftedGroups) { group.slot--; group.save(); }
-				// Rollback is the same adoption in reverse, using the replacement selected tab.
-				if(needsFallback) { sourceFrame.tabGroups.UI._dontHideTabView = true; }
-				let restoredTabs = this._adopt(adoptedTabs, adoptedTabs[selectedIndex], sourceBrowser);
-				for(let [index, tab] of restoredTabs.entries()) { if(tab?._tabViewTabItem) { sourceGroup.add(tab._tabViewTabItem, { index, dontArrange: true, dontSetActive: true }); } }
-				if(activeIndex > -1) { sourceGroup.setActiveTab(sourceGroup.children[activeIndex]); }
-				this._applyNativeGroups(sourceBrowser, nativeGroups, restoredTabs, true);
-				sourceGroup.reorderTabsBasedOnTabItemOrder();
-				sourceGroup.arrange();
-				if(needsFallback) { sourceFrame.tabGroups.UI.setActive(sourceGroup); sourceFrame.tabGroups.GroupItems._updateTabBar(); sourceBrowser.selectedTab = selectedTab ? restoredTabs[selectedIndex] || selectedTab : sourceSelectedTab; }
-				if(fallbackCreated) { for(let item of fallbackGroup.children) { sourceBrowser.removeTab(item.tab, { animate: false }); } fallbackGroup.close({ immediately: true }); }
-			}
-			catch(rollbackEx) { Cu.reportError(rollbackEx); }
-			Cu.reportError(ex);
-			return false;
-		}
-		finally {
-			if(!sourceWindow.closed) { sourceFrame.tabGroups.UI._dontHideTabView = false; }
-			if(!sourceWindow.closed && resumeAutoclose) { sourceFrame.tabGroups.GroupItems.resumeAutoclose(); }
-		}
-		return true;
-	},
-
-	moveTabs: function(tabs) {
-		let adoptedTabs = new Array(tabs.length), selectedTab = tabs.find(tab => tab.selected), sourceWindow = tabs[0].documentGlobal;
-		let sourceBrowser = sourceWindow.gBrowser, sourceFrame = Cu.waiveXrays(sourceWindow.tabGroups.TabView._window), tabSet = new Set(tabs), sourceItems = tabs.map(tab => ({ parent: tab._tabViewTabItem?.parent, index: tab._tabViewTabItem?.parent?.children.indexOf(tab._tabViewTabItem), pinned: tab.pinned }));
-		let sourceGroups = new Set(sourceItems.map(item => item.parent).filter(Boolean)), nativeGroups = this._nativeGroups(tabs);
-		let sourceActiveTab = sourceFrame.tabGroups.UI.getActiveTab(), sourceActiveGroup = sourceFrame.tabGroups.GroupItems.getActiveGroupItem(), sourceSelectedTab = sourceBrowser.selectedTab;
-		let needsFallback = selectedTab || tabSet.has(sourceActiveTab?.tab) || sourceActiveGroup && !sourceActiveGroup.children.some(item => !tabSet.has(item.tab));
-		// Preserve the fallback group's active tab unless that tab is also being moved.
-		let fallbackItem = needsFallback && this._fallbackTab(sourceFrame, group => !group.hidden && (!tabSet.has(group.getActiveTab()?.tab) ? group.getActiveTab() : group.children.find(item => !tabSet.has(item.tab)))?.tab)?._tabViewTabItem;
-		let fallbackGroup = fallbackItem?.parent, fallbackCreated = false, resumeAutoclose = sourceFrame && !sourceFrame.tabGroups.GroupItems._autoclosePaused;
-		try {
-			if(resumeAutoclose) { sourceFrame.tabGroups.GroupItems.pauseAutoclose(); }
-			// Select a remaining unpinned tab before Firefox removes the source selection.
-			if(needsFallback) {
-				sourceFrame.tabGroups.UI._dontHideTabView = true;
-				if(!fallbackItem) { fallbackGroup = sourceFrame.tabGroups.GroupItems.newGroup(); fallbackCreated = true; fallbackGroup.newTab(); fallbackItem = fallbackGroup.getActiveTab(); }
-				sourceFrame.tabGroups.UI.setActive(fallbackItem);
-				sourceFrame.tabGroups.GroupItems._updateTabBar();
-				sourceBrowser.selectedTab = fallbackItem.tab;
-			}
-			adoptedTabs = this._adopt(tabs, selectedTab, gBrowser, adoptedTabs, false);
-			this._applyNativeGroups(gBrowser, nativeGroups, adoptedTabs);
-		}
-		catch(ex) {
-			try {
-				if(needsFallback) { sourceFrame.tabGroups.UI._dontHideTabView = true; }
-				let restoredTabs = this._adopt(adoptedTabs, adoptedTabs[tabs.indexOf(selectedTab)], sourceBrowser);
-				for(let [index, tab] of tabs.entries()) {
-					tab = restoredTabs[index] || tab.isConnected && tab;
-					if(tab) { restoredTabs[index] = tab; if(sourceItems[index].pinned) { sourceBrowser.pinTab(tab); } else if(sourceItems[index].parent && tab._tabViewTabItem) { sourceItems[index].parent.add(tab._tabViewTabItem, { index: sourceItems[index].index, dontArrange: true, dontSetActive: true }); } }
-				}
-				this._applyNativeGroups(sourceBrowser, nativeGroups, restoredTabs, true);
-				for(let group of sourceGroups) { group.reorderTabsBasedOnTabItemOrder(); group.arrange(); }
-				if(needsFallback) {
-					let active = restoredTabs[tabs.indexOf(sourceActiveTab?.tab)]?._tabViewTabItem || sourceActiveTab || sourceActiveGroup;
-					if(active) { sourceFrame.tabGroups.UI.setActive(active); }
-					sourceFrame.tabGroups.GroupItems._updateTabBar();
-					sourceBrowser.selectedTab = restoredTabs[tabs.indexOf(selectedTab)] || sourceSelectedTab;
-				}
-			}
-			catch(rollbackEx) { Cu.reportError(rollbackEx); }
-			if(fallbackCreated && !fallbackGroup._uninited) { try { sourceBrowser.removeTab(fallbackItem.tab, { animate: false }); fallbackGroup.close({ immediately: true }); } catch(cleanupEx) { Cu.reportError(cleanupEx); } }
-			Cu.reportError(ex);
-			return null;
-		}
-		finally {
-			if(!sourceWindow.closed) { sourceFrame.tabGroups.UI._dontHideTabView = false; }
-			if(!sourceWindow.closed && resumeAutoclose) { sourceFrame.tabGroups.GroupItems.resumeAutoclose(); }
-		}
-		if(!sourceWindow.closed) { sourceFrame.tabGroups.DraggingTab?.end(); }
-		for(let group of sourceGroups) { if(!group.closeIfEmpty()) { group.arrange(); } }
-		return adoptedTabs;
-	},
-
-	// GroupItems are rewrapped on return; carry their native tab node across the sandbox boundary instead.
-	_fallbackTab: function(sourceFrame, find) {
-		let tab = null;
-		sourceFrame.tabGroups.GroupItems._lastActiveList.peek(group => !!(tab = find(Cu.waiveXrays(group))));
-		return tab;
-	},
-
-	_adopt: function(tabs, selectedTab, browser = gBrowser, adopted = new Array(tabs.length), selectTab = true) {
-		let indexes = new Map(tabs.map((tab, index) => [tab, index])), selectedIndex = indexes.get(selectedTab);
-		for(let [index, tab] of tabs.entries()) {
-			if(!tab) { continue; }
-			if(tab.splitview && browser.adoptSplitView) {
-				if(tab != tab.splitview.tabs[0]) { continue; }
-				let splitTabs = [...tab.splitview.tabs];
-				if(splitTabs.includes(selectedTab)) { continue; }
-				let splitview = browser.adoptSplitView(tab.splitview, { tabIndex: browser.tabs.length, selectTab: false });
-				if(!splitview) { throw new Error("Could not adopt split view"); }
-				for(let [i, splitTab] of splitTabs.entries()) { adopted[indexes.get(splitTab)] = splitview.tabs[i]; }
-			}
-			else if(tab != selectedTab) {
-				adopted[index] = browser.adoptTab(tab, browser.adoptTab.length == 1 ? { tabIndex: browser.tabs.length, selectTab: false } : browser.tabs.length, false);
-				if(!adopted[index]) { throw new Error("Could not adopt tab"); }
-			}
-		}
-		if(selectedTab && !adopted[selectedIndex]) {
-			if(selectedTab.splitview && browser.adoptSplitView) {
-				let splitTabs = [...selectedTab.splitview.tabs], splitview = browser.adoptSplitView(selectedTab.splitview, { tabIndex: browser.tabs.length, selectTab });
-				if(!splitview) { throw new Error("Could not adopt selected split view"); }
-				for(let [i, splitTab] of splitTabs.entries()) { adopted[indexes.get(splitTab)] = splitview.tabs[i]; }
-			}
-			else {
-				adopted[selectedIndex] = browser.adoptTab(selectedTab, browser.adoptTab.length == 1 ? { tabIndex: browser.tabs.length, selectTab } : browser.tabs.length, selectTab);
-				if(!adopted[selectedIndex]) { throw new Error("Could not adopt selected tab"); }
-			}
-		}
-		if(adopted.filter(Boolean).length != tabs.filter(Boolean).length || adopted.some(tab => !tab._tabViewTabItem)) { throw new Error("Adopted tab has no TabItem"); }
-		return adopted;
-	},
-
-	_nativeGroups: function(tabs) {
-		let indexes = new Map(tabs.map((tab, index) => [tab, index]));
-		return { indexes, groups: [...new Set(tabs.map(tab => tab.group).filter(Boolean))].map(group => ({ group, tabs: group.tabs.filter(tab => indexes.has(tab)), label: group.label, color: group.color, collapsed: group.collapsed })) };
-	},
-
-	// Firefox discards native tab-group wrappers during adoption; recreate them,
-	// or reuse a surviving source wrapper while rolling back.
-	_applyNativeGroups: function(browser, snapshot, replacements, reuse) {
-		if(!browser.addTabGroup) { return; }
-		for(let nativeGroup of snapshot.groups) {
-			let restored = nativeGroup.tabs.map(tab => replacements[snapshot.indexes.get(tab)] || tab);
-			if(reuse && nativeGroup.group.isConnected) {
-				for(let tab of restored) { browser.moveTabToExistingGroup(tab, nativeGroup.group); }
-			}
-			else {
-				let group = browser.addTabGroup(restored, { label: nativeGroup.label, color: nativeGroup.color, isAdoptingGroup: true });
-				group.collapsed = nativeGroup.collapsed;
-			}
-		}
-	}
 };
 
 this.GroupDrag.handleEvent = function(e) {
@@ -334,16 +155,16 @@ this.GroupDrag.prototype = {
 						try { this.dropWindowHandles.set(frame, getAncestor(ctypes.voidptr_t(ctypes.UInt64(browserWindow.docShell.treeOwner.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIBaseWindow).nativeHandle)), 2).toString()); }
 						catch(ex) { Cu.reportError(ex); }
 					}
+					let target = frame.tabGroups;
 					if(this.native) {
-						let target = frame.tabGroups;
 						target.Listeners.add(frame, 'dragenter', target.GroupDrag.handleEvent, true);
 						target.Listeners.add(frame.document.documentElement, 'dragexit', target.GroupDrag.handleEvent, true);
 						target.Listeners.add(frame, 'dragover', target.GroupDrag.handleEvent, true);
 						for(let type of [ 'dragend', 'drop' ]) { target.Listeners.add(frame, type, target.GroupDrag.handleEvent); }
 					}
 					else {
-						frame.addEventListener('mousemove', this, true);
-						frame.addEventListener('mouseup', this, true);
+						target.Listeners.add(frame, 'mousemove', this, true);
+						target.Listeners.add(frame, 'mouseup', this, true);
 					}
 				}
 			}
@@ -360,8 +181,8 @@ this.GroupDrag.prototype = {
 					for(let type of [ 'dragend', 'drop' ]) { target.Listeners.remove(frame, type, target.GroupDrag.handleEvent); }
 				}
 				else {
-					frame.removeEventListener('mousemove', this, true);
-					frame.removeEventListener('mouseup', this, true);
+					target.Listeners.remove(frame, 'mousemove', this, true);
+					target.Listeners.remove(frame, 'mouseup', this, true);
 				}
 				if(target.DraggingGroup?.external) { target.DraggingGroup.end(); }
 			} catch(ex) {
@@ -674,11 +495,7 @@ this.GroupDrag.prototype = {
 			box.bottom = Math.max(this.startMouse.y, e.clientY);
 			this.item.setBounds(box);
 
-			if(box.width > GroupItems.minGroupWidth && box.height > GroupItems.minGroupHeight) {
-				this.container.classList.add("activeGroupItem");
-			} else {
-				this.container.classList.remove("activeGroupItem");
-			}
+			this.container.classList.toggle("activeGroupItem", box.width > GroupItems.minGroupWidth && box.height > GroupItems.minGroupHeight);
 		}
 		else {
 			let mouse = new Point(e.clientX, e.clientY);
@@ -754,8 +571,8 @@ this.GroupDrag.prototype = {
 		let target = node?.closest?.('.groupItem')?._item ?? node?.closest?.('.groupSelector')?.groupItem;
 		e.preventDefault();
 		UI.lastMoveTime = Date.now();
-		if(target) { this.showPreview(e, target); this._setDropTarget(target); }
-		else { this.showPreview(e); this.clearDropTarget(); }
+		if(UI.classic || target != this.dropTarget || !this.previewBounds) { this.showPreview(e, target); }
+		if(target) { this._setDropTarget(target); } else { this.clearDropTarget(); }
 	},
 
 	receiveDrop: function() {
@@ -764,10 +581,18 @@ this.GroupDrag.prototype = {
 		this.preview.hidden = true;
 		document.body.classList.remove('ReceivingGroup');
 		this.dropTarget?.container.classList.remove('dragOver');
-		let moved = CrossWindowTabs.moveGroup(this.item, this.dropTarget, this.previewBounds);
-		if(moved && sourceWindow && !sourceWindow.closed) { sourceWindow.tabGroups.TabView._window.tabGroups.DraggingGroup?.end(); }
-		// A missed dragexit may leave an older destination receiver alive; completion clears every preview now.
-		for(let browserWindow of Services.wm.getEnumerator('navigator:browser')) { let drag = browserWindow.tabGroups?.TabView?._window?.tabGroups?.DraggingGroup; if(drag?.external) { drag.end(); } }
+		let moved;
+		try { moved = ItemMove.moveGroup(this.item, this.dropTarget, this.previewBounds); }
+		finally {
+			this.end();
+			if(moved !== false && sourceWindow && !sourceWindow.closed) {
+				let source = sourceWindow.tabGroups.TabView._window.tabGroups;
+				source.DraggingGroup?.end();
+				source.DraggingGroupSelector?.end();
+			}
+			// A missed dragexit may leave an older destination receiver alive; completion clears every preview now.
+			for(let browserWindow of Services.wm.getEnumerator('navigator:browser')) { let drag = browserWindow.tabGroups?.TabView?._window?.tabGroups?.DraggingGroup; if(drag?.external) { drag.end(); } }
+		}
 		return moved;
 	},
 
@@ -881,8 +706,7 @@ this.GroupDrag.prototype = {
 	end: function() {
 		if(this.external) {
 			this.clearDropTarget();
-			for(let preview of document.querySelectorAll('.external-group-preview')) { preview.remove(); }
-			document.body.classList.remove('DraggingGroup', 'ReceivingGroup');
+			GroupDrag.clearExternal();
 			if(DraggingGroup == this) { DraggingGroup = null; }
 			return;
 		}
@@ -1034,7 +858,7 @@ this.GroupSelectorDrag.prototype = {
 	},
 
 	drop: function() {
-		let slot;
+		let slot, changedGroups = [ this.item.groupItem ];
 		let dropTarget = this.dropTarget;
 		if(dropTarget) {
 			if(dropTarget.classList.contains('space-after')) {
@@ -1057,7 +881,7 @@ this.GroupSelectorDrag.prototype = {
 				for(let group of GroupItems) {
 					if(group != this.item.groupItem && group.slot >= slot) {
 						group.slot++;
-						group.save();
+						changedGroups.push(group);
 					}
 				}
 			}
@@ -1069,7 +893,7 @@ this.GroupSelectorDrag.prototype = {
 		}
 
 		this.item.groupItem.slot = slot;
-		this.item.groupItem.save();
+		Storage.saveGroupItems(gWindow, changedGroups.map(group => group.getStorageData()));
 	},
 
 	end: function() {
@@ -1097,7 +921,8 @@ this.TabDrag = function(e, tabItem) {
 	DraggingTab = this;
 	this.item = tabItem;
 	if(!TabItems.selectedItems.has(tabItem)) { TabItems.clearSelection(); TabItems._selectionAnchor = tabItem; }
-	this.items = TabItems.selectedItems.has(tabItem) ? Array.from(TabItems.selectedItems).sort((a, b) => a.tab._tPos - b.tab._tPos) : [ tabItem ];
+	// A split tile carries its partner even without multiselect.
+	this.items = (TabItems.selectedItems.has(tabItem) ? Array.from(TabItems.selectedItems) : [ tabItem, TabItems.getSplitSibling(tabItem.tab)?._tabViewTabItem ].filter(Boolean)).sort((a, b) => a.tab._tPos - b.tab._tPos);
 	this.tabs = this.items.map(item => item.tab);
 	this.draggedTab = tabItem.tab;
 	this.container = tabItem.container;
@@ -1415,37 +1240,55 @@ this.TabDrag.prototype = {
 		}
 	},
 
-	drop: function(e) {
-		let dropTarget = this.dropTarget, external = this.external;
+	drop: function(e, external = this.external) {
+		let dropTarget = this.dropTarget;
 
 		// No-op, shouldn't happen though.
 		if(!dropTarget) { return; }
 
 		if(this.external) {
-			let adoptedTabs = CrossWindowTabs.moveTabs(this.tabs);
-			if(!adoptedTabs) { return; }
-			let item = adoptedTabs[this.tabs.indexOf(this.draggedTab)]?._tabViewTabItem;
-			this.tabs = adoptedTabs;
-			this.items = this.tabs.map(tab => tab._tabViewTabItem).filter(Boolean);
-			if(!item) { return; }
-			this.item = item;
-			this.draggedTab = item.tab;
-			this.container = item.container;
-			this.external = false;
+			let destinationTabs = [...gBrowser.tabs], destinationGroups = new Map([...GroupItems].map(group => [ group, { active: group._activeTab, bounds: UI.classic && group.getBounds() } ]));
+			if(!ItemMove.moveTabs(this.tabs, {
+				commit: adoptedTabs => {
+					let item = adoptedTabs[this.tabs.indexOf(this.draggedTab)]?._tabViewTabItem;
+					this.tabs = adoptedTabs;
+					this.items = this.tabs.map(tab => tab._tabViewTabItem).filter(Boolean);
+					if(!item) { throw new Error("Adopted dragged tab has no TabItem"); }
+					this.item = item;
+					this.draggedTab = item.tab;
+					this.container = item.container;
+					this.external = false;
+					this.drop(e, external);
+					if(this.tabs.some(tab => !tab.isConnected || tab.documentGlobal != gWindow)) { throw new Error("Adopted tab left the destination window"); }
+					for(let group of new Set(this.items.map(item => item.parent).filter(group => group?.isAGroupItem))) {
+						if(group.children.some((item, index) => index && item.tab._tPos < group.children[index -1].tab._tPos)) { throw new Error("Could not order adopted tabs in target group"); }
+						for(let item of group.children) { item.save(); }
+					}
+				},
+				rollback: () => {
+					let orderChanged, restore = action => { try { action(); } catch(ex) { Cu.reportError(ex); } };
+					restore(() => { orderChanged = destinationTabs.some((tab, index) => gBrowser.tabs[index] != tab); if(orderChanged) { GroupItems.reorderTabsBasedOnGivenOrder(destinationTabs); } });
+					if(orderChanged) { for(let tab of destinationTabs) { if(tab.pinned) { restore(() => PinnedItems.arrange(tab)); } } }
+					for(let group of [...GroupItems]) { if(!destinationGroups.has(group) && !group.children.length) { restore(() => group.close({ immediately: true })); } }
+					for(let [group, state] of destinationGroups) { if(state.active?.parent == group) { restore(() => group.setActiveTab(state.active)); } if(state.bounds) { restore(() => { if(!group.getBounds().equals(state.bounds)) { group.setBounds(state.bounds, true, true); } }); } }
+				}
+			})) { this.external = true; }
+			return;
 		}
 
 		// When dropping onto a group selector, the tab should be added to the corresponding group.
 		if(dropTarget.isASelectorItem) {
 			dropTarget = dropTarget.groupItem;
+			let sameGroup = this.items.every(item => dropTarget == item.parent);
 
-			// If dropping in the same group as it comes from, no-op.
-			if(this.items.every(item => dropTarget == item.parent)) { return; }
+			// Internal drops on the current selector are a no-op; external drops still need their adoption order reconciled.
+			if(sameGroup && !external) { return; }
 
 			// When dragging a pinned tab into a group, we need to unpin it first, so that we have a tab item that we can drag.
 			this.unpinItem();
 
 			// See the note below on dropping onto a stacked group case.
-			dropTarget._activeTab = null;
+			if(!sameGroup) { dropTarget._activeTab = null; }
 			if(this.items.length > 1) {
 				this.moveItemsToGroup(dropTarget, dropTarget.children.filter(item => !this.items.includes(item)).length);
 			} else {
@@ -1453,6 +1296,7 @@ this.TabDrag.prototype = {
 				dropTarget.reorderTabItemsBasedOnTabOrder(true);
 			}
 			dropTarget.reorderTabsBasedOnTabItemOrder(this.tabs);
+			if(external && this.items.some(item => item.parent != dropTarget || !dropTarget.children.includes(item))) { throw new Error("Could not place adopted tabs in target group"); }
 		}
 		// If we have a valid drop target (group), add the item to it.
 		else if(dropTarget.isAGroupItem) {
@@ -1495,6 +1339,7 @@ this.TabDrag.prototype = {
 			}
 			// Apply native-group membership on drop so TabView's group cue updates immediately.
 			dropTarget.reorderTabsBasedOnTabItemOrder(this.tabs);
+			if(external && this.items.some(item => item.parent != dropTarget || !dropTarget.children.includes(item))) { throw new Error("Could not place adopted tabs in target group"); }
 		}
 		// If the drop target is the pinned tabs area, we should make sure the tab is pinned. Things are a little easier than as above though.
 		else if(dropTarget == PinnedItems.tray) {
@@ -1508,6 +1353,7 @@ this.TabDrag.prototype = {
 				this.container = this.item.container;
 				Listeners.add(this.container, 'dragend', this);
 				PinnedItems.reorderTabsBasedOnAppItemOrder();
+				if(external && (this.tabs.some(tab => !tab.pinned || !PinnedItems.get(tab)) || [...PinnedItems.tray.childNodes].some((item, index) => item.tab._tPos != index))) { throw new Error("Could not place adopted tabs in pinned tabs"); }
 				return;
 			}
 
@@ -1524,6 +1370,7 @@ this.TabDrag.prototype = {
 
 			PinnedItems.add(this.item.tab, sibling);
 			PinnedItems.reorderTabsBasedOnAppItemOrder();
+			if(external && (!this.item.tab.pinned || !PinnedItems.get(this.item.tab) || [...PinnedItems.tray.childNodes].some((item, index) => item.tab._tPos != index))) { throw new Error("Could not place adopted tab in pinned tabs"); }
 		}
 		// Otherwise create a new group in the place where the tab was dropped.
 		else {
@@ -1548,7 +1395,9 @@ this.TabDrag.prototype = {
 				options.bounds = new Rect(e.offsetX - (tabWidth /2), e.offsetY - (tabHeight /2), tabWidth, tabHeight);
 			}
 
-			new GroupItem(this.items.length > 1 ? this.getMovableItems() : [ this.item ], options);
+			let group = new GroupItem(this.items.length > 1 ? this.getMovableItems() : [ this.item ], options);
+			group.reorderTabsBasedOnTabItemOrder(this.tabs);
+			if(external && this.items.some(item => item.parent != group || !group.children.includes(item))) { throw new Error("Could not place adopted tabs in new group"); }
 		}
 	},
 

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.2.3
+// VERSION 1.2.5
 
 this.Storage = {
 	kGroupIdentifier: "tabview-group",
@@ -46,9 +46,12 @@ this.Storage = {
 
 	// Saves the data for a single groupItem, associated with a specific window.
 	saveGroupItem: function(win, data) {
-		let id = data.id;
+		this.saveGroupItems(win, [ data ]);
+	},
+
+	saveGroupItems: function(win, items) {
 		let existingData = this.readGroupItemData(win) || {};
-		existingData[id] = data;
+		for(let data of items) { existingData[data.id] = data; }
 		this.saveData(win, this.kGroupIdentifier, existingData);
 	},
 
@@ -123,6 +126,7 @@ this.Storage = {
 
 const ESModSM = 'resource:///modules/sessionstore/SessionMigration.sys.mjs';
 Modules.LOADMODULE = function() {
+	Modules.load('utils/Listeners');
 	Storage._scope = ChromeUtils.importESModule("resource:///modules/sessionstore/SessionStore.sys.mjs");
 	self.SessionStore = Storage._scope.SessionStore;
 	Storage._migrationScope = Cu.Sandbox(Services.scriptSecurityManager.getSystemPrincipal(), {
@@ -189,7 +193,7 @@ Modules.LOADMODULE = function() {
 	Storage._obs = function obs(subject, topic) {
 		Windows.callOnAll(Storage._prepWindowToRestoreInto, 'navigator:browser', null, true);
 	};
-	Services.obs.addObserver(Storage._obs, "sessionstore-initiating-manual-restore");
+	Observers.add(Storage._obs, "sessionstore-initiating-manual-restore");
 	Windows.callOnAll(Storage._listenWindow, 'navigator:browser');
 	Windows.register(Storage._listenWindow, 'domwindowopened', 'navigator:browser');
 
@@ -225,7 +229,7 @@ Modules.LOADMODULE = function() {
 
 Modules.UNLOADMODULE = function() {
 	// An update can reach here after Firefox already discarded either resource.
-	try { Services.obs.removeObserver(Storage._obs, "sessionstore-initiating-manual-restore"); } catch(ex) {}
+	Observers.remove(Storage._obs, "sessionstore-initiating-manual-restore");
 	Windows.unregister(Storage._listenWindow, 'domwindowopened', 'navigator:browser');
 	Windows.callOnAll(Storage._unlistenWindow, 'navigator:browser', null, true);
 	let { SessionMigration } = ChromeUtils.importESModule(ESModSM);

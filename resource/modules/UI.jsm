@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.3.65
+// VERSION 1.3.67
 
 // Used to scroll groups automatically, for instance when dragging a tab over a group's overflown edges.
 this.Synthesizer = {
@@ -169,8 +169,6 @@ this.UI = {
 	get classicBtn() { return $("classicbutton"); },
 	get gridNewGroupBtn() { return $("gridNewGroup"); },
 	get singleNewGroupBtn() { return $("singleNewGroup"); },
-
-	_els: Cc["@mozilla.org/eventlistenerservice;1"].getService(Ci.nsIEventListenerService),
 
 	// Called when a web page is about to show a modal dialog.
 	receiveMessage: function(m) {
@@ -881,11 +879,7 @@ this.UI = {
 		// don't bother
 		if(!this.single) { return; }
 
-		if(Prefs.showGroupThumbs) {
-			document.body.classList.add('showGroupThumbs');
-		} else {
-			document.body.classList.remove('showGroupThumbs');
-		}
+		document.body.classList.toggle('showGroupThumbs', Prefs.showGroupThumbs);
 	},
 
 	// Returns true if the last interaction was long enough ago to consider the UI idle.
@@ -1517,6 +1511,7 @@ this.UI = {
 		}
 		for(let name of keyArray) {
 			let element = gWindow.document.getElementById("key_" + name);
+			if(!element && name == "undoCloseTab") { name = "restoreLastClosedTabOrWindowOrSession"; element = gWindow.document.getElementById("key_" + name); }
 			if(!element) {
 				Cu.reportError("missing browser key element: key_" + name);
 				continue;
@@ -2225,13 +2220,6 @@ this.UI = {
 		if(this.storageSanity(data)) {
 			Storage.saveUIData(gWindow, data);
 		}
-	},
-
-	// Saves all data associated with TabView.
-	_saveAll: function() {
-		this._save();
-		GroupItems.saveAll();
-		TabItems.saveAll();
 	},
 
 	checkSessionRestore: function() {

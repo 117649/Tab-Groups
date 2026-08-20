@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.3.1
+// VERSION 1.3.2
 
 this.about = {
 	kNS: 'http://www.w3.org/1999/xhtml',
@@ -310,11 +310,7 @@ this.about = {
 
 			$('balance').textContent = hours;
 
-			if(xmlhttp.response.working) {
-				bank.classList.add('working');
-			} else {
-				bank.classList.remove('working');
-			}
+			bank.classList.toggle('working', xmlhttp.response.working);
 
 			if(xmlhttp.response.owed > 0) {
 				if(xmlhttp.response.owed == 1) {

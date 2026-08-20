@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.1.4
+// VERSION 1.1.5
 
 // Class: Trench - Class for drag-snapping regions; called "trenches" as they are long and narrow.
 // Parameters:
@@ -205,11 +205,7 @@ this.Trench.prototype = {
 			this.dom.activeVisibleTrench = activeVisibleTrench
 		}
 
-		if(this.active) {
-			activeVisibleTrench.classList.add('activeTrench');
-		} else {
-			activeVisibleTrench.classList.remove('activeTrench');
-		}
+		activeVisibleTrench.classList.toggle('activeTrench', this.active);
 
 		iQ(visibleTrench).css(this.rect);
 		iQ(activeVisibleTrench).css(this.activeRect || this.rect);

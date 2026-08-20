@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.7.24
+// VERSION 1.7.26
 
 // Class: GroupItem - A single groupItem in the TabView window.
 // Parameters:
@@ -64,10 +64,6 @@ this.GroupItem = function(listOfEls, options = {}) {
 	this._savedCatchOnce = this.catchOnce;
 	this._savedCatchRules = this.catchRules;
 
-	// The prompt text for the title field.
-	// Restored labels stay stable; a new unnamed group follows the highest one still in use.
-	this._setDisplayID(options.displayID || options.id || GroupItems.getNextDisplayID());
-
 	if(Utils.isPoint(options.userSize)) {
 		this.userSize = new Point(options.userSize);
 	}
@@ -76,6 +72,8 @@ this.GroupItem = function(listOfEls, options = {}) {
 	for(let x in dom) {
 		this[x] = dom[x];
 	}
+	// Restored labels stay stable; a new unnamed group follows the highest one still in use.
+	this._setDisplayID(options.displayID || options.id || GroupItems.getNextDisplayID());
 
 	this.isDragging = false;
 	this.isResizing = false;
@@ -96,7 +94,6 @@ this.GroupItem = function(listOfEls, options = {}) {
 	this.showUrls = this._showUrls;
 
 	// ___ Titlebar
-	this.title.setAttribute('placeholder', this.defaultName);
 	this.title.handleEvent = (e) => {
 		switch(e.type) {
 			case 'mousedown':
@@ -398,7 +395,7 @@ this.GroupItem.prototype = {
 	_setDisplayID: function(id) {
 		this.displayID = id;
 		this.defaultName = Strings.get('TabView', 'groupItemUnnamed', [ [ "$num", id ] ]);
-		this.title?.setAttribute('placeholder', this.defaultName);
+		this.title.setAttribute('placeholder', this.defaultName);
 	},
 
 	// Sets the title of this groupItem with the given string
@@ -2849,8 +2846,9 @@ this.GroupItems = {
 
 		let tabItems = this._activeGroupItem.children;
 		if (!gBrowser.showOnlyTheseTabs) gBrowser.showOnlyTheseTabs = function (aTabs) {
+			aTabs = new Set(aTabs);
 			for (let tab of this.tabs) {
-				if (!aTabs.includes(tab)) {
+				if (!aTabs.has(tab)) {
 					this.hideTab(tab);
 				} else {
 					this.showTab(tab);
@@ -2888,23 +2886,51 @@ this.GroupItems = {
 
 	// Reorders the tabs in the tab bar based on the arrangment of the tabs in the given array.
 	reorderTabsBasedOnGivenOrder: function(tabs, movedTabs = []) {
-		let indices, tabIndices = new Map(tabs.map((tab, index) => [tab, index]));
-		movedTabs = new Set(movedTabs);
+		let indices, tabIndices = movedTabs.length ? new Map(tabs.map((tab, index) => [tab, index])) : null;
+		if(tabIndices && movedTabs.some(tab => !tabIndices.has(tab))) { throw new Error("Moved tab is not in the requested order"); }
+		movedTabs = tabIndices && new Set(movedTabs);
+		let tabSet = tabIndices;
+		if(movedTabs && !tabs.some((tab, index) => index && tab._tPos < tabs[index -1]._tPos)) { return; }
+		if(movedTabs && gBrowser.moveTabBefore) {
+			let first = tabs.findIndex(tab => movedTabs.has(tab)), before = tabs[first -1], after = tabs[first + movedTabs.size];
+			let elements = [...new Set(tabs.slice(first, first + movedTabs.size).map(tab => tab.group && tab.group.tabs.every(groupTab => movedTabs.has(groupTab)) ? tab.group : tab.splitview || tab))];
+			let nativeGroup = element => element && (element.tabs ? element.tabs[0].group != element && element.tabs[0].group : element.group);
+			let move = function(element, sibling, after) {
+				let group = nativeGroup(element), siblingGroup = nativeGroup(sibling);
+				sibling = group && group == siblingGroup ? sibling.splitview || sibling : siblingGroup || sibling.splitview || sibling;
+				gBrowser[after ? "moveTabAfter" : "moveTabBefore"](element, sibling);
+			};
+			if(after) {
+				let start = 0, sibling = before, group = nativeGroup(before);
+				while(group && start < elements.length && nativeGroup(elements[start]) == group) { move(elements[start], sibling, true); sibling = elements[start++]; }
+				sibling = after;
+				for(let index = elements.length -1; index >= start; index--) { move(elements[index], sibling); sibling = elements[index]; }
+			}
+			else { let sibling = before || elements[0]; for(let index = before ? 0 : 1; index < elements.length; index++) { move(elements[index], sibling, true); sibling = elements[index]; } }
+			if(!tabs.some((tab, index) => index && tab._tPos < tabs[index -1]._tPos)) { return; }
+		}
 
 		// Move dragged tabs first so crossing a native-group edge does not pull the intervening tab into that group.
-		new Set([...movedTabs, ...tabs]).forEach(function(tab) {
-			let index = tabIndices.get(tab);
+		(movedTabs ? new Set([...movedTabs, ...tabs]) : tabs).forEach(function(tab, index) {
+			if(movedTabs) { index = tabIndices.get(tab); }
 			if(!indices) {
 				indices = tabs.map(tab => tab._tPos);
 			}
 
 			let start = index ? Math.min(indices[index - 1] + 1, gBrowser.tabs.length - 1) : 0;
+			start = tab.pinned ? Math.min(start, gBrowser.pinnedTabCount -1) : Math.max(start, gBrowser.pinnedTabCount);
 			let end = index + 1 < indices.length ? indices[index + 1] - 1 : Infinity;
 			let targetRange = new Range(start, end);
 
 			if(!targetRange.contains(tab._tPos)) {
-				// Current Firefox requires explicit ungrouping when the dragged tab crosses either group edge.
-				gBrowser.moveTabTo(tab, gBrowser.moveTabTo.length == 1 ? { tabIndex: start, forceUngrouped: movedTabs.has(tab) && tab.group && (start < tab.group.tabs[0]._tPos || start > tab.group.tabs.at(-1)._tPos) } : start);
+				let crossesGroup = tab.group && (start < tab.group.tabs[0]._tPos || start > tab.group.tabs.at(-1)._tPos);
+				if(!movedTabs?.has(tab) && tab.group && !crossesGroup) {
+					if(!tabSet) { tabSet = new Set(tabs); }
+					if(tab.group.tabs.some(groupTab => !tabSet.has(groupTab) && (start < tab._tPos ? groupTab._tPos >= start && groupTab._tPos < tab._tPos : groupTab._tPos > tab._tPos && groupTab._tPos <= start))) { return; }
+				}
+				let moveGroup = crossesGroup && (!movedTabs?.has(tab) || tab.group.tabs.every(groupTab => movedTabs.has(groupTab)));
+				// Keep complete native groups atomic; only a dragged subset may leave its native group.
+				gBrowser.moveTabTo(moveGroup ? tab.group : tab, gBrowser.moveTabTo.length == 1 ? { tabIndex: start, forceUngrouped: !tab.group || crossesGroup && !moveGroup } : start);
 				indices = null;
 			}
 		});
@@ -3214,15 +3240,16 @@ this.GroupItems = {
 
 	// Normalizes all existing groups' slots to the lowest possible values, maintaining the same relation amongst themselves.
 	normalizeSlots: function() {
-		let groups = this.sortBySlot();
+		let groups = this.sortBySlot(), changedGroups = [];
 		let slot = 1;
 		for(let groupItem of groups) {
 			if(groupItem.slot != slot) {
 				groupItem.slot = slot;
-				groupItem.save();
+				changedGroups.push(groupItem);
 			}
 			slot++;
 		}
+		if(changedGroups.length) { Storage.saveGroupItems(gWindow, changedGroups.map(group => group.getStorageData())); }
 	},
 
 	// Returns an array of all group items sorted by their defined title.

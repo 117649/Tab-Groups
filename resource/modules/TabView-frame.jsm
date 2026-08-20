@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.0.15
+// VERSION 1.0.16
 
 this.__defineGetter__('gWindow', function() { return window.parent; });
 this.__defineGetter__('gBrowser', function() { return gWindow.gBrowser; });
 this.__defineGetter__('gTabView', function() { return gWindow[objName].TabView; });
 this.__defineGetter__('gTabViewFrame', function() { return gTabView._iframe; });
 this.__defineGetter__('CatchRules', function() { return gWindow[objName].CatchRules; });
+this.__defineGetter__('ItemMove', function() { delete this.ItemMove; Modules.load('ItemMove'); return ItemMove; });
 
 this.TabView = {
 	_browserBundle: null,
@@ -67,6 +68,7 @@ Modules.UNLOADMODULE = function() {
 	Modules.unload('Search');
 	Modules.unload('Trench');
 	Modules.unload('Drag');
+	Modules.unload('ItemMove');
 	Modules.unload('TabItems');
 	Modules.unload('PinnedItems');
 	Modules.unload('GroupItems');
