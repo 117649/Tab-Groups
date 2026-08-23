@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.4.24
+// VERSION 1.4.25
 
 objName = 'tabGroups';
 objPathString = 'tabgroups';
@@ -98,8 +98,6 @@ async function backupCurrentSession(prefixSeg = '-update.js-', timesuffix = null
 	let tmp = ChromeUtils.importESModule("resource:///modules/sessionstore/SessionStore.sys.mjs");
 	let window = Windows.getEnumerator('navigator:browser').getNext()
 
-	Cu.importGlobalProperties(['TextEncoder'])
-
 	let prefix = objName + prefixSeg;
 
 	// We can use the initTime as a seed/identifier to make sure every file has a unique name.
@@ -113,33 +111,29 @@ async function backupCurrentSession(prefixSeg = '-update.js-', timesuffix = null
 	let filepath = window.PathUtils.join(backupsDir, filename);
 
 	let saveState = tmp.SessionStore.getCurrentState();
-	window.IOUtils.writeJSON(filepath + '.jsonlz4', saveState, {
+	await window.IOUtils.writeJSON(filepath + '.jsonlz4', saveState, {
 		tmpPath: filepath + ".tmp",
 		compress: true,
-	}).then(async () => {
-		// Don't keep backups indefinitely, follow the same rules as Firefox does, keep a limited number and rotate them out.
-		let existingBackups = [];
-		let iterator = await window.IOUtils.getChildren(backupsDir);
-		iterator.forEach((file) => {
-			// a copy of the current session, for crash-protection
-			if (window.PathUtils.filename(file).startsWith(prefix)) {
-				let val = window.PathUtils.filename(file).substr(prefix.length);
-				existingBackups.push(val);
-			}
-		});
-
-		let max = Services.prefs.getIntPref('browser.sessionstore.upgradeBackup.maxUpgradeBackups');
-		if (existingBackups.length > max) {
-			// keep the most recently created files
-			existingBackups.sort(function (a, b) { return parseInt(b.replace(/\D/g,'')) - parseInt(a.replace(/\D/g,'')); });
-			let toRemove = existingBackups.splice(3);
-			for (let seed of toRemove) {
-				let name = prefix + seed;
-				let path = window.PathUtils.join(backupsDir, name);
-				window.IOUtils.remove(path);
-			}
-		}
 	});
+
+	// Don't keep backups indefinitely, follow the same rules as Firefox does, keep a limited number and rotate them out.
+	let existingBackups = [];
+	for(let file of await window.IOUtils.getChildren(backupsDir)) {
+		// a copy of the current session, for crash-protection
+		if(window.PathUtils.filename(file).startsWith(prefix)) {
+			let val = window.PathUtils.filename(file).substr(prefix.length);
+			existingBackups.push(val);
+		}
+	}
+
+	let max = Services.prefs.getIntPref('browser.sessionstore.upgradeBackup.maxUpgradeBackups');
+	if(existingBackups.length > max) {
+		// keep the most recently created files
+		existingBackups.sort(function(a, b) { return parseInt(b.replace(/\D/g,'')) - parseInt(a.replace(/\D/g,'')); });
+		for(let seed of existingBackups.splice(max)) {
+			await window.IOUtils.remove(window.PathUtils.join(backupsDir, prefix + seed));
+		}
+	}
 }
 
 function onInstall(aData) {
@@ -149,9 +143,10 @@ async function onStartup(aData) {
 	// If this is the first startup after installing or updating the add-on, make a backup of the session, just in case.
 	if (STARTED == ADDON_INSTALL || STARTED == ADDON_UPGRADE || STARTED == ADDON_DOWNGRADE) {
 		// Don't block add-on startup if it fails to create the backup for some reason.
-		try { backupCurrentSession(); }
+		try { await backupCurrentSession(); }
 		catch (ex) { Cu.reportError(ex); }
 	}
+	if(UNLOADED) { return; }
 
 	Modules.load('Utils');
 	Modules.load('Storage');
@@ -197,7 +192,7 @@ function onShutdown() {
 	Services.prefs.removeObserver("extensions." + objPathString + ".SessionSnapshotInterval", SSSIobs);
 }
 
-function SSSCallback(){
+async function SSSCallback(){
 	let date = new Date();
 	let y = date.getFullYear();
 	let m = (date.getMonth() +1); if(m < 10) { m = "0"+m; }
@@ -206,7 +201,7 @@ function SSSCallback(){
 	let mm = date.getMinutes(); if(mm < 10) { mm = "0"+mm; }
 	let s = date.getSeconds(); if(s < 10) { s = "0"+s; }
 	let dateStr = ""+y+m+d+"-"+h+mm+s;
-	try { backupCurrentSession('-SSS-', dateStr); }
+	try { await backupCurrentSession('-SSS-', dateStr); }
 	catch (ex) { Cu.reportError(ex); }
 }
 

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.3.64
+// VERSION 1.3.65
 
 // Used to scroll groups automatically, for instance when dragging a tab over a group's overflown edges.
 this.Synthesizer = {
@@ -425,7 +425,7 @@ this.UI = {
 				break;
 
 			case 'TabOpen':
-				if(!tab.label?.startsWith("about:firefoxview") && !tab.pinned && this.isTabViewVisible() && !this._storageBusyCount) {
+				if(!tab.label?.startsWith("about:firefoxview") && !tab.pinned && this.isTabViewVisible() && !this._storageBusy) {
 					this._lastOpenedTab = tab;
 				}
 

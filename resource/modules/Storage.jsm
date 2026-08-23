@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.2.2
+// VERSION 1.2.3
 
 this.Storage = {
 	kGroupIdentifier: "tabview-group",
@@ -71,7 +71,7 @@ this.Storage = {
 		try {
 			let data = SessionStore.getWindowState(win);
 			if(data) {
-				state = JSON.parse(data);
+				state = typeof data == "string" ? JSON.parse(data) : data;
 			}
 		}
 		catch(ex) {}
@@ -155,27 +155,43 @@ Modules.LOADMODULE = function() {
 	};
 
 	Storage._WindowRestoring = e =>{
+		let win = e.currentTarget;
 		// Deinitialize tab view in any window that will have its session overwritten.
 		// Nothing in TabView will be useful anyway, just let it reinistialize if/when necessary later by itself.
-		if(window.TabView) {
-			window.TabView._deinitFrame();
+		if(win.TabView) {
+			win.TabView._deinitFrame();
 		}
 	}
 
 	Storage._WindowRestored = e => {
+		let win = e.currentTarget;
 		// Update our button's label, to reflect the groups data in the new/different session.
-		if(window.TabView) {
-			window.TabView.setButtonLabel();
-			window.TabView._initFrame();
+		if(win.TabView) {
+			win.TabView.setButtonLabel();
+			win.TabView._initFrame();
 		}
 	}
 
+	Storage._listenWindow = aWindow => {
+		Listeners.add(aWindow, "SSWindowRestoring", Storage._WindowRestoring);
+		Listeners.add(aWindow, "SSWindowRestored", Storage._WindowRestored);
+	};
+
+	Storage._unlistenWindow = aWindow => {
+		if (aWindow["_" + objPathString + "__SS_lastSessionWindowID"]) {
+			aWindow.__SS_lastSessionWindowID = aWindow["_" + objPathString + "__SS_lastSessionWindowID"];
+			delete aWindow["_" + objPathString + "__SS_lastSessionWindowID"];
+		}
+		Listeners.remove(aWindow, "SSWindowRestoring", Storage._WindowRestoring);
+		Listeners.remove(aWindow, "SSWindowRestored", Storage._WindowRestored);
+	};
+
 	Storage._obs = function obs(subject, topic) {
-		try { Storage._prepWindowToRestoreInto(window); } catch (e) { Cu.reportError(e); }
+		Windows.callOnAll(Storage._prepWindowToRestoreInto, 'navigator:browser', null, true);
 	};
 	Services.obs.addObserver(Storage._obs, "sessionstore-initiating-manual-restore");
-	window.addEventListener("SSWindowRestoring", Storage._WindowRestoring);
-	window.addEventListener("SSWindowRestored", Storage._WindowRestored);
+	Windows.callOnAll(Storage._listenWindow, 'navigator:browser');
+	Windows.register(Storage._listenWindow, 'domwindowopened', 'navigator:browser');
 
 	(async () => {
 		let { SessionMigration } = ChromeUtils.importESModule(ESModSM);
@@ -210,12 +226,8 @@ Modules.LOADMODULE = function() {
 Modules.UNLOADMODULE = function() {
 	// An update can reach here after Firefox already discarded either resource.
 	try { Services.obs.removeObserver(Storage._obs, "sessionstore-initiating-manual-restore"); } catch(ex) {}
-	if (window["_" + objPathString + "__SS_lastSessionWindowID"]) {
-		window.__SS_lastSessionWindowID = window["_" + objPathString + "__SS_lastSessionWindowID"];
-		delete window["_" + objPathString + "__SS_lastSessionWindowID"];
-	}
-	window.removeEventListener("SSWindowRestoring", Storage._WindowRestoring);
-	window.removeEventListener("SSWindowRestored", Storage._WindowRestored);
+	Windows.unregister(Storage._listenWindow, 'domwindowopened', 'navigator:browser');
+	Windows.callOnAll(Storage._unlistenWindow, 'navigator:browser', null, true);
 	let { SessionMigration } = ChromeUtils.importESModule(ESModSM);
 	if (SessionMigration.migrate['_Piggyback_']) {
 		SessionMigration.migrate = SessionMigration.migrate['_Piggyback_']

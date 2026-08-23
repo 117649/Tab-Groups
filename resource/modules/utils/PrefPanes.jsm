@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.1.0
+// VERSION 1.1.2
 Modules.UTILS = true;
 
 Cu.importGlobalProperties(['ChromeUtils']);
@@ -255,13 +255,13 @@ this.PrefPanes = {
 		// no tab was found, so open a new one
 		if(loadOnStartup) {
 			let tab = aWindow.gBrowser.addTrustedTab(this.notifyUri);
-			tab._tabViewTabItem.parent.reorderTabItemsBasedOnTabOrder();
+			tab._tabViewTabItem?.parent?.reorderTabItemsBasedOnTabOrder();
 			aWindow.gBrowser.selectedTab = tab;
 			aWindow.gBrowser.selectedTab.loadOnStartup = true; // for Tab Mix Plus
 		}
 		else {
 			let tab = aWindow.gBrowser.addTrustedTab(this.aboutUri ? this.aboutUri.spec : this.chromeUri)
-			tab._tabViewTabItem.parent.reorderTabItemsBasedOnTabOrder();
+			tab._tabViewTabItem?.parent?.reorderTabItemsBasedOnTabOrder();
 			aWindow.gBrowser.selectedTab = tab;
 		}
 		aWindow.focus();
@@ -314,15 +314,13 @@ this.PrefPanes = {
 			// since we're disabling the add-on there's really no point in keeping closed tabs references to our preferences tab, as they won't be valid anymore
 			if(aWindow.__SSi && aWindow.SessionStore) {
 				let closedTabs = aWindow.SessionStore.getClosedTabDataForWindow(aWindow);
-				let count = closedTabs.length;
 
-				// we go backwards because forgetClosedTab() changes the array and we can only do one tab at once
-				for(let i = count-1; i >= 0; i--) {
-					let state = closedTabs[i].state;
+				for(let closedTab of closedTabs) {
+					let state = closedTab.state;
 					if(state && state.entries && state.entries.length) {
 						for(let entry of state.entries) {
 							if(this.ours(entry.url)) {
-								aWindow.SessionStore.forgetClosedTab(aWindow, i);
+								aWindow.SessionStore.forgetClosedTabById(closedTab.closedId, aWindow);
 								break;
 							}
 						}

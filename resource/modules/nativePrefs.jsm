@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.1.4
+// VERSION 1.1.5
 
 this.pageWatch = {
 	TMP: false,
-	SM: false,
 	listeners: new Set(),
 	captureChanges: false,
 	initialized: false,
@@ -82,6 +81,10 @@ this.pageWatch = {
 	},
 
 	enableSessionRestore: function() {
+		if(!this.initialized) {
+			this.enableOnInit = true;
+			return;
+		}
 		// In case any of our dependencies failed to initialize before we need this, make sure it still "works".
 		if(this.sessionRestoreEnabled) { return; }
 
@@ -102,13 +105,7 @@ this.pageWatch = {
 	},
 
 	get sessionRestoreEnabled() {
-		this.finishInit();
-
-		// Warning on exiting Firefox makes all of our warnings/handlers superfluous.
-		if(Prefs.showQuitWarning) {
-			return true;
-		}
-
+		if(!this.initialized) { return false; }
 		if(this.TMP && Prefs["sessions.manager"]) {
 			return Prefs["sessions.onClose"] != 2 && Prefs["sessions.onStart"] != 2;
 		}
@@ -125,32 +122,25 @@ this.pageWatch = {
 	init: function() {
 		Prefs.setDefaults({ pageBackup: -1 });
 		Prefs.setDefaults({ page: 1 }, 'startup', 'browser');
-		Prefs.setDefaults({ showQuitWarning: false }, 'browser', '');
-
-		let promises = [];
 
 		// Keep track of Tab Mix Plus session preferences as well
-		promises.push(new Promise((resolve, reject) => {
-			AddonManager.getAddonByID('{dc572301-7619-498c-a57d-39143191b318}', (addon) => {
-				if(addon && addon.isActive) {
-					Prefs.setDefaults({
-						onCloseBackup: -1,
-						onStartBackup: -1
-					});
-					Prefs.setDefaults({
-						["sessions.manager"]: true,
-						["sessions.onClose"]: 0,
-						["sessions.onStart"]: 2
-					}, 'tabmix');
-					Prefs.listen('sessions.manager', this);
-					this.TMP = true;
-				}
-				resolve();
-			});
-		}));
-
-		Promise.all(promises).then(() => {
-			this.finishInit();
+		AddonManager.getAddonByID('{dc572301-7619-498c-a57d-39143191b318}').then((addon) => {
+			if(UNLOADED) { return; }
+			if(addon && addon.isActive) {
+				Prefs.setDefaults({
+					onCloseBackup: -1,
+					onStartBackup: -1
+				});
+				Prefs.setDefaults({
+					["sessions.manager"]: true,
+					["sessions.onClose"]: 0,
+					["sessions.onStart"]: 2
+				}, 'tabmix');
+				Prefs.listen('sessions.manager', this);
+				this.TMP = true;
+			}
+		}).catch(Cu.reportError).then(() => {
+			if(!UNLOADED) { this.finishInit(); }
 		});
 	},
 
@@ -159,10 +149,13 @@ this.pageWatch = {
 		this.initialized = true;
 
 		Prefs.listen('page', this);
-		Prefs.listen('showQuitWarning', this);
 		if(this.TMP) {
 			Prefs.listen('sessions.onClose', this);
 			Prefs.listen('sessions.onStart', this);
+		}
+		if(this.enableOnInit) {
+			delete this.enableOnInit;
+			this.enableSessionRestore();
 		}
 
 		this.start();
@@ -188,8 +181,8 @@ this.pageWatch = {
 	uninit: function() {
 		this.stop();
 		Prefs.unlisten('page', this);
-		Prefs.unlisten('showQuitWarning', this);
 		if(this.TMP) {
+			Prefs.unlisten('sessions.manager', this);
 			Prefs.unlisten('sessions.onClose', this);
 			Prefs.unlisten('sessions.onStart', this);
 		}

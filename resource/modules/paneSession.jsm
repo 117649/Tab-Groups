@@ -2,12 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.1.14
+// VERSION 1.1.19
 
 this.paneSession = {
 	manualAction: false,
 	migratedBackupFile: null,
-	_deferredPromises: new Set(),
 	_quickaccess: null,
 
 	filestrings: {
@@ -84,12 +83,43 @@ this.paneSession = {
 						this.clearData();
 						break;
 
-					case this.restoreHereBtn:
-						Storage._scope.SessionStore.setBrowserState(JSON.stringify(this.State))
+					case this.restoreHereBtn: {
+						let savedGroups = Array.isArray(this.State.savedGroups) && JSON.parse(JSON.stringify(this.State.savedGroups));
+						let topic = "sessionstore-browser-state-restored";
+						let observer;
+						let tabGroups = [];
+						try {
+							if(savedGroups) {
+								Windows.callOnAll(win => {
+									for(let group of win.gBrowser?.tabGroups || []) {
+										if(group.saveOnWindowClose) {
+											tabGroups.push(group);
+											group.saveOnWindowClose = false;
+										}
+									}
+								}, 'navigator:browser', null, true);
+								observer = () => {
+									Observers.remove(observer, topic);
+									let ids = new Set();
+									Windows.callOnAll(win => {
+										for(let group of win.gBrowser?.tabGroups || []) { ids.add(group.id); }
+									}, 'navigator:browser', null, true);
+									Storage._scope.SessionStore.savedGroups.splice(0, Infinity, ...savedGroups.filter(group => !ids.has(group.id)));
+								};
+								Observers.add(observer, topic);
+							}
+							Storage._scope.SessionStore.setBrowserState(JSON.stringify(this.State));
+						}
+						catch(ex) {
+							if(observer) { Observers.remove(observer, topic); }
+							for(let group of tabGroups) { group.saveOnWindowClose = true; }
+							throw ex;
+						}
 						break;
+					}
 
 					case this.restoreInNewBtn:
-						this.restoreInNewWindow();
+						this.restoreInNewWindow().catch(Cu.reportError);
 						break;
 				}
 				break;
@@ -161,8 +191,8 @@ this.paneSession = {
 	},
 
 	backup: function() {
-		controllers.showFilePicker(Ci.nsIFilePicker.modeSave, this.filestrings.manual, (aFile) => {
-			let state = SessionStore.getCurrentState();
+		controllers.showFilePicker(Ci.nsIFilePicker.modeSave, this.filestrings.manual, async (aFile) => {
+			let state = SessionStore.getCurrentState(true);
 			let save;
 
 			// if backing up all session data it's simple, just save everything
@@ -177,14 +207,21 @@ this.paneSession = {
 					session: state.session,
 					windows: []
 				};
-
-				let anonGroupId = 0;
+				if("maxSplitViewId" in state) {
+					saveData.maxSplitViewId = state.maxSplitViewId;
+				}
 				if(state.windows) {
 					for(let win of state.windows) {
 						let winData = {
+							selected: win.selected,
 							tabs: [],
 							extData: {}
 						};
+						for(let property of [ "splitViews", "groups", "width", "height", "screenX", "screenY", "sizemode", "sizemodeBeforeMinimized" ]) {
+							if(property in win) {
+								winData[property] = win[property];
+							}
+						}
 
 						if(Array.isArray(win.tabs)) {
 							for(let tab of win.tabs) {
@@ -207,6 +244,16 @@ this.paneSession = {
 										extData: {},
 										index: 1
 									};
+									for(let property of [ "triggeringPrincipal_base64", "principalToInherit_base64", "policyContainer", "csp" ]) {
+										if(property in current) {
+											saveTab.entries[0][property] = current[property];
+										}
+									}
+									for(let property of [ "userContextId", "splitViewId", "groupId" ]) {
+										if(property in tab) {
+											saveTab[property] = tab[property];
+										}
+									}
 
 									if(tab.lastAccessed) {
 										saveTab.lastAccessed = tab.lastAccessed;
@@ -233,6 +280,8 @@ this.paneSession = {
 								catch(ex) { Cu.reportError(ex); }
 							}
 						}
+						this.normalizeSplitViews(winData);
+						this.normalizeGroups(winData);
 
 						if(win.extData) {
 							if(win.extData[Storage.kGroupIdentifier]) {
@@ -250,28 +299,25 @@ this.paneSession = {
 				save = saveData;
 			}
 
-			window.IOUtils.writeJSON(aFile.path, save, aFile.path.endsWith(".jsonlz4") ? {
-				tmpPath: aFile.path.replace(".jsonlz4",".tmp"),
-				compress: true,
-			} : undefined).then(() => {
+			try {
+				await window.IOUtils.writeJSON(aFile.path, save, aFile.path.endsWith(".jsonlz4") ? {
+					tmpPath: aFile.path.replace(".jsonlz4",".tmp"),
+					compress: true,
+				} : undefined);
 				// Load the newly created file in the Restore Tab Groups block,
 				// so that the user can confirm all the tabs and groups were backed up properly.
 				// We read from the newly created file so that we're sure to show the info that was actually saved,
 				// and not the info that's still in memory.
 				this.loadSessionFile(aFile, false);
-			});
+			}
+			catch(ex) { Cu.reportError(ex); }
 		}, this.backupsPath, true);
 	},
 
 	// If at any point this fails, it simply doesn't add the corresponding item to the menu
 	// (if it fails here it's unlikely it will work when actually loading groups from these files anyway).
 	buildBackupsMenu: async function() {
-		// Reject any pending tasks, we'll reschedule these ops again.
-		// There's no need to clear afterwards, rejecting the promise removes it from the Set.
-		for(let deferred of this._deferredPromises) {
-			deferred.resolve();
-		}
-		this._quickaccess = new Set();
+		let quickaccess = this._quickaccess = new Set();
 
 		// Always clean up old entries.
 		let child = this.backups.firstChild;
@@ -286,6 +332,7 @@ this.paneSession = {
 		}
 
 		let profileDir = window.PathUtils?.profileDir ?? await window.PathUtils?.getProfileDir();
+		if(this._quickaccess != quickaccess) { return; }
 
 		// Don't throw immediately if any iteration fails, run all it can to add all the possible (valid) items.
 		let exn = null;
@@ -294,52 +341,42 @@ this.paneSession = {
 		let iterator;
 		try {
 			iterator = await window.IOUtils.getChildren(this.backupsPath);
+			if(this._quickaccess != quickaccess) { return; }
 			iterator.forEach((file) => {
 				// a copy of the current session, for crash-protection
 				if(this.filenames.recovery.test(window.PathUtils.filename(file))) {
-					this.deferredPromise((deferred) => {
-						this.checkRecoveryFile(deferred, file, 'sessionRecovery', 'recovery');
-					});
+					this.checkRecoveryFile(quickaccess, file, 'sessionRecovery', 'recovery');
 				}
 				// another crash-protection of the current session
 				else if(this.filenames.recoveryBackup.test(window.PathUtils.filename(file)) || this.filenames.SSS.test(window.PathUtils.filename(file))) {
-					this.deferredPromise((deferred) => {
-						this.checkRecoveryFile(deferred, file, 'recoveryBackup', 'recovery');
-					});
+					this.checkRecoveryFile(quickaccess, file, 'recoveryBackup', 'recovery');
 				}
 				// the previous session
 				else if(this.filenames.previous.test(window.PathUtils.filename(file))) {
-					this.deferredPromise((deferred) => {
-						this.checkRecoveryFile(deferred, file, 'previousSession', 'recovery');
-					});
+					this.checkRecoveryFile(quickaccess, file, 'previousSession', 'recovery');
 				}
 				// backups made when Firefox updates itself
 				else if(this.filenames.upgrade.test(window.PathUtils.filename(file))) {
-					this.deferredPromise((deferred) => {
-						this.checkRecoveryFile(deferred, file, 'upgradeBackup', 'upgrade');
-					});
+					this.checkRecoveryFile(quickaccess, file, 'upgradeBackup', 'upgrade');
 				}
 				// backups created when the add-on is updated
 				else if(this.filenames.update.test(window.PathUtils.filename(file))) {
-					this.deferredPromise((deferred) => {
-						this.checkRecoveryFile(deferred, file, 'addonUpdateBackup', 'upgrade');
-					});
+					this.checkRecoveryFile(quickaccess, file, 'addonUpdateBackup', 'upgrade');
 				}
 				// this could be one of the backups manually created by the user, try to load it and see if we recognize it
 				else if(this.filenames.manual.test(window.PathUtils.filename(file))) {
-					this.deferredPromise((deferred) => {
-						this.checkRecoveryFile(deferred, file, 'manualBackup', 'manual');
-					});
+					this.checkRecoveryFile(quickaccess, file, 'manualBackup', 'manual');
 				}
 			});
 		}
 		catch(ex) {
 			exn = exn || ex;
 		}
-
 		// Let's look for Tab Mix Plus's sessions and try to import from those as well.
-		AddonManager.getAddonByID('{dc572301-7619-498c-a57d-39143191b318}', async (addon) => {
-			if(addon && addon.isActive) {
+		try {
+			let addon = await AddonManager.getAddonByID('{dc572301-7619-498c-a57d-39143191b318}');
+			if(this._quickaccess != quickaccess) { return; }
+			if(addon && addon.isActive && Cc["@mozilla.org/rdf/rdf-service;1"]) {
 				if(!this.TabmixSessionManager) {
 					this.TabmixSessionManager = gWindow.TabmixSessionManager;
 					this.TabmixConvertSession = gWindow.TabmixConvertSession;
@@ -350,9 +387,10 @@ this.paneSession = {
 				let tmpdir = window.PathUtils.join(profileDir, "sessionbackups");
 				try {
 					tmpiterator = await window.IOUtils.getChildren(tmpdir);
+					if(this._quickaccess != quickaccess) { return; }
 					tmpiterator.forEach((file) => {
 						if(this.filenames.tabMixPlus.test(window.PathUtils.filename(file))) {
-							this.checkTabMixPlusFile(file);
+							this.checkTabMixPlusFile(quickaccess, file);
 						}
 					});
 				}
@@ -360,49 +398,25 @@ this.paneSession = {
 					exn = exn || ex;
 				}
 			}
-		});
+		}
+		catch(ex) {
+			exn = exn || ex;
+		}
 
-		if(exn) { throw exn; }
+		if(exn) { Cu.reportError(exn); }
 	},
 
-	// Constructs a deferred promise object to be stored in a Set() that either self-removes or can be rejected and cleaned from the outside.
-	// The executor is passed this deferred object as its single argument.
-	deferredPromise: function(executor) {
-		// This is the basis of this deferred object, with accessor methods for resolving and rejecting its promise.
-		let deferred = {
-			resolve: function() {
-				paneSession._deferredPromises.delete(this);
-				this._resolve();
-			},
-
-			reject: function(r) {
-				paneSession._deferredPromises.delete(this);
-				this._reject(r);
-			}
-		};
-
-		// Init the actual promise.
-		deferred.promise = new Promise((resolve, reject) => {
-			// Store the resolve and reject methods in the deferred object.
-			deferred._resolve = resolve;
-			deferred._reject = reject;
-
-			// Pass the deferred object to the executor, so it can resolve itself as well.
-			executor(deferred);
-		});
-
-		// Add this deferred promise to the Set() so we can keep track of it.
-		this._deferredPromises.add(deferred);
-
-		return deferred;
+	checkRecoveryFile: async function(aQuickaccess, aPath, aName, aWhere) {
+		try {
+			let state = await window.IOUtils.readJSON(aPath, (aPath.includes(".jsonlz4") || aPath.includes(".baklz4")) ? { decompress: true } : null);
+			this.verifyState(aQuickaccess, state, aPath, aName, aWhere);
+		}
+		catch(ex) {
+			Cu.reportError(ex);
+		}
 	},
 
-	checkRecoveryFile: async function(aDeferred, aPath, aName, aWhere) {
-		let state = await window.IOUtils.readJSON(aPath, (aPath.includes(".jsonlz4") || aPath.includes(".baklz4")) ? { decompress: true } : null);
-		this.verifyState(aDeferred, state, aPath, aName, aWhere);
-	},
-
-	checkTabMixPlusFile: function(aFile) {
+	checkTabMixPlusFile: function(aQuickaccess, aFile) {
 		let tmpDATASource;
 
 		try {
@@ -413,12 +427,11 @@ this.paneSession = {
 
 			// Each TMP file can hold several sessions.
 			let sessions = this.TabmixSessionManager.getSessionList();
-			for(let x of sessions.path) {
-				let session = x;
-				this.deferredPromise((deferred) => {
-					let state = this.getStateForTabMixPlusData(session);
-					this.verifyState(deferred, state, { path, session }, 'tabMixPlus', 'tabMixPlus');
-				});
+			for(let session of sessions.path) {
+				try {
+					this.verifyState(aQuickaccess, this.getStateForTabMixPlusData(session), { path, session }, 'tabMixPlus', 'tabMixPlus');
+				}
+				catch(ex) { Cu.reportError(ex); }
 			}
 		}
 		catch(ex) {
@@ -454,18 +467,18 @@ this.paneSession = {
 		return state;
 	},
 
-	verifyState: function(aDeferred, aState, aFile, aName, aWhere) {
+	verifyState: function(aQuickaccess, aState, aFile, aName, aWhere) {
+		if(this._quickaccess != aQuickaccess) { return; }
 		if(aState.session) {
 			// Some sessions may not be modified between files, so they're essentially duplicates spread out over several files.
 			// There's no need to show these in the quick access menu.
 			let stateStr = JSON.stringify(aState);
-			if(!this._quickaccess.has(stateStr)) {
+			if(!aQuickaccess.has(stateStr)) {
 				let date = aState.session.lastUpdate;
 				this.createBackupEntry(aFile, aName, date, aWhere);
-				this._quickaccess.add(stateStr);
+				aQuickaccess.add(stateStr);
 			}
 		}
-		aDeferred.resolve();
 	},
 
 	createBackupEntry: function(aPath, aName, aDate, aWhere) {
@@ -498,78 +511,61 @@ this.paneSession = {
 		}, this.backupsPath, true);
 	},
 
-	loadSessionFile: function(aFile, aManualAction, aSpecial) {
-		if(aSpecial == 'tabMixPlus') {
-			let tmpDATASource;
-			try {
+	loadSessionFile: async function(aFile, aManualAction, aSpecial) {
+		let load = this._loadSessionFile = {};
+		this.State = null;
+		treeView.data = [];
+		this.invalidNotice.hidden = true;
+		this.tabList.hidden = true;
+		this.importBtn.hidden = true;
+		this.restoreHereBtn.hidden = true;
+		this.restoreInNewBtn.hidden = true;
+		this.autoloadedNotice.hidden = true;
+		this.importfinishedNotice.hidden = true;
+		this.manualAction = aManualAction;
+
+		let tmpDATASource;
+		try {
+			if(aSpecial == 'tabMixPlus') {
 				tmpDATASource = this.TabmixSessionManager.DATASource;
 				this.TabmixSessionManager.DATASource = this.RDFService.GetDataSourceBlocking(aFile.path);
 
 				let state = this.getStateForTabMixPlusData(aFile.session);
+				if(!Array.isArray(state?.windows)) { throw new Error("Invalid session state"); }
+				this.State = JSON.parse(JSON.stringify(state));
 				this.readState(state);
-			}
-			catch(ex) {
-				Cu.reportError(ex);
-			}
-			// Always make sure we restore TMP's current session state if there's one.
-			finally {
-				if(tmpDATASource) {
-					this.TabmixSessionManager.DATASource = tmpDATASource;
-				}
-			}
-			return;
-		}
-
-		let p = aFile.path || aFile;
-		window.IOUtils.readUTF8(p, p.match(".(bak|json)lz4")?.[0] ? { decompress: true } : null).then(async (savedState) => {
-
-			this.manualAction = aManualAction;
-
-			let state;
-			try {
-				state = this.getStateForData(savedState);
-			}
-			catch(ex) {
-				Cu.reportError(ex);
-
-				this.invalidNotice.hidden = false;
-				this.tabList.hidden = true;
 				return;
 			}
-			await Promise.allSettled(state.windows.flatMap(w=>w?.tabs).map(async tabData=>{
-				function base64EncodeString(aString) {
-					let stream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
-						Ci.nsIStringInputStream
-					);
-					stream.setData(aString, aString.length);
-					let encoder = Cc["@mozilla.org/scriptablebase64encoder;1"].createInstance(
-						Ci.nsIScriptableBase64Encoder
-					);
-					return encoder.encodeToString(stream, aString.length);
-				}
-	
-				let LOCAL_PROTOCOLS = ["chrome:", "about:", "resource:", "data:"];
+
+			let p = aFile.path || aFile;
+			let state = await window.IOUtils.readJSON(p, p.match(".(bak|json)lz4")?.[0] ? { decompress: true } : null);
+			if(this._loadSessionFile != load) { return; }
+			if(!Array.isArray(state?.windows)) { throw new Error("Invalid session state"); }
+			let LOCAL_PROTOCOLS = ["chrome:", "about:", "resource:", "data:"];
+			await Promise.allSettled(state.windows.flatMap(w => w?.tabs || []).map(async tabData => {
 				if (tabData?.image && !LOCAL_PROTOCOLS.some(protocol => tabData?.image.startsWith(protocol))){
-					let favicon;
-					let faviconContents;
 					try {
-						favicon = await PlacesUtils.promiseFaviconData(tabData.entries[0].url); 
-						faviconContents =
-							"data:image/png;base64," +
-							base64EncodeString(String.fromCharCode.apply(String, favicon.data))
+						tabData.image = (await PlacesUtils.favicons.getFaviconForPage(PlacesUtils.toURI(tabData.entries[0].url))).dataURI.spec;
 					} catch (ex) {
-						Cu.reportError("Unexpected Error trying to fetch icon data");
-					};
-					if(faviconContents) tabData.image = faviconContents;
+						Cu.reportError(ex);
+					}
 				}
 			}));
-			this.State = window.structuredClone(state);
+			if(this._loadSessionFile != load) { return; }
+			this.State = JSON.parse(JSON.stringify(state));
 			this.readState(state);
-		});
-	},
-
-	getStateForData: function(data) {
-		return JSON.parse(data);
+		}
+		catch(ex) {
+			if(this._loadSessionFile != load) { return; }
+			Cu.reportError(ex);
+			this.invalidNotice.hidden = false;
+		}
+		// Always make sure we restore TMP's current session state if there's one.
+		finally {
+			if(tmpDATASource) {
+				this.TabmixSessionManager.DATASource = tmpDATASource;
+			}
+		}
 	},
 
 	readState: function(state) {
@@ -639,7 +635,7 @@ this.paneSession = {
 					[ '$idx', ++pinnedGroupIdx ],
 					[ '$tabs', pinned.length ]
 				], pinned.length);
-				let groupData = this.createGroupItem(pinnedGroupIdx, label);
+				let groupData = this.createGroupItem(pinnedGroupIdx, label, null, win);
 				for(let tab of pinned) {
 					this.createTabItem(groupData, tab);
 				}
@@ -671,7 +667,7 @@ this.paneSession = {
 								[ '$tabs', groupTabs.length ]
 							], groupTabs.length);
 						}
-						let groupData = this.createGroupItem(tabGroupIdx, label, group);
+						let groupData = this.createGroupItem(tabGroupIdx, label, group, win);
 						for(let tab of groupTabs) {
 							this.createTabItem(groupData, tab);
 						}
@@ -707,13 +703,14 @@ this.paneSession = {
 		this.importfinishedNotice.hidden = true;
 	},
 
-	createGroupItem: function(aIdx, aLabel, aGroup) {
+	createGroupItem: function(aIdx, aLabel, aGroup, aWindow) {
 		let group = {
 			label: aLabel,
 			open: true,
 			checked: this.manualAction,
 			ix: aIdx,
-			tabs: []
+			tabs: [],
+			_window: aWindow
 		};
 		if(!aGroup) {
 			group.pinned = true;
@@ -769,6 +766,14 @@ this.paneSession = {
 		}
 
 		let restoreTabs = [];
+		let selectedByWindow = new Map();
+		let addTab = (group, tab) => {
+			restoreTabs.push(tab);
+			if(!selectedByWindow.has(group._window)) {
+				selectedByWindow.set(group._window, []);
+			}
+			selectedByWindow.get(group._window).push(tab);
+		};
 
 		for(let group of importGroups) {
 			// pinned tabs are direct, just append and restore
@@ -780,7 +785,7 @@ this.paneSession = {
 					tab._tab.pinned = true;
 					tab._tab.hidden = false;
 
-					restoreTabs.push(tab._tab);
+					addTab(group, tab._tab);
 				}
 				continue;
 			}
@@ -803,22 +808,58 @@ this.paneSession = {
 				delete tab._tab.pinned;
 				tab._tab.hidden = true;
 
-				restoreTabs.push(tab._tab);
+				addTab(group, tab._tab);
 			}
 		}
-		
-		Storage._scope.SessionStore.setWindowState(gWindow, {
-			windows: [{
-				tabs: restoreTabs.map(tabData => {
-					if (!tabData.extData) {
-						tabData.extData = {};
+
+		let restoreWindow = { tabs: restoreTabs };
+		let splitViews = [];
+		let nativeGroups = [];
+		for(let [sourceWindow, selectedTabs] of selectedByWindow) {
+			let selected = new Set(selectedTabs);
+			let preserved = new Set();
+			if(typeof Storage._scope.SessionStore.getNextSplitViewId == "function") {
+				for(let splitView of sourceWindow.splitViews || []) {
+					let tabs = sourceWindow.tabs.filter(tab => "splitViewId" in tab && tab.splitViewId === splitView.id);
+					if(tabs.length && tabs.length == splitView.numberOfTabs && tabs.every(tab => selected.has(tab))) {
+						let id = Storage._scope.SessionStore.getNextSplitViewId();
+						for(let tab of tabs) {
+							tab.splitViewId = id;
+							preserved.add(tab);
+						}
+						splitViews.push({ ...splitView, id });
 					}
-					tabData.extData[Storage.kTabIdentifier] = JSON.stringify(tabData._tabData);
-					delete tabData._tabData;
-					return tabData;
-				})
-			}]
-		}, false);
+				}
+			}
+			for(let tab of selectedTabs) {
+				if(!preserved.has(tab)) { delete tab.splitViewId; }
+			}
+
+			preserved.clear();
+			for(let nativeGroup of sourceWindow.groups || []) {
+				let tabs = sourceWindow.tabs.filter(tab => "groupId" in tab && tab.groupId === nativeGroup.id);
+				if(tabs.length && tabs.every(tab => selected.has(tab))) {
+					let id = Services.uuid.generateUUID().toString();
+					for(let tab of tabs) {
+						tab.groupId = id;
+						preserved.add(tab);
+					}
+					nativeGroups.push({ ...nativeGroup, id });
+				}
+			}
+			for(let tab of selectedTabs) {
+				if(!preserved.has(tab)) { delete tab.groupId; }
+			}
+		}
+		if(splitViews.length) { restoreWindow.splitViews = splitViews; }
+		if(nativeGroups.length) { restoreWindow.groups = nativeGroups; }
+
+		for(let tabData of restoreWindow.tabs) {
+			if(!tabData.extData) { tabData.extData = {}; }
+			tabData.extData[Storage.kTabIdentifier] = JSON.stringify(tabData._tabData);
+			delete tabData._tabData;
+		}
+		Storage._scope.SessionStore.setWindowState(gWindow, { windows: [ restoreWindow ] }, false);
 
 		// don't forget to insert back the updated data
 		Storage.saveGroupItemsData(gWindow, {
@@ -843,17 +884,44 @@ this.paneSession = {
 	},
 
 	restoreInNewWindow: async function() {
-		let win = gWindow.OpenBrowserWindow();
-		let promise = new Promise(resolve => {
-        Services.obs.addObserver(function obs(subject, topic) {
-			if (win == subject) {
-				Services.obs.removeObserver(obs, topic);
-				resolve();
+		let state = JSON.parse(JSON.stringify(this.State));
+		let openerWindow = gWindow.browsingContext.topChromeWindow;
+		let win = await ChromeUtils.importESModule("resource:///modules/BrowserWindowTracker.sys.mjs").BrowserWindowTracker.promiseOpenWindow({ openerWindow, private: PrivateBrowsing.isPrivate(openerWindow) });
+
+		let SessionStore = Storage._scope.SessionStore;
+		for(let windowState of state.windows || []) {
+			this.normalizeSplitViews(windowState);
+			if(Array.isArray(windowState.splitViews) && typeof SessionStore.getNextSplitViewId == "function") {
+				let splitViews = [];
+				for(let splitView of windowState.splitViews) {
+					let tabs = (windowState.tabs || []).filter(tab => "splitViewId" in tab && tab.splitViewId === splitView.id);
+					let id = SessionStore.getNextSplitViewId();
+					for(let tab of tabs) {
+						tab.splitViewId = id;
+					}
+					splitViews.push({ ...splitView, id });
+				}
+				windowState.splitViews = splitViews;
 			}
-        }, "browser-delayed-startup-finished");
-		});
-		await promise;
-		Storage._scope.SessionStore.setWindowState(win,this.State,true);
+			else {
+				delete windowState.splitViews;
+				for(let tab of windowState.tabs || []) { delete tab.splitViewId; }
+			}
+
+			this.normalizeGroups(windowState);
+			let groupIds = new Map();
+			for(let group of windowState.groups || []) {
+				let id = Services.uuid.generateUUID().toString();
+				groupIds.set(group.id, id);
+				group.id = id;
+			}
+			for(let tab of windowState.tabs || []) {
+				if("groupId" in tab) {
+					tab.groupId = groupIds.get(tab.groupId);
+				}
+			}
+		}
+		SessionStore.setWindowState(win, state, true);
 
 		this.autoloadedNotice.hidden = true;
 		this.invalidNotice.hidden = true;
@@ -918,6 +986,16 @@ this.paneSession = {
 						this.eraseDataFromWindow(win);
 					}
 				}
+				for(let groups of [ state.savedGroups, SessionStore.savedGroups ]) {
+					for(let group of groups || []) {
+						for(let closed of group.tabs || []) {
+							let tab = closed.state || closed;
+							if(tab.extData) {
+								delete tab.extData[Storage.kTabIdentifier];
+							}
+						}
+					}
+				}
 				state = JSON.stringify(state);
 
 				// The current window can't be closed, otherwise the new session data for other opened windows wouldn't be properly saved.
@@ -960,6 +1038,37 @@ this.paneSession = {
 		}, 10000);
 	},
 
+	normalizeSplitViews: function(win) {
+		let ids = new Set();
+		if(Array.isArray(win.splitViews)) {
+			win.splitViews = win.splitViews.filter(splitView => {
+				let tabs = (win.tabs || []).filter(tab => "splitViewId" in tab && tab.splitViewId === splitView.id);
+				if(ids.has(splitView.id) || !tabs.length || tabs.length != splitView.numberOfTabs) { return false; }
+				ids.add(splitView.id);
+				return true;
+			});
+		}
+		else { delete win.splitViews; }
+		for(let tab of win.tabs || []) {
+			if(!ids.has(tab.splitViewId)) { delete tab.splitViewId; }
+		}
+	},
+
+	normalizeGroups: function(win) {
+		let ids = new Set();
+		if(Array.isArray(win.groups)) {
+			win.groups = win.groups.filter(group => {
+				if(ids.has(group.id) || !(win.tabs || []).some(tab => "groupId" in tab && tab.groupId === group.id)) { return false; }
+				ids.add(group.id);
+				return true;
+			});
+		}
+		else { delete win.groups; }
+		for(let tab of win.tabs || []) {
+			if(!ids.has(tab.groupId)) { delete tab.groupId; }
+		}
+	},
+
 	eraseDataFromWindow: function(win) {
 		let activeGroupId;
 		if(win.extData) {
@@ -981,11 +1090,24 @@ this.paneSession = {
 				}
 			}
 		}
+		this.normalizeSplitViews(win);
+		this.normalizeGroups(win);
 
 		if(win._closedTabs) {
-			for(let tab of win._closedTabs.concat()) {
-				if(!this.eraseDataFromTab(activeGroupId, tab, win._closedTabs)) {
-					this.removeTabFromWindow(tab, win._closedTabs);
+			for(let closed of win._closedTabs.concat()) {
+				if(!this.eraseDataFromTab(activeGroupId, closed.state || closed, win._closedTabs)) {
+					this.removeTabFromWindow(closed, win._closedTabs);
+				}
+			}
+		}
+
+		if(win.closedGroups) {
+			for(let group of win.closedGroups) {
+				for(let closed of group.tabs || []) {
+					let tab = closed.state || closed;
+					if(tab.extData) {
+						delete tab.extData[Storage.kTabIdentifier];
+					}
 				}
 			}
 		}
