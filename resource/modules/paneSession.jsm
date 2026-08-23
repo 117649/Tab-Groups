@@ -571,10 +571,20 @@ this.paneSession = {
 	readState: function(state) {
 		let pinnedGroupIdx = 0;
 		let tabGroupIdx = 0;
+		let windowIdx = 0;
+		let windowStrings = new window.Localization(["browser/aboutSessionRestore.ftl"], true);
 
 		treeView.data = [];
 		for(let win of state.windows) {
+			++windowIdx;
 			if(!win.tabs) { continue; }
+			let windowData = {
+				label: windowStrings.formatValueSync("restore-page-window-label", { windowNumber: windowIdx }),
+				open: true,
+				checked: this.manualAction,
+				groups: [],
+				_window: win
+			};
 
 			let groups;
 			let activeGroupId;
@@ -635,14 +645,11 @@ this.paneSession = {
 					[ '$idx', ++pinnedGroupIdx ],
 					[ '$tabs', pinned.length ]
 				], pinned.length);
-				let groupData = this.createGroupItem(pinnedGroupIdx, label, null, win);
+				let groupData = this.createGroupItem(pinnedGroupIdx, label, null, windowData);
 				for(let tab of pinned) {
 					this.createTabItem(groupData, tab);
 				}
-				treeView.data.push(groupData);
-				for(let tab of groupData.tabs) {
-					treeView.data.push(tab);
-				}
+				windowData.groups.push(groupData);
 			}
 
 			// now divide the existing tab data into their own groups
@@ -667,15 +674,19 @@ this.paneSession = {
 								[ '$tabs', groupTabs.length ]
 							], groupTabs.length);
 						}
-						let groupData = this.createGroupItem(tabGroupIdx, label, group, win);
+						let groupData = this.createGroupItem(tabGroupIdx, label, group, windowData);
 						for(let tab of groupTabs) {
 							this.createTabItem(groupData, tab);
 						}
-						treeView.data.push(groupData);
-						for(let tab of groupData.tabs) {
-							treeView.data.push(tab);
-						}
+						windowData.groups.push(groupData);
 					}
+				}
+			}
+
+			if(windowData.groups.length) {
+				treeView.data.push(windowData);
+				for(let group of windowData.groups) {
+					treeView.data.push(group, ...group.tabs);
 				}
 			}
 		}
@@ -703,14 +714,14 @@ this.paneSession = {
 		this.importfinishedNotice.hidden = true;
 	},
 
-	createGroupItem: function(aIdx, aLabel, aGroup, aWindow) {
+	createGroupItem: function(aIdx, aLabel, aGroup, aWindowData) {
 		let group = {
 			label: aLabel,
 			open: true,
 			checked: this.manualAction,
 			ix: aIdx,
 			tabs: [],
-			_window: aWindow
+			parent: aWindowData
 		};
 		if(!aGroup) {
 			group.pinned = true;
@@ -739,7 +750,7 @@ this.paneSession = {
 	},
 
 	importSelected: function() {
-		let importGroups = treeView.data.filter(function(item, idx) { return treeView.isContainer(idx) && item.checked !== false; });
+		let importGroups = treeView.data.flatMap(function(item) { return item.groups || []; }).filter(function(item) { return item.checked !== false; });
 
 		// no items are selected, no-op
 		if(!importGroups.length) { return; }
@@ -768,11 +779,12 @@ this.paneSession = {
 		let restoreTabs = [];
 		let selectedByWindow = new Map();
 		let addTab = (group, tab) => {
+			let sourceWindow = group.parent._window;
 			restoreTabs.push(tab);
-			if(!selectedByWindow.has(group._window)) {
-				selectedByWindow.set(group._window, []);
+			if(!selectedByWindow.has(sourceWindow)) {
+				selectedByWindow.set(sourceWindow, []);
 			}
-			selectedByWindow.get(group._window).push(tab);
+			selectedByWindow.get(sourceWindow).push(tab);
 		};
 
 		for(let group of importGroups) {
@@ -932,23 +944,26 @@ this.paneSession = {
 	},
 
 	toggleRowChecked: function(aIx) {
-		let isChecked = function(aItem) { return aItem.checked; }
+		let checkedState = function(aItems) {
+			return aItems.every(function(aItem) { return aItem.checked === true; }) ? true : aItems.some(function(aItem) { return aItem.checked !== false; }) ? 0 : false;
+		};
+		let invalidate = function(aItem) {
+			let row = treeView.data.indexOf(aItem);
+			if(row != -1) { treeView.treeBox.invalidateRow(row); }
+		};
+		let setChecked = function(aItem, aChecked) {
+			aItem.checked = aChecked;
+			invalidate(aItem);
+			for(let child of aItem.groups || aItem.tabs || []) {
+				setChecked(child, aChecked);
+			}
+		};
 
 		let item = treeView.data[aIx];
-		item.checked = !item.checked;
-		treeView.treeBox.invalidateRow(aIx);
-
-		if(treeView.isContainer(aIx)) {
-			// (un)check all tabs of this window as well
-			for(let tab of item.tabs) {
-				tab.checked = item.checked;
-				treeView.treeBox.invalidateRow(treeView.data.indexOf(tab));
-			}
-		}
-		else {
-			// update the window's checkmark as well (0 means "partially checked")
-			item.parent.checked = item.parent.tabs.every(isChecked) ? true : item.parent.tabs.some(isChecked) ? 0 : false;
-			treeView.treeBox.invalidateRow(treeView.data.indexOf(item.parent));
+		setChecked(item, !item.checked);
+		for(let parent = item.parent; parent; parent = parent.parent) {
+			parent.checked = checkedState(parent.groups || parent.tabs);
+			invalidate(parent);
 		}
 	},
 
@@ -1174,17 +1189,14 @@ this.treeView = {
 	isSorted: function() { return false; },
 	isEditable: function(idx, column) { return false; },
 	canDrop: function(idx, orientation, dt) { return false; },
-	getLevel: function(idx) { return this.isContainer(idx) ? 0 : 1; },
+	getLevel: function(idx) {
+		let level = 0;
+		for(let item = this.data[idx]; item.parent; item = item.parent) { level++; }
+		return level;
+	},
 
 	getParentIndex: function(idx) {
-		if(!this.isContainer(idx)) {
-			for(let t = idx -1; t >= 0; t--) {
-				if(this.isContainer(t)) {
-					return t;
-				}
-			}
-		}
-		return -1;
+		return this.data.indexOf(this.data[idx].parent);
 	},
 
 	hasNextSibling: function(idx, after) {
@@ -1211,11 +1223,18 @@ this.treeView = {
 			this.treeBox.rowCountChanged(idx +1, -deletecount);
 		}
 		else {
-			// add this group's tab rows to the view
-			let toinsert = this.data[idx].tabs;
-			for(let i = 0; i < toinsert.length; i++) {
-				this.data.splice(idx +i +1, 0, toinsert[i]);
+			// add this item's visible descendants back to the view
+			let toinsert = [];
+			if(item.groups) {
+				for(let group of item.groups) {
+					toinsert.push(group);
+					if(group.open) { toinsert.push(...group.tabs); }
+				}
 			}
+			else {
+				toinsert = item.tabs;
+			}
+			this.data.splice(idx +1, 0, ...toinsert);
 			this.treeBox.rowCountChanged(idx +1, toinsert.length);
 		}
 		item.open = !item.open;
@@ -1233,8 +1252,9 @@ this.treeView = {
 	},
 
 	getRowProperties: function(idx) {
-		let groupState = this.data[idx].parent || this.data[idx];
-		if(groupState.ix % 2 != 0) {
+		let item = this.data[idx];
+		let groupState = item.tabs ? item : item.parent;
+		if(groupState && groupState.tabs && groupState.ix % 2 != 0) {
 			return "alternate";
 		}
 
