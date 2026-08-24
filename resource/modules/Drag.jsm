@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 2.7.8
+// VERSION 2.7.9
 
 // This will be the GroupDrag object created when a group is dragged or resized.
 this.DraggingGroup = null;
@@ -925,7 +925,7 @@ this.TabDrag = function(e, tabItem) {
 	this.item = tabItem;
 	if(!TabItems.selectedItems.has(tabItem)) { TabItems.clearSelection(); TabItems._selectionAnchor = tabItem; }
 	// A split tile carries its partner even without multiselect.
-	this.items = (TabItems.selectedItems.has(tabItem) ? Array.from(TabItems.selectedItems) : [ tabItem, TabItems.getSplitSibling(tabItem.tab)?._tabViewTabItem ].filter(Boolean)).sort((a, b) => a.tab._tPos - b.tab._tPos);
+	this.items = (TabItems.selectedItems.has(tabItem) ? Array.from(TabItems.selectedItems) : [ tabItem, TabItems.getSplitSibling(tabItem.tab)?._tabViewTabItem ].filter(Boolean)).sort((a, b) => (a.tab.index ?? a.tab._tPos) - (b.tab.index ?? b.tab._tPos));
 	this.tabs = this.items.map(item => item.tab);
 	this.draggedTab = tabItem.tab;
 	this.container = tabItem.container;
@@ -970,7 +970,7 @@ this.TabDrag.handleEvent = function(e) {
 			if(DraggingTab) { DraggingTab.end(); }
 
 			DraggingTab = Object.create(TabDrag.prototype);
-			DraggingTab.tabs = tabs.sort((a, b) => a._tPos - b._tPos);
+			DraggingTab.tabs = tabs.sort((a, b) => (a.index ?? a._tPos) - (b.index ?? b._tPos));
 			DraggingTab.draggedTab = draggedTab;
 			DraggingTab.items = [];
 			DraggingTab.external = true;

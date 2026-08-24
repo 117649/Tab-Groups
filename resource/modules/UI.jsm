@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.3.67
+// VERSION 1.3.68
 
 // Used to scroll groups automatically, for instance when dragging a tab over a group's overflown edges.
 this.Synthesizer = {
@@ -987,35 +987,29 @@ this.UI = {
 		switch(aWhere) {
 			case "forward":
 			case "backward": {
-				let sibling = this._activeTab.tab;
-				let x = (aWhere == "forward") ? "next" : "previous";
-				while(sibling && sibling[x+"Sibling"]) {
-					sibling = sibling[x+"Sibling"];
-					if(!sibling.hidden) {
-						this._moveActiveTab(sibling._tPos);
-						break;
-					}
-				}
+				let tabs = Tabs.visible.filter(tab => tab.pinned == this._activeTab.tab.pinned);
+				let sibling = tabs[tabs.indexOf(this._activeTab.tab) + (aWhere == "forward" ? 1 : -1)];
+				if(sibling) { this._moveActiveTab(sibling.index ?? sibling._tPos); }
 				break;
 			}
 			case "tostart":
-				if(this._activeTab.tab._tPos > 0) {
-					this._moveActiveTab(0);
+				if((this._activeTab.tab.index ?? this._activeTab.tab._tPos) > 0) {
+					this._moveActiveTab(0, true);
 				}
 				break;
 
 			case "toend": {
 				let last = Tabs.length -1;
-				if(this._activeTab.tab._tPos < last) {
-					this._moveActiveTab(last);
+				if((this._activeTab.tab.index ?? this._activeTab.tab._tPos) < last) {
+					this._moveActiveTab(last, true);
 				}
 				break;
 			}
 		}
 	},
 
-	_moveActiveTab: function(pos) {
-		gBrowser.moveTabTo(this._activeTab.tab, pos);
+	_moveActiveTab: function(pos, forceUngrouped = false) {
+		gBrowser.moveTabTo(this._activeTab.tab, gBrowser.moveTabTo.length == 1 ? { tabIndex: pos, forceUngrouped } : pos);
 		this._activeTab.parent.reorderTabItemsBasedOnTabOrder();
 	},
 

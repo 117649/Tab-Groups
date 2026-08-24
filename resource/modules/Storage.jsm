@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.2.5
+// VERSION 1.2.6
 
 this.Storage = {
 	kGroupIdentifier: "tabview-group",
@@ -124,10 +124,10 @@ this.Storage = {
 	}
 };
 
-const ESModSM = 'resource:///modules/sessionstore/SessionMigration.sys.mjs';
+const ESModSM = Services.vc.compare(Services.appinfo.version, '156.0a1') < 0 ? 'resource:///modules/sessionstore/SessionMigration.sys.mjs' : 'moz-src:///browser/components/sessionstore/SessionMigration.sys.mjs';
 Modules.LOADMODULE = function() {
 	Modules.load('utils/Listeners');
-	Storage._scope = ChromeUtils.importESModule("resource:///modules/sessionstore/SessionStore.sys.mjs");
+	Storage._scope = ChromeUtils.importESModule(Services.vc.compare(Services.appinfo.version, "156.0a1") < 0 ? "resource:///modules/sessionstore/SessionStore.sys.mjs" : "moz-src:///browser/components/sessionstore/SessionStore.sys.mjs");
 	self.SessionStore = Storage._scope.SessionStore;
 	Storage._migrationScope = Cu.Sandbox(Services.scriptSecurityManager.getSystemPrincipal(), {
 		sandboxPrototype: Storage,

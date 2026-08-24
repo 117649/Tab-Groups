@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.7.26
+// VERSION 1.7.27
 
 // Class: GroupItem - A single groupItem in the TabView window.
 // Parameters:
@@ -2198,7 +2198,7 @@ this.GroupItem.prototype = {
 		UI._reorderTabItemsOnShow.delete(this);
 
 		if(!justItems) {
-			this.children.sort((a,b) => a.tab._tPos - b.tab._tPos);
+			this.children.sort((a,b) => (a.tab.index ?? a.tab._tPos) - (b.tab.index ?? b.tab._tPos));
 		}
 
 		// There's no point in doing this when the group is stacked. The tabs will be re-ordered when it's expanded.
@@ -2890,7 +2890,7 @@ this.GroupItems = {
 		if(tabIndices && movedTabs.some(tab => !tabIndices.has(tab))) { throw new Error("Moved tab is not in the requested order"); }
 		movedTabs = tabIndices && new Set(movedTabs);
 		let tabSet = tabIndices;
-		if(movedTabs && !tabs.some((tab, index) => index && tab._tPos < tabs[index -1]._tPos)) { return; }
+		if(movedTabs && !tabs.some((tab, index) => index && (tab.index ?? tab._tPos) < (tabs[index -1].index ?? tabs[index -1]._tPos))) { return; }
 		if(movedTabs && gBrowser.moveTabBefore) {
 			let first = tabs.findIndex(tab => movedTabs.has(tab)), before = tabs[first -1], after = tabs[first + movedTabs.size];
 			let elements = [...new Set(tabs.slice(first, first + movedTabs.size).map(tab => tab.group && tab.group.tabs.every(groupTab => movedTabs.has(groupTab)) ? tab.group : tab.splitview || tab))];
@@ -2907,14 +2907,14 @@ this.GroupItems = {
 				for(let index = elements.length -1; index >= start; index--) { move(elements[index], sibling); sibling = elements[index]; }
 			}
 			else { let sibling = before || elements[0]; for(let index = before ? 0 : 1; index < elements.length; index++) { move(elements[index], sibling, true); sibling = elements[index]; } }
-			if(!tabs.some((tab, index) => index && tab._tPos < tabs[index -1]._tPos)) { return; }
+			if(!tabs.some((tab, index) => index && (tab.index ?? tab._tPos) < (tabs[index -1].index ?? tabs[index -1]._tPos))) { return; }
 		}
 
 		// Move dragged tabs first so crossing a native-group edge does not pull the intervening tab into that group.
 		(movedTabs ? new Set([...movedTabs, ...tabs]) : tabs).forEach(function(tab, index) {
 			if(movedTabs) { index = tabIndices.get(tab); }
 			if(!indices) {
-				indices = tabs.map(tab => tab._tPos);
+				indices = tabs.map(tab => tab.index ?? tab._tPos);
 			}
 
 			let start = index ? Math.min(indices[index - 1] + 1, gBrowser.tabs.length - 1) : 0;
@@ -2922,11 +2922,11 @@ this.GroupItems = {
 			let end = index + 1 < indices.length ? indices[index + 1] - 1 : Infinity;
 			let targetRange = new Range(start, end);
 
-			if(!targetRange.contains(tab._tPos)) {
-				let crossesGroup = tab.group && (start < tab.group.tabs[0]._tPos || start > tab.group.tabs.at(-1)._tPos);
+			if(!targetRange.contains(tab.index ?? tab._tPos)) {
+				let crossesGroup = tab.group && (start < (tab.group.tabs[0].index ?? tab.group.tabs[0]._tPos) || start > (tab.group.tabs.at(-1).index ?? tab.group.tabs.at(-1)._tPos));
 				if(!movedTabs?.has(tab) && tab.group && !crossesGroup) {
 					if(!tabSet) { tabSet = new Set(tabs); }
-					if(tab.group.tabs.some(groupTab => !tabSet.has(groupTab) && (start < tab._tPos ? groupTab._tPos >= start && groupTab._tPos < tab._tPos : groupTab._tPos > tab._tPos && groupTab._tPos <= start))) { return; }
+					if(tab.group.tabs.some(groupTab => !tabSet.has(groupTab) && (start < (tab.index ?? tab._tPos) ? (groupTab.index ?? groupTab._tPos) >= start && (groupTab.index ?? groupTab._tPos) < (tab.index ?? tab._tPos) : (groupTab.index ?? groupTab._tPos) > (tab.index ?? tab._tPos) && (groupTab.index ?? groupTab._tPos) <= start))) { return; }
 				}
 				let moveGroup = crossesGroup && (!movedTabs?.has(tab) || tab.group.tabs.every(groupTab => movedTabs.has(groupTab)));
 				// Keep complete native groups atomic; only a dragged subset may leave its native group.
@@ -3006,7 +3006,7 @@ this.GroupItems = {
 				shouldFocusTab = true;
 			} else if(Tabs.visible.length > 1) {
 				if(!UI.isTabViewVisible()) {
-					gBrowser._blurTab(tab);
+					Tabs.selected = gBrowser._findTabToBlurTo(tab);
 					shouldUpdateTabBar = true;
 				} else {
 					shouldKeepCurrentGroup = true;

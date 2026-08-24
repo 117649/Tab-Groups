@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.5.1
+// VERSION 1.5.2
 
 ChromeUtils.defineESModuleGetters(this, {PageThumbs: "resource://gre/modules/PageThumbs.sys.mjs",
 	PageThumbsStorage: "resource://gre/modules/PageThumbs.sys.mjs",
@@ -819,7 +819,7 @@ this.TabItems = {
 
 	closeSelected: function(item) {
 		if(!this.selectedItems.has(item)) { item.close(); return; }
-		let items = Array.from(this.selectedItems).sort((a, b) => b.tab._tPos - a.tab._tPos);
+		let items = Array.from(this.selectedItems).sort((a, b) => (b.tab.index ?? b.tab._tPos) - (a.tab.index ?? a.tab._tPos));
 		this.clearSelection();
 		for(let selectedItem of items) {
 			if(!selectedItem.tab) { continue; }

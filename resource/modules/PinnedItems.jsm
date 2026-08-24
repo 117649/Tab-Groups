@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.0.7
+// VERSION 1.0.8
 
 this.PinnedItems = {
 	get actions() { return $('actions'); },
@@ -274,11 +274,11 @@ this.PinnedItems = {
 	// Arranges the given xul:tab as an app tab in the group's apptab tray
 	arrange: function(tab) {
 		let icon = this.icons.get(tab);
-		if(icon && this.tray.childNodes[tab._tPos] != icon) {
+		if(icon && this.tray.childNodes[tab.index ?? tab._tPos] != icon) {
 			// so that the indexes match
 			icon.remove();
 
-			let sibling = this.tray.childNodes[tab._tPos] || null;
+			let sibling = this.tray.childNodes[tab.index ?? tab._tPos] || null;
 			this.tray.insertBefore(icon, sibling);
 		}
 	},

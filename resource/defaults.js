@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.4.25
+// VERSION 1.4.26
 
 objName = 'tabGroups';
 objPathString = 'tabgroups';
@@ -95,7 +95,7 @@ function stopAddon(window) {
 
 // Don't rely on other modules being loaded here, make sure this can do the backup by itself.
 async function backupCurrentSession(prefixSeg = '-update.js-', timesuffix = null) {
-	let tmp = ChromeUtils.importESModule("resource:///modules/sessionstore/SessionStore.sys.mjs");
+	let tmp = ChromeUtils.importESModule(Services.vc.compare(Services.appinfo.version, "156.0a1") < 0 ? "resource:///modules/sessionstore/SessionStore.sys.mjs" : "moz-src:///browser/components/sessionstore/SessionStore.sys.mjs");
 	let window = Windows.getEnumerator('navigator:browser').getNext()
 
 	let prefix = objName + prefixSeg;

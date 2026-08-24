@@ -219,7 +219,7 @@ this.ItemMove = {
 				if(!external) { Listeners.add(drag.container, 'dragend', drag); }
 				PinnedItems.reorderTabsBasedOnAppItemOrder();
 				if(external && (drag.tabs.some(tab => !tab.pinned || !PinnedItems.get(tab))
-				|| [...PinnedItems.tray.childNodes].some((item, index) => item.tab._tPos != index))) {
+				|| [...PinnedItems.tray.childNodes].some((item, index) => (item.tab.index ?? item.tab._tPos) != index))) {
 					throw new Error("Could not place adopted tabs in pinned tabs");
 				}
 				return;
@@ -239,7 +239,7 @@ this.ItemMove = {
 			PinnedItems.add(drag.item.tab, sibling);
 			PinnedItems.reorderTabsBasedOnAppItemOrder();
 			if(external && (!drag.item.tab.pinned || !PinnedItems.get(drag.item.tab)
-			|| [...PinnedItems.tray.childNodes].some((item, index) => item.tab._tPos != index))) {
+			|| [...PinnedItems.tray.childNodes].some((item, index) => (item.tab.index ?? item.tab._tPos) != index))) {
 				throw new Error("Could not place adopted tab in pinned tabs");
 			}
 			return;
@@ -324,7 +324,9 @@ this.ItemMove = {
 				throw new Error("Adopted tab left the destination window");
 			}
 			for(let group of new Set(drag.items.map(tabItem => tabItem.parent).filter(group => group?.isAGroupItem))) {
-				if(group.children.some((tabItem, index) => index && tabItem.tab._tPos < group.children[index -1].tab._tPos)) {
+				if(group.children.some((tabItem, index) => index
+				&& (tabItem.tab.index ?? tabItem.tab._tPos)
+				< (group.children[index - 1].tab.index ?? group.children[index - 1].tab._tPos))) {
 					throw new Error("Could not order adopted tabs in target group");
 				}
 				for(let tabItem of group.children) { tabItem.save(); }
@@ -486,7 +488,7 @@ this.ItemMove = {
 			let restored = nativeGroup.tabs.map(tab => replacements[snapshot.indexes.get(tab)] || tab);
 			if(reuse && nativeGroup.group.isConnected) {
 				for(let tab of restored) { browser[browser.moveTabToExistingGroup ? "moveTabToExistingGroup" : "moveTabToGroup"](tab, nativeGroup.group); }
-				let start = nativeGroup.group.tabs[0]._tPos;
+				let start = nativeGroup.group.tabs[0].index ?? nativeGroup.group.tabs[0]._tPos;
 				for(let tab of new Set(nativeGroup.order.map(tab => {
 					tab = replacements[snapshot.indexes.get(tab)] || tab;
 					return tab.splitview || tab;

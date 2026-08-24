@@ -364,7 +364,7 @@ this.TabView = {
 				const modules = {
 					BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
 					PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
-					SessionStore: "resource:///modules/sessionstore/SessionStore.sys.mjs",
+					SessionStore: Services.vc.compare(Services.appinfo.version, "156.0a1") < 0 ? "resource:///modules/sessionstore/SessionStore.sys.mjs" : "moz-src:///browser/components/sessionstore/SessionStore.sys.mjs",
 					TabMetrics: "moz-src:///browser/components/tabbrowser/TabMetrics.sys.mjs",
 				};
 				ChromeUtils.defineESModuleGetters(lazy, modules);
@@ -766,7 +766,7 @@ this.TabView = {
 		this._initFrame(() => {
 			let tabItems = this._window[objName].TabItems;
 			let tabs = tabItems.selectedItems.has(tab._tabViewTabItem) && tabItems.selectedItems.size > 1 ?
-				Array.from(tabItems.selectedItems, item => item.tab).sort((a, b) => a._tPos - b._tPos) :
+				Array.from(tabItems.selectedItems, item => item.tab).sort((a, b) => (a.index ?? a._tPos) - (b.index ?? b._tPos)) :
 				(tab.multiselected ? gBrowser.selectedTabs : [ tab ]);
 			let targetGroupItemId = groupItemId;
 			for(let selectedTab of tabs) {
