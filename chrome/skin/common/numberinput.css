@@ -9,40 +9,68 @@
   --input-width-offset: calc(var(--input-sppiner-offset) + var(--input-padding-inline));
 }
 
-input[type="number"]:not(:disabled)[increaseDisabled]::-moz-number-spin-up,
-input[type="number"]:not(:disabled)[decreaseDisabled]::-moz-number-spin-down {
-  opacity: 0.6;
+html|input[type="number"] {
+  box-sizing: border-box;
+  height: 26px;
+  padding-block: 0;
+  padding-inline: var(--input-padding-inline) 0;
+  text-align: center;
+  border-radius: 6px;
 }
 
-input[type="number"] {
-  padding-inline-end: 0;
+html|input[type="number"]::-moz-number-spin-box {
+  inline-size: 18px;
+  height: 26px;
 }
 
-input[type="number"]::-moz-number-spin-up,
-input[type="number"]::-moz-number-spin-down {
-  min-height: 11px;
-  margin-block: 0;
-  margin-inline: 2px -2px;
+html|input[type="number"]::-moz-number-spin-up,
+html|input[type="number"]::-moz-number-spin-down {
+  box-sizing: border-box;
+  appearance: none;
+  border-inline-start: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 8px 8px;
+  -moz-context-properties: fill;
+  fill: currentColor;
 }
 
-input[type="number"]:invalid {
+html|input[type="number"]::-moz-number-spin-up {
+  background-image: url("chrome://global/skin/icons/arrow-up-12.svg");
+}
+
+html|input[type="number"]::-moz-number-spin-down {
+  background-image: url("chrome://global/skin/icons/arrow-down-12.svg");
+}
+
+html|input[type="number"]:not(:disabled):not([increaseDisabled])::-moz-number-spin-up:hover,
+html|input[type="number"]:not(:disabled):not([decreaseDisabled])::-moz-number-spin-down:hover {
+  background-color: color-mix(in srgb, currentColor 17%, transparent);
+}
+
+html|input[type="number"]:not(:disabled):not([increaseDisabled])::-moz-number-spin-up:active,
+html|input[type="number"]:not(:disabled):not([decreaseDisabled])::-moz-number-spin-down:active {
+  background-color: color-mix(in srgb, currentColor 30%, transparent);
+}
+
+html|input[type="number"]:invalid {
   border: 1px solid red;
   outline-style: none;
 }
 
 /* fix width issue with some theme/fonts */
-input[type="number"][size="2"] {
+html|input[type="number"][size="2"] {
   width: calc(2ch + var(--input-width-offset));
 }
-input[type="number"][size="3"] {
+html|input[type="number"][size="3"] {
   width: calc(3ch + var(--input-width-offset));
 }
-input[type="number"][size="4"] {
-  width: calc(4ch + var(--input-width-offset));
+html|input[type="number"][size="4"] {
+  width: 52px;
 }
-input[type="number"][size="5"] {
+html|input[type="number"][size="5"] {
   width: calc(5ch + var(--input-width-offset));
 }
-input[type="number"][size="6"] {
+html|input[type="number"][size="6"] {
   width: calc(6ch + var(--input-width-offset));
 }
