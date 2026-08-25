@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 2.7.0
+// VERSION 2.7.1
 Modules.UTILS = true;
 Modules.BASEUTILS = true;
 
@@ -37,7 +37,7 @@ this.Watchers = {
 	// Properties part, works by replacing the get and set accessor methods of a property with custom ones
 	addPropertyWatcher: function(obj, prop, handler, capture) {
 		if(!this.setWatchers(obj)) { return false; }
-		capture = (capture) ? true : false;
+		capture = !!capture;
 
 		if(!obj[this._obj].properties[prop]) {
 			var propHandler = {
@@ -95,7 +95,7 @@ this.Watchers = {
 
 	removePropertyWatcher: function(obj, prop, handler, capture) {
 		if(!obj[this._obj] || !obj[this._obj].properties[prop]) { return false; }
-		capture = (capture) ? true : false;
+		capture = !!capture;
 
 		for(let stored of obj[this._obj].properties[prop].handlers) {
 			if(stored.handler == handler && stored.capture == capture) {
@@ -120,8 +120,8 @@ this.Watchers = {
 	// Attributes part, works through delayed DOM Mutation Observers
 	addAttributeWatcher: function(obj, attr, handler, capture, iterateAll) {
 		if(!this.setWatchers(obj)) { return; }
-		capture = (capture) ? true : false;
-		iterateAll = (capture || iterateAll) ? true : false;
+		capture = !!capture;
+		iterateAll = !!(capture || iterateAll);
 
 		if(typeof(attr) == 'string') {
 			attr = [attr];
@@ -151,8 +151,8 @@ this.Watchers = {
 
 	removeAttributeWatcher: function(obj, attr, handler, capture, iterateAll) {
 		if(!obj || !obj[this._obj]) { return; }
-		capture = (capture) ? true : false;
-		iterateAll = (capture || iterateAll) ? true : false;
+		capture = !!capture;
+		iterateAll = !!(capture || iterateAll);
 
 		if(typeof(attr) == 'string') {
 			attr = [attr];
@@ -194,10 +194,8 @@ this.Watchers = {
 
 		if(!obj.ownerDocument) { return true; }
 
-		handler._connected = false;
 		handler.attributes = new Map();
 		handler.mutations = [];
-		handler.scheduler = null;
 		handler.reconnect = function() {
 			if(this.connected) { return; }
 			this.connected = true;
@@ -219,19 +217,6 @@ this.Watchers = {
 			this.connected = false;
 
 			this.mutationObserver.disconnect();
-		};
-		handler.scheduleWatchers = function(mutations, observer) {
-			if(this.schedule) {
-				this.schedule = null;
-			}
-
-			for(let m of mutations) {
-				this.mutations.push(m);
-			}
-
-			// the script could become really heavy if it called the main function everytime (width attribute on sidebar and dragging it for instance)
-			// I'm simply following the changes asynchronously; any delays for heavily changed attributes should be handled properly by the actual handlers.
-			this.schedule = (async () => { this.callAttrWatchers(); })();
 		};
 		handler.callAttrWatchers = function() {
 			this.disconnect();
@@ -326,8 +311,9 @@ this.Watchers = {
 
 			this.reconnect();
 		};
-		handler.mutationObserver = new obj.ownerDocument.defaultView.MutationObserver((mutations, observer) => {
-			handler.scheduleWatchers(mutations, observer);
+		handler.mutationObserver = new obj.ownerDocument.defaultView.MutationObserver(mutations => {
+			for(let mutation of mutations) { handler.mutations.push(mutation); }
+			handler.callAttrWatchers();
 		});
 
 		return true;
