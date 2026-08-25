@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 2.7.4
+// VERSION 2.7.5
 
 // This will be the GroupDrag object created when a group is dragged or resized.
 this.DraggingGroup = null;
@@ -89,7 +89,7 @@ this.GroupDrag.handleEvent = function(e) {
 			if(!group?.isAGroupItem || !sourceWindow || sourceWindow == gWindow
 			|| PrivateBrowsing.isPrivate(sourceWindow) != PrivateBrowsing.isPrivate(gWindow)) { return; }
 			// Native dragexit is unreliable between windows, so only the current receiver keeps a preview.
-			for(let frame of sourceWindow.tabGroups.TabView._window.tabGroups.DraggingGroup?.dropWindows || []) { if(frame != window && frame.tabGroups.DraggingGroup?.external) { frame.tabGroups.DraggingGroup.end(); } }
+			for(let frame of sourceWindow.tabGroups.TabView._window.tabGroups.DraggingGroup?.dropWindows || sourceWindow.tabGroups.TabView._window.tabGroups.DraggingGroupSelector?.dropWindows || []) { if(frame != window && frame.tabGroups.DraggingGroup?.external) { frame.tabGroups.DraggingGroup.end(); } }
 			if(DraggingGroup) {
 				if(!DraggingGroup.external) { return; }
 				if(DraggingGroup.item == group) { e.preventDefault(); return; }
@@ -743,6 +743,8 @@ this.GroupSelectorDrag = function(e, item) {
 
 	// Carry a native tab node across windows; the private type keeps other drop targets out.
 	e.dataTransfer.mozSetDataAt(GroupDrag.TYPE, item.groupItem.children[0]?.tab ?? item, 0);
+	this.native = true;
+	GroupDrag.prototype.toggleDropListeners.call(this, true);
 
 	this.item.groupItem.isDragging = true;
 	Listeners.add(this.item, 'dragend', this);
@@ -897,6 +899,7 @@ this.GroupSelectorDrag.prototype = {
 	},
 
 	end: function() {
+		if(this.dropWindows) { GroupDrag.prototype.toggleDropListeners.call(this, false); }
 		if(this.dropTarget) {
 			this.dropTarget.classList.remove('space-before');
 			this.dropTarget.classList.remove('space-after');
