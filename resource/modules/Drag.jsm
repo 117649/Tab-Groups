@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 2.7.6
+// VERSION 2.7.7
 
 // This will be the GroupDrag object created when a group is dragged or resized.
 this.DraggingGroup = null;
@@ -1100,27 +1100,6 @@ this.TabDrag.prototype = {
 		}
 	},
 
-	// Split partners are selected together; GroupItem.add() moves the second half with the first.
-	getMovableItems: function() { return this.items.filter(item => !TabItems.getSplitSibling(item.tab) || item.tab.splitview.tabs[0] == item.tab); },
-
-	moveItemsToGroup: function(groupItem, index) {
-		let sourceGroups = new Set(this.items.map(item => item.parent).filter(Boolean));
-		for(let item of this.items) { item.parent?.remove(item, { dontArrange: true, dontClose: true }); }
-
-		for(let item of this.getMovableItems()) {
-			groupItem.add(item, { index: index, dontArrange: true, dontSetActive: true });
-			index += TabItems.getSplitSibling(item.tab) ? 2 : 1;
-		}
-
-		for(let sourceGroup of sourceGroups) {
-			if(sourceGroup != groupItem && !sourceGroup.closeIfEmpty()) {
-				sourceGroup._unfreezeItemSize(true);
-				sourceGroup.arrange();
-			}
-		}
-		groupItem.arrange();
-	},
-
 	dropHere: function(sibling) {
 		// This shouldn't happen, but still better make sure.
 		if(sibling == this.item) { return; }
@@ -1221,188 +1200,8 @@ this.TabDrag.prototype = {
 		}
 	},
 
-	pinItem: function() {
-		let tab = this.draggedTab;
-		if(!tab.pinned) {
-			Listeners.remove(this.container, 'dragend', this);
-			gBrowser.pinTab(tab);
-			this.item = PinnedItems.get(tab);
-			this.container = this.item.container;
-			Listeners.add(this.container, 'dragend', this);
-		}
-	},
-
-	unpinItem: function() {
-		let tab = this.draggedTab;
-		if(tab.pinned) {
-			Listeners.remove(this.container, 'dragend', this);
-			gBrowser.unpinTab(tab);
-			this.item = tab._tabViewTabItem;
-			this.container = this.item.container;
-			Listeners.add(this.container, 'dragend', this);
-		}
-	},
-
-	drop: function(e, external = this.external) {
-		let dropTarget = this.dropTarget;
-
-		// No-op, shouldn't happen though.
-		if(!dropTarget) { return; }
-
-		if(this.external) {
-			let destinationTabs = [...gBrowser.tabs], destinationGroups = new Map([...GroupItems].map(group => [ group, { active: group._activeTab, bounds: UI.classic && group.getBounds() } ]));
-			if(!ItemMove.moveTabs(this.tabs, {
-				commit: adoptedTabs => {
-					let item = adoptedTabs[this.tabs.indexOf(this.draggedTab)]?._tabViewTabItem;
-					this.tabs = adoptedTabs;
-					this.items = this.tabs.map(tab => tab._tabViewTabItem).filter(Boolean);
-					if(!item) { throw new Error("Adopted dragged tab has no TabItem"); }
-					this.item = item;
-					this.draggedTab = item.tab;
-					this.container = item.container;
-					this.external = false;
-					this.drop(e, external);
-					if(this.tabs.some(tab => !tab.isConnected || tab.documentGlobal != gWindow)) { throw new Error("Adopted tab left the destination window"); }
-					for(let group of new Set(this.items.map(item => item.parent).filter(group => group?.isAGroupItem))) {
-						if(group.children.some((item, index) => index && item.tab._tPos < group.children[index -1].tab._tPos)) { throw new Error("Could not order adopted tabs in target group"); }
-						for(let item of group.children) { item.save(); }
-					}
-				},
-				rollback: () => {
-					let orderChanged, restore = action => { try { action(); } catch(ex) { Cu.reportError(ex); } };
-					restore(() => { orderChanged = destinationTabs.some((tab, index) => gBrowser.tabs[index] != tab); if(orderChanged) { GroupItems.reorderTabsBasedOnGivenOrder(destinationTabs); } });
-					if(orderChanged) { for(let tab of destinationTabs) { if(tab.pinned) { restore(() => PinnedItems.arrange(tab)); } } }
-					for(let group of [...GroupItems]) { if(!destinationGroups.has(group) && !group.children.length) { restore(() => group.close({ immediately: true })); } }
-					for(let [group, state] of destinationGroups) { if(state.active?.parent == group) { restore(() => group.setActiveTab(state.active)); } if(state.bounds) { restore(() => { if(!group.getBounds().equals(state.bounds)) { group.setBounds(state.bounds, true, true); } }); } }
-				}
-			})) { this.external = true; }
-			return;
-		}
-
-		// When dropping onto a group selector, the tab should be added to the corresponding group.
-		if(dropTarget.isASelectorItem) {
-			dropTarget = dropTarget.groupItem;
-			let sameGroup = this.items.every(item => dropTarget == item.parent);
-
-			// Internal drops on the current selector are a no-op; external drops still need their adoption order reconciled.
-			if(sameGroup && !external) { return; }
-
-			// When dragging a pinned tab into a group, we need to unpin it first, so that we have a tab item that we can drag.
-			this.unpinItem();
-
-			// See the note below on dropping onto a stacked group case.
-			if(!sameGroup) { dropTarget._activeTab = null; }
-			if(this.items.length > 1) {
-				this.moveItemsToGroup(dropTarget, dropTarget.children.filter(item => !this.items.includes(item)).length);
-			} else {
-				dropTarget.add(this.item, { dontArrange: true, dontSetActive: true });
-				dropTarget.reorderTabItemsBasedOnTabOrder(true);
-			}
-			dropTarget.reorderTabsBasedOnTabItemOrder(this.tabs);
-			if(external && this.items.some(item => item.parent != dropTarget || !dropTarget.children.includes(item))) { throw new Error("Could not place adopted tabs in target group"); }
-		}
-		// If we have a valid drop target (group), add the item to it.
-		else if(dropTarget.isAGroupItem) {
-			// When dragging a pinned tab into a group, we need to unpin it first, so that we have a tab item that we can drag.
-			this.unpinItem();
-
-			let options = { dontSetActive: external };
-			let ii = dropTarget.children.indexOf(this.item);
-			if(this.sibling) {
-				options.index = dropTarget.children.indexOf(this.sibling);
-				if(TabItems.getSplitSibling(this.sibling.tab) ? this.sibling.tab.splitview.tabs.at(-1) == this.sibling.tab : this.sibling.container.classList.contains('space-after')) {
-					options.index++;
-				}
-				// Only this item is removed before insertion; GroupItem.add() repositions its split partner afterward.
-				if(ii > -1 && ii < options.index) {
-					options.index--;
-				}
-			}
-			else if(dropTarget.isStacked) {
-				// If dropping onto the same stacked group it came from, keep the same index.
-				if(ii > -1) {
-					options.index = ii;
-				}
-				// otherwise make it the active (top) tab on the stack, even though it'll be the last tab in the group.
-				else {
-					// nulling the group's active tab, will make the dragged tab the active one in .add(),
-					// which also rearranges the group when that happens, so there's no need to call that twice.
-					dropTarget._activeTab = null;
-					options.dontArrange = true;
-				}
-			}
-			if(this.items.length > 1) {
-				let children = dropTarget.children.filter(item => !this.items.includes(item));
-				let index = children.indexOf(this.sibling);
-				if(!this.sibling || index == -1) { index = children.length; }
-				else if(TabItems.getSplitSibling(this.sibling.tab) ? this.sibling.tab.splitview.tabs.at(-1) == this.sibling.tab : this.sibling.container.classList.contains('space-after')) { index++; }
-				this.moveItemsToGroup(dropTarget, index);
-				if(!external && this.items.some(item => item.tab.selected)) { UI.setActive(dropTarget); }
-			} else {
-				dropTarget.add(this.item, options);
-			}
-			// Apply native-group membership on drop so TabView's group cue updates immediately.
-			dropTarget.reorderTabsBasedOnTabItemOrder(this.tabs);
-			if(external && this.items.some(item => item.parent != dropTarget || !dropTarget.children.includes(item))) { throw new Error("Could not place adopted tabs in target group"); }
-		}
-		// If the drop target is the pinned tabs area, we should make sure the tab is pinned. Things are a little easier than as above though.
-		else if(dropTarget == PinnedItems.tray) {
-			if(this.items.length > 1) {
-				Listeners.remove(this.container, 'dragend', this);
-				let sibling = this.sibling;
-				if(sibling?.classList.contains('space-after')) { sibling = sibling.nextSibling; }
-				for(let tab of this.tabs) { gBrowser.pinTab(tab); }
-				for(let tab of this.tabs) { PinnedItems.add(tab, sibling); }
-				this.item = PinnedItems.get(this.draggedTab);
-				this.container = this.item.container;
-				Listeners.add(this.container, 'dragend', this);
-				PinnedItems.reorderTabsBasedOnAppItemOrder();
-				if(external && (this.tabs.some(tab => !tab.pinned || !PinnedItems.get(tab)) || [...PinnedItems.tray.childNodes].some((item, index) => item.tab._tPos != index))) { throw new Error("Could not place adopted tabs in pinned tabs"); }
-				return;
-			}
-
-			// Pin the tab first, so that our handlers can first remove the original tab item, and then register it as an app tab.
-			this.pinItem();
-
-			let sibling = this.sibling;
-			if(sibling && sibling.classList.contains('space-after')) {
-				sibling = sibling.nextSibling;
-				if(sibling && sibling == this.item) {
-					sibling = sibling.nextSibling;
-				}
-			}
-
-			PinnedItems.add(this.item.tab, sibling);
-			PinnedItems.reorderTabsBasedOnAppItemOrder();
-			if(external && (!this.item.tab.pinned || !PinnedItems.get(this.item.tab) || [...PinnedItems.tray.childNodes].some((item, index) => item.tab._tPos != index))) { throw new Error("Could not place adopted tab in pinned tabs"); }
-		}
-		// Otherwise create a new group in the place where the tab was dropped.
-		else {
-			// We wouldn't be creating a new group for pinned tabs of course.
-			this.unpinItem();
-
-			let tabWidth = 10;
-			let tabHeight = 50;
-			if(this.item.parent && this.item.parent._lastTabSize) {
-				tabWidth += this.item.parent._lastTabSize.tabWidth + (this.item.parent._lastTabSize.tabPadding *2);
-				tabHeight += this.item.parent._lastTabSize.tabHeight + (this.item.parent._lastTabSize.tabPadding *2);
-			} else {
-				tabWidth += TabItems.tabWidth;
-				tabHeight += TabItems.tabHeight;
-			}
-
-			let options = {
-				focusTitle: true,
-				dontSetActive: external
-			};
-			if(UI.classic) {
-				options.bounds = new Rect(e.offsetX - (tabWidth /2), e.offsetY - (tabHeight /2), tabWidth, tabHeight);
-			}
-
-			let group = new GroupItem(this.items.length > 1 ? this.getMovableItems() : [ this.item ], options);
-			group.reorderTabsBasedOnTabItemOrder(this.tabs);
-			if(external && this.items.some(item => item.parent != group || !group.children.includes(item))) { throw new Error("Could not place adopted tabs in new group"); }
-		}
+	drop: function(e) {
+		return ItemMove.moveTabs(this, e);
 	},
 
 	end: function() {

@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.0.5
+// VERSION 1.0.6
 
-// Keep adoption, source fallback, native-group restoration, and rollback in one transaction.
+// Keep placement, cross-window adoption, validation, and rollback in one transaction.
 // Firefox creates replacement tab nodes, so split views stay atomic and the selected tab moves last.
 this.ItemMove = {
 	moveGroup: function(sourceGroup, dropTarget, previewBounds) {
@@ -90,15 +90,145 @@ this.ItemMove = {
 		return true;
 	},
 
-	moveTabs: function(tabs, transaction) {
-		let adoptedTabs = new Array(tabs.length), selectedTab = tabs.find(tab => tab.selected), selectedIndex = tabs.indexOf(selectedTab), sourceWindow = tabs[0].documentGlobal;
-		let sourceBrowser = sourceWindow.gBrowser, sourceFrame = Cu.waiveXrays(sourceWindow.tabGroups.TabView._window), tabSet = new Set(tabs), sourceItems = tabs.map(tab => ({ parent: tab._tabViewTabItem?.parent, index: tab._tabViewTabItem?.parent?.children.indexOf(tab._tabViewTabItem), pinned: tab.pinned, active: tab._tabViewTabItem?.parent?._activeTab == tab._tabViewTabItem }));
+	moveTabs: function(drag, e) {
+		if(!drag?.dropTarget) { return false; }
+		if(drag.external) { return this._moveExternalTabs(drag, e); }
+		this._placeTabs(drag, e, false);
+		return true;
+	},
+
+	_getMovableItems: function(drag) {
+		return drag.items.filter(item => !TabItems.getSplitSibling(item.tab) || item.tab.splitview.tabs[0] == item.tab);
+	},
+
+	_moveItemsToGroup: function(drag, groupItem, index) {
+		let sourceGroups = new Set(drag.items.map(item => item.parent).filter(Boolean));
+		for(let item of drag.items) { item.parent?.remove(item, { dontArrange: true, dontClose: true }); }
+		for(let item of this._getMovableItems(drag)) {
+			groupItem.add(item, { index, dontArrange: true, dontSetActive: true });
+			index += TabItems.getSplitSibling(item.tab) ? 2 : 1;
+		}
+		for(let sourceGroup of sourceGroups) {
+			if(sourceGroup != groupItem && !sourceGroup.closeIfEmpty()) {
+				sourceGroup._unfreezeItemSize(true);
+				sourceGroup.arrange();
+			}
+		}
+		groupItem.arrange();
+	},
+
+	_unpinItem: function(drag, external) {
+		let tab = drag.draggedTab;
+		if(tab.pinned) {
+			if(!external) { Listeners.remove(drag.container, 'dragend', drag); }
+			gBrowser.unpinTab(tab);
+			drag.item = tab._tabViewTabItem;
+			drag.container = drag.item.container;
+			if(!external) { Listeners.add(drag.container, 'dragend', drag); }
+		}
+	},
+
+	_placeTabs: function(drag, e, external) {
+		let dropTarget = drag.dropTarget;
+		if(dropTarget.isASelectorItem) {
+			dropTarget = dropTarget.groupItem;
+			let sameGroup = drag.items.every(item => dropTarget == item.parent);
+			if(sameGroup && !external) { return; }
+			this._unpinItem(drag, external);
+			if(!sameGroup) { dropTarget._activeTab = null; }
+			if(drag.items.length > 1) { this._moveItemsToGroup(drag, dropTarget, dropTarget.children.filter(item => !drag.items.includes(item)).length); }
+			else {
+				dropTarget.add(drag.item, { dontArrange: true, dontSetActive: true });
+				dropTarget.reorderTabItemsBasedOnTabOrder(true);
+			}
+		}
+		else if(dropTarget.isAGroupItem) {
+			this._unpinItem(drag, external);
+			let options = { dontSetActive: external };
+			let ii = dropTarget.children.indexOf(drag.item), afterSibling = drag.sibling && (TabItems.getSplitSibling(drag.sibling.tab) ? drag.sibling.tab.splitview.tabs.at(-1) == drag.sibling.tab : drag.sibling.container.classList.contains('space-after'));
+			if(drag.sibling) {
+				options.index = dropTarget.children.indexOf(drag.sibling);
+				if(afterSibling) { options.index++; }
+				if(ii > -1 && ii < options.index) { options.index--; }
+			}
+			else if(dropTarget.isStacked) {
+				if(ii > -1) { options.index = ii; }
+				else { dropTarget._activeTab = null; options.dontArrange = true; }
+			}
+			if(drag.items.length > 1) {
+				let children = dropTarget.children.filter(item => !drag.items.includes(item));
+				let index = children.indexOf(drag.sibling);
+				if(!drag.sibling || index == -1) { index = children.length; }
+				else if(afterSibling) { index++; }
+				this._moveItemsToGroup(drag, dropTarget, index);
+				if(!external && drag.items.some(item => item.tab.selected)) { UI.setActive(dropTarget); }
+			}
+			else { dropTarget.add(drag.item, options); }
+		}
+		else if(dropTarget == PinnedItems.tray) {
+			if(drag.items.length > 1) {
+				if(!external) { Listeners.remove(drag.container, 'dragend', drag); }
+				let sibling = drag.sibling;
+				if(sibling?.classList.contains('space-after')) { sibling = sibling.nextSibling; }
+				for(let tab of drag.tabs) { gBrowser.pinTab(tab); }
+				for(let tab of drag.tabs) { PinnedItems.add(tab, sibling); }
+				drag.item = PinnedItems.get(drag.draggedTab);
+				drag.container = drag.item.container;
+				if(!external) { Listeners.add(drag.container, 'dragend', drag); }
+				PinnedItems.reorderTabsBasedOnAppItemOrder();
+				if(external && (drag.tabs.some(tab => !tab.pinned || !PinnedItems.get(tab)) || [...PinnedItems.tray.childNodes].some((item, index) => item.tab._tPos != index))) { throw new Error("Could not place adopted tabs in pinned tabs"); }
+				return;
+			}
+			if(!drag.draggedTab.pinned) {
+				if(!external) { Listeners.remove(drag.container, 'dragend', drag); }
+				gBrowser.pinTab(drag.draggedTab);
+				drag.item = PinnedItems.get(drag.draggedTab);
+				drag.container = drag.item.container;
+				if(!external) { Listeners.add(drag.container, 'dragend', drag); }
+			}
+			let sibling = drag.sibling;
+			if(sibling && sibling.classList.contains('space-after')) {
+				sibling = sibling.nextSibling;
+				if(sibling && sibling == drag.item) { sibling = sibling.nextSibling; }
+			}
+			PinnedItems.add(drag.item.tab, sibling);
+			PinnedItems.reorderTabsBasedOnAppItemOrder();
+			if(external && (!drag.item.tab.pinned || !PinnedItems.get(drag.item.tab) || [...PinnedItems.tray.childNodes].some((item, index) => item.tab._tPos != index))) { throw new Error("Could not place adopted tab in pinned tabs"); }
+			return;
+		}
+		else {
+			this._unpinItem(drag, external);
+			let tabWidth = 10, tabHeight = 50;
+			if(drag.item.parent && drag.item.parent._lastTabSize) {
+				tabWidth += drag.item.parent._lastTabSize.tabWidth + drag.item.parent._lastTabSize.tabPadding * 2;
+				tabHeight += drag.item.parent._lastTabSize.tabHeight + drag.item.parent._lastTabSize.tabPadding * 2;
+			}
+			else { tabWidth += TabItems.tabWidth; tabHeight += TabItems.tabHeight; }
+			let options = { focusTitle: true, dontSetActive: external };
+			if(UI.classic) { options.bounds = new Rect(e.offsetX - tabWidth / 2, e.offsetY - tabHeight / 2, tabWidth, tabHeight); }
+			let group = new GroupItem(drag.items.length > 1 ? this._getMovableItems(drag) : [ drag.item ], options);
+			group.reorderTabsBasedOnTabItemOrder(drag.tabs);
+			if(external && drag.items.some(item => item.parent != group || !group.children.includes(item))) { throw new Error("Could not place adopted tabs in new group"); }
+			return;
+		}
+		dropTarget.reorderTabsBasedOnTabItemOrder(drag.tabs);
+		if(external && drag.items.some(item => item.parent != dropTarget || !dropTarget.children.includes(item))) { throw new Error("Could not place adopted tabs in target group"); }
+	},
+
+	_moveExternalTabs: function(drag, e) {
+		let tabs = drag.tabs, tabSet = new Set(tabs), sourceWindow = tabs[0]?.documentGlobal, draggedIndex = tabs.indexOf(drag.draggedTab);
+		if(!sourceWindow?.tabGroups?.TabView?._window || sourceWindow == gWindow || draggedIndex < 0 || tabSet.size != tabs.length
+		|| PrivateBrowsing.isPrivate(sourceWindow) != PrivateBrowsing.isPrivate(gWindow)
+		|| tabs.some(tab => tab.documentGlobal != sourceWindow || tab.splitview?.tabs.some(splitTab => !tabSet.has(splitTab)))) { return false; }
+		let adoptedTabs = new Array(tabs.length), selectedTab = tabs.find(tab => tab.selected), selectedIndex = tabs.indexOf(selectedTab);
+		let sourceBrowser = sourceWindow.gBrowser, sourceFrame = Cu.waiveXrays(sourceWindow.tabGroups.TabView._window), sourceItems = tabs.map(tab => ({ parent: tab._tabViewTabItem?.parent, index: tab._tabViewTabItem?.parent?.children.indexOf(tab._tabViewTabItem), pinned: tab.pinned, active: tab._tabViewTabItem?.parent?._activeTab == tab._tabViewTabItem }));
 		let sourceGroups = new Set(sourceItems.map(item => item.parent).filter(Boolean)), nativeGroups = this._nativeGroups(tabs);
 		let sourceActiveTab = sourceFrame.tabGroups.UI.getActiveTab(), sourceActiveGroup = sourceFrame.tabGroups.GroupItems.getActiveGroupItem(), sourceSelectedTab = sourceBrowser.selectedTab;
 		let needsFallback = selectedTab || tabSet.has(sourceActiveTab?.tab) || sourceActiveGroup && !sourceActiveGroup.children.some(item => !tabSet.has(item.tab));
 		// Preserve the fallback group's active tab unless that tab is also being moved.
 		let fallbackItem = needsFallback && this._fallbackTab(sourceFrame, group => !group.hidden && (!tabSet.has(group.getActiveTab()?.tab) ? group.getActiveTab() : group.children.find(item => !tabSet.has(item.tab)))?.tab)?._tabViewTabItem;
 		let fallbackGroup = fallbackItem?.parent, fallbackCreated = false, resumeAutoclose = !sourceFrame.tabGroups.GroupItems._autoclosePaused;
+		let destinationTabs = [...gBrowser.tabs], destinationSelectedTab = gBrowser.selectedTab, destinationGroups = new Map([...GroupItems].map(group => [ group, { active: group._activeTab, bounds: UI.classic && group.getBounds() } ]));
 		let restore = action => { try { return action(); } catch(rollbackEx) { Cu.reportError(rollbackEx); } };
 		try {
 			if(resumeAutoclose) { sourceFrame.tabGroups.GroupItems.pauseAutoclose(); }
@@ -111,7 +241,20 @@ this.ItemMove = {
 			}
 			adoptedTabs = this._adopt(tabs, selectedTab, gBrowser, adoptedTabs, false);
 			this._applyNativeGroups(gBrowser, nativeGroups, adoptedTabs);
-			if(transaction) { transaction.commit(adoptedTabs); }
+			let item = adoptedTabs[draggedIndex]?._tabViewTabItem;
+			drag.tabs = adoptedTabs;
+			drag.items = adoptedTabs.map(tab => tab._tabViewTabItem).filter(Boolean);
+			if(!item) { throw new Error("Adopted dragged tab has no TabItem"); }
+			drag.item = item;
+			drag.draggedTab = item.tab;
+			drag.container = item.container;
+			drag.external = false;
+			this._placeTabs(drag, e, true);
+			if(adoptedTabs.some(tab => !tab.isConnected || tab.documentGlobal != gWindow)) { throw new Error("Adopted tab left the destination window"); }
+			for(let group of new Set(drag.items.map(tabItem => tabItem.parent).filter(group => group?.isAGroupItem))) {
+				if(group.children.some((tabItem, index) => index && tabItem.tab._tPos < group.children[index -1].tab._tPos)) { throw new Error("Could not order adopted tabs in target group"); }
+				for(let tabItem of group.children) { tabItem.save(); }
+			}
 		}
 		catch(ex) {
 			let restoredTabs = new Array(tabs.length);
@@ -142,14 +285,27 @@ this.ItemMove = {
 				});
 				restore(() => { let tab = restoredTabs[selectedIndex] || sourceSelectedTab; if(tab?.isConnected && tab.documentGlobal == sourceWindow) { sourceBrowser.selectedTab = tab; } });
 			}
-			if(transaction?.rollback) { restore(() => transaction.rollback()); }
+			restore(() => { if(gBrowser.tabs.length != destinationTabs.length || destinationTabs.some((tab, index) => gBrowser.tabs[index] != tab)) { GroupItems.reorderTabsBasedOnGivenOrder(destinationTabs); } });
+			for(let tab of destinationTabs) { if(tab.pinned) { restore(() => PinnedItems.arrange(tab)); } }
+			for(let group of [...GroupItems]) { if(!destinationGroups.has(group) && !group.children.length) { restore(() => group.close({ immediately: true })); } }
+			for(let [group, state] of destinationGroups) {
+				if(state.active?.parent == group) { restore(() => group.setActiveTab(state.active)); }
+				if(state.bounds) { restore(() => { if(!group.getBounds().equals(state.bounds)) { group.setBounds(state.bounds, true, true); } }); }
+			}
+			restore(() => { if(destinationSelectedTab?.isConnected && destinationSelectedTab.documentGlobal == gWindow) { gBrowser.selectedTab = destinationSelectedTab; } });
+			drag.tabs = restoredTabs;
+			drag.items = restoredTabs.map(tab => tab?._tabViewTabItem).filter(Boolean);
+			drag.draggedTab = restoredTabs[draggedIndex] || tabs[draggedIndex];
+			drag.item = drag.draggedTab?._tabViewTabItem;
+			drag.container = drag.item?.container;
+			drag.external = true;
 			if(fallbackCreated && !fallbackGroup._uninited && recovered
 			&& restore(() => { sourceBrowser.removeTab(fallbackItem.tab, { animate: false }); return true; })
 			&& !fallbackGroup.children.length && !fallbackGroup._uninited) {
 				restore(() => fallbackGroup.close({ immediately: true }));
 			}
 			Cu.reportError(ex);
-			return null;
+			return false;
 		}
 		finally {
 			restore(() => { if(!sourceWindow.closed) { sourceFrame.tabGroups.UI._dontHideTabView = false; } });
@@ -157,7 +313,7 @@ this.ItemMove = {
 		}
 		if(!sourceWindow.closed) { sourceFrame.tabGroups.DraggingTab?.end(); }
 		for(let group of sourceGroups) { group.getActiveTab()?.save(); if(!group.closeIfEmpty()) { group.arrange(); } }
-		return adoptedTabs;
+		return true;
 	},
 
 	// GroupItems are rewrapped on return; carry their native tab node across the sandbox boundary instead.
@@ -180,9 +336,10 @@ this.ItemMove = {
 				for(let [i, splitTab] of splitTabs.entries()) { adopted[indexes.get(splitTab)] = splitview.tabs[i]; }
 			}
 			else {
-				// Adopt pinned tabs beyond Firefox's pinned boundary so TabOpen creates the TabItem before the drop target applies pinning.
+				// Placement owns pin state; always create the TabItem before applying the drop target.
 				adopted[index] = browser.adoptTab(tab, browser.adoptTab.length == 1 ? { tabIndex: browser.tabs.length + (tab.pinned ? 1 : 0), selectTab: select } : browser.tabs.length, select);
 				if(!adopted[index]) { throw new Error(`Could not adopt ${tab == selectedTab ? "selected " : ""}tab`); }
+				if(adopted[index].pinned) { browser.unpinTab(adopted[index]); }
 			}
 		};
 		for(let [index, tab] of tabs.entries()) {
