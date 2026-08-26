@@ -897,7 +897,7 @@ this.paneSession = {
 
 	restoreInNewWindow: async function() {
 		let state = JSON.parse(JSON.stringify(this.State));
-		let openerWindow = gWindow.browsingContext.topChromeWindow;
+		let openerWindow = gWindow;
 		let win = await ChromeUtils.importESModule("resource:///modules/BrowserWindowTracker.sys.mjs").BrowserWindowTracker.promiseOpenWindow({ openerWindow, private: PrivateBrowsing.isPrivate(openerWindow) });
 
 		let SessionStore = Storage._scope.SessionStore;

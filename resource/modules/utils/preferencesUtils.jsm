@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 2.4.17
+// VERSION 2.4.18
 Modules.UTILS = true;
 
-ChromeUtils.defineLazyGetter(this, "gWindow", () => window.parent);
+ChromeUtils.defineLazyGetter(this, "gWindow", () => window.browsingContext.topChromeWindow);
 ChromeUtils.defineESModuleGetters(this, {FileUtils: "resource://gre/modules/FileUtils.sys.mjs"});
 Cu.importGlobalProperties(['TextEncoder']);
 Cu.importGlobalProperties(['TextDecoder']);
@@ -747,8 +747,8 @@ this.helptext = {
 	},
 
 	onLoad: function() {
-		this.panel = gWindow.document.getElementById(objName+'-helptext');
-		this.contents = gWindow.document.getElementById(objName+'-helptext-contents');
+		this.panel = window.parent.document.getElementById(objName+'-helptext');
+		this.contents = window.parent.document.getElementById(objName+'-helptext-contents');
 		this.main = $$('.main-content')[0];
 		this.prefPane = this.main.firstChild;
 
@@ -1220,7 +1220,7 @@ this.DnDproxy = {
 
 Modules.LOADMODULE = function() {
 	alwaysRunOnClose.push(function() {
-		Overlays.removeOverlayWindow(gWindow, 'utils/helptext');
+		Overlays.removeOverlayWindow(window.parent, 'utils/helptext');
 	});
 
 	callOnLoad(window, function() {
@@ -1231,7 +1231,7 @@ Modules.LOADMODULE = function() {
 		categories.init();
 		controllers.init();
 
-		Overlays.overlayWindow(gWindow, 'utils/helptext', helptext);
+		Overlays.overlayWindow(window.parent, 'utils/helptext', helptext);
 	});
 };
 
@@ -1244,7 +1244,7 @@ Modules.UNLOADMODULE = function() {
 	controllers.uninit();
 	helptext.uninit();
 
-	Overlays.removeOverlayWindow(gWindow, 'utils/helptext');
+	Overlays.removeOverlayWindow(window.parent, 'utils/helptext');
 
 	if(UNLOADED) {
 		window.close();
