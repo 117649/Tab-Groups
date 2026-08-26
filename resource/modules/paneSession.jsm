@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.1.19
+// VERSION 1.1.20
 
 this.paneSession = {
 	manualAction: false,
@@ -192,115 +192,11 @@ this.paneSession = {
 
 	backup: function() {
 		controllers.showFilePicker(Ci.nsIFilePicker.modeSave, this.filestrings.manual, async (aFile) => {
-			let state = SessionStore.getCurrentState(true);
-			let save;
-
-			// if backing up all session data it's simple, just save everything
-			if(this.alldata) {
-				save = state;
-			}
-			// otherwise we'll need to build a new object containing only the relevant information
-			else {
-				// We'll skip closed windows and tabs, at least for now, I think this will work for most use cases though.
-				let saveData = {
-					version: [ objName, 1 ],
-					session: state.session,
-					windows: []
-				};
-				if("maxSplitViewId" in state) {
-					saveData.maxSplitViewId = state.maxSplitViewId;
-				}
-				if(state.windows) {
-					for(let win of state.windows) {
-						let winData = {
-							selected: win.selected,
-							tabs: [],
-							extData: {}
-						};
-						for(let property of [ "splitViews", "groups", "width", "height", "screenX", "screenY", "sizemode", "sizemodeBeforeMinimized" ]) {
-							if(property in win) {
-								winData[property] = win[property];
-							}
-						}
-
-						if(Array.isArray(win.tabs)) {
-							for(let tab of win.tabs) {
-								try {
-									// don't save tab history, only the latest (current) visible entry
-									let i = tab.index -1;
-									let current = tab.entries[i];
-
-									let saveTab = {
-										entries: [ {
-											url: current.url,
-											title: current.title,
-											charset: current.charset,
-											ID: current.ID,
-											persist: current.persist
-										} ],
-										lastAccessed: "0",
-										hidden: tab.hidden,
-										attributes: {},
-										extData: {},
-										index: 1
-									};
-									for(let property of [ "triggeringPrincipal_base64", "principalToInherit_base64", "policyContainer", "csp" ]) {
-										if(property in current) {
-											saveTab.entries[0][property] = current[property];
-										}
-									}
-									for(let property of [ "userContextId", "splitViewId", "groupId" ]) {
-										if(property in tab) {
-											saveTab[property] = tab[property];
-										}
-									}
-
-									if(tab.lastAccessed) {
-										saveTab.lastAccessed = tab.lastAccessed;
-									}
-									if(tab.pinned) {
-										saveTab.pinned = tab.pinned;
-									}
-									if(tab.extData) {
-										for(let x in tab.extData) {
-											saveTab.extData[x] = tab.extData[x];
-										}
-									}
-									if(tab.attributes) {
-										for(let x in tab.attributes) {
-											saveTab.attributes[x] = tab.attributes[x];
-										}
-									}
-									if(tab.image) {
-										saveTab.image = tab.image;
-									}
-
-									winData.tabs.push(saveTab);
-								}
-								catch(ex) { Cu.reportError(ex); }
-							}
-						}
-						this.normalizeSplitViews(winData);
-						this.normalizeGroups(winData);
-
-						if(win.extData) {
-							if(win.extData[Storage.kGroupIdentifier]) {
-								winData.extData[Storage.kGroupIdentifier] = win.extData[Storage.kGroupIdentifier];
-							}
-							if(win.extData[Storage.kGroupsIdentifier]) {
-								winData.extData[Storage.kGroupsIdentifier] = win.extData[Storage.kGroupsIdentifier];
-							}
-						}
-
-						saveData.windows.push(winData);
-					}
-				}
-
-				save = saveData;
-			}
+			let backup = SessionState.createBackup(SessionStore.getCurrentState(true), this.alldata);
+			for(let error of backup.errors) { Cu.reportError(error); }
 
 			try {
-				await window.IOUtils.writeJSON(aFile.path, save, aFile.path.endsWith(".jsonlz4") ? {
+				await window.IOUtils.writeJSON(aFile.path, backup.state, aFile.path.endsWith(".jsonlz4") ? {
 					tmpPath: aFile.path.replace(".jsonlz4",".tmp"),
 					compress: true,
 				} : undefined);
@@ -749,11 +645,12 @@ this.paneSession = {
 		});
 	},
 
-	importSelected: function() {
-		let importGroups = treeView.data.flatMap(function(item) { return item.groups || []; }).filter(function(item) { return item.checked !== false; });
+	sessionIds: function() {
+		return { nextSplitViewId: typeof Storage._scope.SessionStore.getNextSplitViewId == "function" ? () => Storage._scope.SessionStore.getNextSplitViewId() : null, nextNativeGroupId: () => Services.uuid.generateUUID().toString() };
+	},
 
-		// no items are selected, no-op
-		if(!importGroups.length) { return; }
+	importSelected: function() {
+		if(!treeView.data.some(item => item.groups?.some(group => group.checked !== false))) { return; }
 
 		// first make sure the TabView frame isn't initialized, we don't want it interfering
 		gWindow[objName].TabView._deinitFrame();
@@ -766,119 +663,12 @@ this.paneSession = {
 
 		// initialize window if necessary, just in case
 		Storage._scope.SessionStore.ensureInitialized(gWindow);
+		let plan = SessionState.prepareImport(treeView.data, Storage.readGroupItemsData(gWindow), this.sessionIds());
 
-		// get the next id to be used for the imported groups
-		let groupItems = Storage.readGroupItemsData(gWindow) || {};
-		if(!groupItems.nextID) {
-			groupItems.nextID = 1;
-		}
-		if(!groupItems.totalNumber) {
-			groupItems.totalNumber = 0;
-		}
+		for(let group of plan.groups) { Storage.saveGroupItem(gWindow, group); }
 
-		let restoreTabs = [];
-		let selectedByWindow = new Map();
-		let addTab = (group, tab) => {
-			let sourceWindow = group.parent._window;
-			restoreTabs.push(tab);
-			if(!selectedByWindow.has(sourceWindow)) {
-				selectedByWindow.set(sourceWindow, []);
-			}
-			selectedByWindow.get(sourceWindow).push(tab);
-		};
-
-		for(let group of importGroups) {
-			// pinned tabs are direct, just append and restore
-			if(group.pinned) {
-				for(let tab of group.tabs) {
-					if(!tab.checked) { continue; }
-
-					// these tabs are pinned, so they can't be hidden, make sure this is respected
-					tab._tab.pinned = true;
-					tab._tab.hidden = false;
-
-					addTab(group, tab._tab);
-				}
-				continue;
-			}
-
-			let groupID = groupItems.nextID++;
-			let groupData = group._group;
-			groupData.id = groupID;
-
-			// first append the imported group into the session data
-			Storage.saveGroupItem(gWindow, groupData);
-			groupItems.totalNumber++;
-
-			for(let tab of group.tabs) {
-				if(!tab.checked) { continue; }
-
-				// we are creating a new id for this group, make sure its tabs know this
-				tab._tab._tabData.groupID = groupID;
-
-				// force these tabs hidden, since they belong to newly creative (inactive) groups
-				delete tab._tab.pinned;
-				tab._tab.hidden = true;
-
-				addTab(group, tab._tab);
-			}
-		}
-
-		let restoreWindow = { tabs: restoreTabs };
-		let splitViews = [];
-		let nativeGroups = [];
-		for(let [sourceWindow, selectedTabs] of selectedByWindow) {
-			let selected = new Set(selectedTabs);
-			let preserved = new Set();
-			if(typeof Storage._scope.SessionStore.getNextSplitViewId == "function") {
-				for(let splitView of sourceWindow.splitViews || []) {
-					let tabs = sourceWindow.tabs.filter(tab => "splitViewId" in tab && tab.splitViewId === splitView.id);
-					if(tabs.length && tabs.length == splitView.numberOfTabs && tabs.every(tab => selected.has(tab))) {
-						let id = Storage._scope.SessionStore.getNextSplitViewId();
-						for(let tab of tabs) {
-							tab.splitViewId = id;
-							preserved.add(tab);
-						}
-						splitViews.push({ ...splitView, id });
-					}
-				}
-			}
-			for(let tab of selectedTabs) {
-				if(!preserved.has(tab)) { delete tab.splitViewId; }
-			}
-
-			preserved.clear();
-			for(let nativeGroup of sourceWindow.groups || []) {
-				let tabs = sourceWindow.tabs.filter(tab => "groupId" in tab && tab.groupId === nativeGroup.id);
-				if(tabs.length && tabs.every(tab => selected.has(tab))) {
-					let id = Services.uuid.generateUUID().toString();
-					for(let tab of tabs) {
-						tab.groupId = id;
-						preserved.add(tab);
-					}
-					nativeGroups.push({ ...nativeGroup, id });
-				}
-			}
-			for(let tab of selectedTabs) {
-				if(!preserved.has(tab)) { delete tab.groupId; }
-			}
-		}
-		if(splitViews.length) { restoreWindow.splitViews = splitViews; }
-		if(nativeGroups.length) { restoreWindow.groups = nativeGroups; }
-
-		for(let tabData of restoreWindow.tabs) {
-			if(!tabData.extData) { tabData.extData = {}; }
-			tabData.extData[Storage.kTabIdentifier] = JSON.stringify(tabData._tabData);
-			delete tabData._tabData;
-		}
-		Storage._scope.SessionStore.setWindowState(gWindow, { windows: [ restoreWindow ] }, false);
-
-		// don't forget to insert back the updated data
-		Storage.saveGroupItemsData(gWindow, {
-			nextID: groupItems.nextID,
-			activeGroupId: groupItems.activeGroupId || null,
-			totalNumber: groupItems.totalNumber
-		});
+		Storage._scope.SessionStore.setWindowState(gWindow, { windows: [ plan.windowState ] }, false);
+		Storage.saveGroupItemsData(gWindow, plan.groupItems);
 
 		// We can restore TMP's preferences now if it was flipped before.
 		if(restoreTMP) {
@@ -896,44 +686,9 @@ this.paneSession = {
 	},
 
 	restoreInNewWindow: async function() {
-		let state = JSON.parse(JSON.stringify(this.State));
 		let openerWindow = gWindow;
 		let win = await ChromeUtils.importESModule("resource:///modules/BrowserWindowTracker.sys.mjs").BrowserWindowTracker.promiseOpenWindow({ openerWindow, private: PrivateBrowsing.isPrivate(openerWindow) });
-
-		let SessionStore = Storage._scope.SessionStore;
-		for(let windowState of state.windows || []) {
-			this.normalizeSplitViews(windowState);
-			if(Array.isArray(windowState.splitViews) && typeof SessionStore.getNextSplitViewId == "function") {
-				let splitViews = [];
-				for(let splitView of windowState.splitViews) {
-					let tabs = (windowState.tabs || []).filter(tab => "splitViewId" in tab && tab.splitViewId === splitView.id);
-					let id = SessionStore.getNextSplitViewId();
-					for(let tab of tabs) {
-						tab.splitViewId = id;
-					}
-					splitViews.push({ ...splitView, id });
-				}
-				windowState.splitViews = splitViews;
-			}
-			else {
-				delete windowState.splitViews;
-				for(let tab of windowState.tabs || []) { delete tab.splitViewId; }
-			}
-
-			this.normalizeGroups(windowState);
-			let groupIds = new Map();
-			for(let group of windowState.groups || []) {
-				let id = Services.uuid.generateUUID().toString();
-				groupIds.set(group.id, id);
-				group.id = id;
-			}
-			for(let tab of windowState.tabs || []) {
-				if("groupId" in tab) {
-					tab.groupId = groupIds.get(tab.groupId);
-				}
-			}
-		}
-		SessionStore.setWindowState(win, state, true);
+		Storage._scope.SessionStore.setWindowState(win, SessionState.prepareRestore(this.State, this.sessionIds()), true);
 
 		this.autoloadedNotice.hidden = true;
 		this.invalidNotice.hidden = true;
@@ -991,28 +746,15 @@ this.paneSession = {
 					Cu.reportError(ex);
 					return;
 				}
-				if(state.windows) {
-					for(let win of state.windows) {
-						this.eraseDataFromWindow(win);
-					}
-				}
-				if(state._closedWindows) {
-					for(let win of state._closedWindows) {
-						this.eraseDataFromWindow(win);
-					}
-				}
-				for(let groups of [ state.savedGroups, SessionStore.savedGroups ]) {
-					for(let group of groups || []) {
-						for(let closed of group.tabs || []) {
-							let tab = closed.state || closed;
-							if(tab.extData) {
-								delete tab.extData[Storage.kTabIdentifier];
-							}
-						}
+				state = SessionState.removeTabGroups(state);
+				// SessionStore.savedGroups exposes the live internal array, so scrub it before restoring the transformed browser state.
+				for(let group of SessionStore.savedGroups || []) {
+					for(let closed of group.tabs || []) {
+						let tab = closed.state || closed;
+						if(tab.extData) { delete tab.extData[Storage.kTabIdentifier]; }
 					}
 				}
 				state = JSON.stringify(state);
-
 				// The current window can't be closed, otherwise the new session data for other opened windows wouldn't be properly saved.
 				// (http://mxr.mozilla.org/mozilla-central/source/browser/components/sessionstore/SessionStore.jsm -> SessionStoreInternal.setBrowserState())
 				// Instead, we'll force an unloaded state of all tabs, since they will be forced to reload when reselected (we don't do this, SessionRestore does).
@@ -1053,123 +795,6 @@ this.paneSession = {
 		}, 10000);
 	},
 
-	normalizeSplitViews: function(win) {
-		let ids = new Set();
-		if(Array.isArray(win.splitViews)) {
-			win.splitViews = win.splitViews.filter(splitView => {
-				let tabs = (win.tabs || []).filter(tab => "splitViewId" in tab && tab.splitViewId === splitView.id);
-				if(ids.has(splitView.id) || !tabs.length || tabs.length != splitView.numberOfTabs) { return false; }
-				ids.add(splitView.id);
-				return true;
-			});
-		}
-		else { delete win.splitViews; }
-		for(let tab of win.tabs || []) {
-			if(!ids.has(tab.splitViewId)) { delete tab.splitViewId; }
-		}
-	},
-
-	normalizeGroups: function(win) {
-		let ids = new Set();
-		if(Array.isArray(win.groups)) {
-			win.groups = win.groups.filter(group => {
-				if(ids.has(group.id) || !(win.tabs || []).some(tab => "groupId" in tab && tab.groupId === group.id)) { return false; }
-				ids.add(group.id);
-				return true;
-			});
-		}
-		else { delete win.groups; }
-		for(let tab of win.tabs || []) {
-			if(!ids.has(tab.groupId)) { delete tab.groupId; }
-		}
-	},
-
-	eraseDataFromWindow: function(win) {
-		let activeGroupId;
-		if(win.extData) {
-			try {
-				let groupData = JSON.parse(win.extData[Storage.kGroupsIdentifier]);
-				activeGroupId = groupData.activeGroupId;
-			}
-			catch(ex) { /* don't care, just consider all hidden tabs as belonging to non-active groups and remove them */ }
-
-			delete win.extData[Storage.kGroupsIdentifier];
-			delete win.extData[Storage.kGroupIdentifier];
-			delete win.extData[Storage.kUIIdentifier];
-		}
-
-		if(win.tabs) {
-			for(let tab of win.tabs.concat()) {
-				if(!this.eraseDataFromTab(activeGroupId, tab, win.tabs)) {
-					this.removeTabFromWindow(tab, win.tabs, win);
-				}
-			}
-		}
-		this.normalizeSplitViews(win);
-		this.normalizeGroups(win);
-
-		if(win._closedTabs) {
-			for(let closed of win._closedTabs.concat()) {
-				if(!this.eraseDataFromTab(activeGroupId, closed.state || closed, win._closedTabs)) {
-					this.removeTabFromWindow(closed, win._closedTabs);
-				}
-			}
-		}
-
-		if(win.closedGroups) {
-			for(let group of win.closedGroups) {
-				for(let closed of group.tabs || []) {
-					let tab = closed.state || closed;
-					if(tab.extData) {
-						delete tab.extData[Storage.kTabIdentifier];
-					}
-				}
-			}
-		}
-	},
-
-	eraseDataFromTab: function(activeGroupId, tab, tabs) {
-		if(!tab.pinned && tab.hidden) {
-			if(!activeGroupId) {
-				return false;
-			}
-
-			if(tab.extData) {
-				let tabGroupId;
-				try {
-					let tabData = JSON.parse(tab.extData[Storage.kTabIdentifier]);
-					tabGroupId = tabData.groupID;
-				}
-				catch(ex) { /* don't care, just consider all hidden tabs as belonging to non-active groups and remove them */ }
-
-				if(!tabGroupId || tabGroupId != activeGroupId) {
-					return false;
-				}
-			}
-
-			// we're keeping this tab around, so make sure it's visible
-			tab.hidden = false;
-		}
-
-		if(tab.extData) {
-			delete tab.extData[Storage.kTabIdentifier];
-		}
-		return true;
-	},
-
-	removeTabFromWindow: function(tab, tabs, win) {
-		let i = tabs.indexOf(tab);
-
-		// if we're removing a tab before the currently selected tab, we need to make sure the window's selected index is updated,
-		// so that when it's reopened, it selectes the correct tab.
-		// We should never remove the selected tab (likely the tab groups preferences tab), because if it's selected then it's in the current group, which is never removed.
-		// (remember the array index is 0-based and win.selected is 1-based)
-		if(win && i < win.selected) {
-			win.selected--;
-		}
-
-		tabs.splice(i, 1);
-	}
 };
 
 // adapted from http://mxr.mozilla.org/mozilla-central/source/browser/components/sessionstore/content/aboutSessionRestore.js
@@ -1279,9 +904,11 @@ this.treeView = {
 
 
 Modules.LOADMODULE = function() {
+	Modules.load('SessionState');
 	paneSession.init();
 };
 
 Modules.UNLOADMODULE = function() {
 	paneSession.uninit();
+	Modules.unload('SessionState');
 };
