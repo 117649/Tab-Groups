@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 2.15.11
+// VERSION 2.15.12
 Modules.UTILS = true;
 
 // Overlays - to use overlays in my bootstraped add-ons. The behavior is as similar to what is described in https://developer.mozilla.org/en/XUL_Tutorial/Overlays as I could manage.
@@ -1834,7 +1834,11 @@ this.Overlays = {
 			catch(ex) { Cu.reportError(ex); }
 		}
 
-		try { CustomizableUI.ensureWidgetPlacedInWindow(id, aWindow); }
+		try {
+			if(!CustomizableUI.ensureWidgetPlacedInWindow(id, aWindow)) {
+				this.registerToolbarNode(aWindow.document.getElementById(CustomizableUI.getPlacementOfWidget(id)?.area));
+			}
+		}
 		catch(ex) { Cu.reportError(ex); }
 
 		this.traceBack(aWindow, { action: 'appendButton', node: node });
@@ -1916,7 +1920,7 @@ this.Overlays = {
 
 	// toolbar nodes can't be registered before they're appended to the DOM, otherwise all hell breaks loose
 	registerToolbarNode: function(aToolbar) {
-		if(!aToolbar || !aToolbar.id) { return; } // is this even possible?
+		if(!aToolbar || aToolbar.localName != 'toolbar' || !aToolbar.id) { return; }
 
 		// attempt at improving multi-window support, as sometimes the toolbars would force a re-register of a second window with CUI when it's closed, no clue why though...
 		if(aToolbar.ownerDocument.defaultView.closed || aToolbar.ownerDocument.defaultView.willClose) { return; }
