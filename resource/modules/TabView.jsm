@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.2.5
+// VERSION 1.2.6
 
 this.__defineGetter__('gBrowser', function() { return window.gBrowser; });
 this.__defineGetter__('gTaskbarTabGroup', function() { return window.gTaskbarTabGroup; });
@@ -770,7 +770,7 @@ this.TabView = {
 				(tab.multiselected ? gBrowser.selectedTabs : [ tab ]);
 			let targetGroupItemId = groupItemId;
 			for(let selectedTab of tabs) {
-				gBrowser.ungroupTab?.call(selectedTab);
+				gBrowser.ungroupTab?.(selectedTab);
 				let groupItem = this._window[objName].GroupItems.moveTabToGroupItem(selectedTab, targetGroupItemId, focusIfSelected);
 				if(!targetGroupItemId && groupItem) { targetGroupItemId = groupItem.id; }
 			}

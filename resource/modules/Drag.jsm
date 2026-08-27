@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 2.7.7
+// VERSION 2.7.8
 
 // This will be the GroupDrag object created when a group is dragged or resized.
 this.DraggingGroup = null;
@@ -954,7 +954,7 @@ this.TabDrag.handleEvent = function(e) {
 			if(DraggingGroup?.external) { DraggingGroup.end(); }
 
 			let draggedTab = e.dataTransfer.mozGetDataAt(TabDrag.TYPE, 0);
-			let sourceWindow = draggedTab?.documentGlobal;
+			let sourceWindow = draggedTab?.ownerDocument?.defaultView;
 			// Ignore the real source drag and repeated destination events, but replace stale source state left by the previous transfer.
 			if(sourceWindow == gWindow || DraggingTab?.external && DraggingTab.draggedTab == draggedTab) { return; }
 			let tabs = [ draggedTab ];
@@ -964,7 +964,7 @@ this.TabDrag.handleEvent = function(e) {
 			}
 			let tabSet = new Set(tabs);
 			if(!sourceWindow?.tabGroups?.TabView?._window || sourceWindow == gWindow || PrivateBrowsing.isPrivate(sourceWindow) != PrivateBrowsing.isPrivate(gWindow)
-			|| tabSet.size != tabs.length || tabs.some(tab => tab.documentGlobal != sourceWindow || tab.splitview?.tabs.some(splitTab => !tabSet.has(splitTab)))) { return; }
+			|| tabSet.size != tabs.length || tabs.some(tab => tab.ownerDocument?.defaultView != sourceWindow || tab.splitview?.tabs.some(splitTab => !tabSet.has(splitTab)))) { return; }
 			// Native dragexit is unreliable between windows, so only the current receiver keeps drag feedback.
 			for(let browserWindow of Services.wm.getEnumerator('navigator:browser')) { let frame = browserWindow.tabGroups?.TabView?._window; if(frame != window && frame?.tabGroups.DraggingTab?.external) { frame.tabGroups.DraggingTab.end(); } }
 			if(DraggingTab) { DraggingTab.end(); }
