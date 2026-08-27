@@ -5,7 +5,7 @@ on:
     branches: [ master ]
 
 env:
-  XPI_NAME: Tab-Groups-2.3.0_
+  XPI_NAME: Tab-Groups-2.4.0_
   CHANGELOG_EXIST: false
   PREVIOUS_TAG: ''
   NOTES: 'This release includes an XPI file that is automatically generated after each push to the master branch.'
@@ -27,8 +27,8 @@ jobs:
           changelog_exist=$( [[ $(git rev-parse $previous_tag) != $(git rev-parse HEAD) ]] && echo true || echo false )
           echo "CHANGELOG_EXIST=$changelog_exist" >> $GITHUB_ENV
           date=$(date +'%Y%m%d.%H%M')
-          sed -i "s/2.2.0/2.3.0_$date/" install.rdf
-          echo "next version: 2.3.0_$date"
+          sed -i "s/2.3.0/2.4.0_$date/" install.rdf
+          echo "next version: 2.4.0_$date"
           echo "XPI_NAME=${{ env.XPI_NAME }}$date" >> $GITHUB_ENV
 
       - name: Zip addon folder
