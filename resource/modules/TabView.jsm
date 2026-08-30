@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.2.6
+// VERSION 1.2.7
 
 this.__defineGetter__('gBrowser', function() { return window.gBrowser; });
 this.__defineGetter__('gTaskbarTabGroup', function() { return window.gTaskbarTabGroup; });
@@ -878,11 +878,15 @@ this.TabView = {
 	},
 
 	setButtonLabel: function(inCustomize = customizing) {
+		if(UNLOADED) { return; }
+
 		// We can't do anything without the button.
 		let btn = this.button;
 		if(!btn) { return; }
 
 		this.getGroupTitleForButton().then((title) => {
+			if(UNLOADED) { return; }
+
 			let prevLabel = btn.getAttribute('label');
 			let prevAttr = trueAttribute(btn, 'showGroupTitle');
 			let label;
