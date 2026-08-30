@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.7.27
+// VERSION 1.7.28
 
 // Class: GroupItem - A single groupItem in the TabView window.
 // Parameters:
@@ -3085,12 +3085,11 @@ this.GroupItems = {
 	},
 
 	// Returns the bounds within which it is safe to place all non-stationary <Item>s.
-	getSafeWindowBounds: function() {
+	getSafeWindowBounds: function(bounds = UI.getPageBounds()) {
 		// the safe bounds that would keep it "in the window"
 		let gutter = this.defaultGutter;
 		let topGutter = this.topGutter;
 
-		let bounds = UI.getPageBounds();
 		return new Rect(gutter, topGutter, bounds.width - 2 * gutter, bounds.height - gutter - topGutter);
 	},
 
@@ -3174,8 +3173,8 @@ this.GroupItems = {
 		}
 	},
 
-	// Reposition all groups, to make sure there are no overlaping groups.
-	resnap: function() {
+	// Reposition the provided groups, defaulting to all, to make sure none overlap.
+	resnap: function(groups = this) {
 		// Stop at an early iteration, just in case there are too many groups, which would cause the browser to seem like it hanged
 		// (even though it'd still actually work, it's just not good UX).
 		let i;
@@ -3194,7 +3193,7 @@ this.GroupItems = {
 			resnap = false;
 			i--;
 
-			for(let group of this) {
+			for(let group of groups) {
 				group.snap(this);
 			}
 

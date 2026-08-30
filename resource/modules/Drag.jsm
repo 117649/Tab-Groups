@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 2.7.9
+// VERSION 2.7.10
 
 // This will be the GroupDrag object created when a group is dragged or resized.
 this.DraggingGroup = null;
@@ -557,6 +557,8 @@ this.GroupDrag.prototype = {
 		Trenches.disactivate();
 
 		this.end();
+		// Programmatic resnap and faux-group creation have no manual start to record.
+		if(UI.classic && this.startMouse && !this.item.isAFauxItem) { UI._updateClassicLayout(true); UI._resize(true); }
 	},
 
 	clearDropTarget: function() {

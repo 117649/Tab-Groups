@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.3.68
+// VERSION 1.3.69
 
 // Used to scroll groups automatically, for instance when dragging a tab over a group's overflown edges.
 this.Synthesizer = {
@@ -97,6 +97,8 @@ this.UI = {
 
 	// Stores the page bounds.
 	_pageBounds: null,
+	// Keeps manual classic layouts separate from the last automatically applied bounds.
+	_classicResize: null,
 
 	// Set when selecting a pinned tab from search, but without leaving tab view.
 	_dontHideTabView: false,
@@ -772,6 +774,7 @@ this.UI = {
 
 		this._currentTab = null;
 		this._pageBounds = null;
+		this._classicResize = null;
 		this._reorderTabItemsOnShow = new Set();
 		this._reorderTabsOnHide = new Set();
 		this._frameInitialized = false;
@@ -849,7 +852,7 @@ this.UI = {
 
 		document.body.classList.add(Prefs.displayMode);
 		this.toggleGroupThumbs();
-		this._resize(true);
+		if(UI.classic) { this._pageBounds = this.getPageBounds(true); } else { this._resize(true); }
 
 		try {
 			GroupItems.pauseArrange();
@@ -861,9 +864,11 @@ this.UI = {
 			// Re-build necessary groups info (sizes, positions and stuff)
 			GroupItems.load();
 
-			// Make sure groups that were never positioned (created in grid mode) don't overlap others.
+			// Make sure groups created outside classic mode don't overlap others.
 			if(UI.classic) {
-				GroupItems.resnap();
+				let groups = [...GroupItems].filter(item => !this._classicResize?.applied.has(item));
+				if(groups.length) { GroupItems.resnap(groups); }
+				this._resize(true, true);
 			}
 		}
 		catch(ex) {
@@ -1961,10 +1966,73 @@ this.UI = {
 		DraggingGroup.start();
 	},
 
+	_updateClassicLayout: function(manual, items = [...GroupItems]) {
+		let state = this._classicResize;
+		let reset = !state || state.groupCount != items.length;
+		let boundsChanged = false;
+		let userSizeChanged = false;
+		if(!reset) {
+			for(let item of items) {
+				let group = state.anchors[0].groups.get(item);
+				let applied = state.applied.get(item);
+				if(!group || group.hidden != item.hidden || !applied) { reset = true; break; }
+				boundsChanged = boundsChanged || !applied.bounds.equals(item.bounds);
+				userSizeChanged = userSizeChanged || applied.userSize?.x != item.userSize?.x || applied.userSize?.y != item.userSize?.y;
+			}
+		}
+		if(!reset && !boundsChanged && !userSizeChanged) { return state; }
+		if(manual && !reset && !boundsChanged) {
+			for(let item of items) { state.applied.get(item).userSize = item.userSize && new Point(item.userSize); }
+			return state;
+		}
+		reset = reset || !manual;
+
+		let pageBounds = manual ? this.getPageBounds(true) : this.getPageBounds();
+		let groups = new WeakMap();
+		let applied = new WeakMap();
+		let itemBounds = new Rect(pageBounds);
+		itemBounds.width = 1;
+		itemBounds.height = 1;
+		let minimalRect = new Rect(0, 0, 1, 1);
+		let feelsCramped = false;
+		for(let item of items) {
+			let bounds = item.getBounds();
+			let userSize = item.userSize;
+			itemBounds = itemBounds.union(bounds);
+			let minimalBounds = new Rect(bounds);
+			minimalBounds.inset(-Trenches.defaultRadius, -Trenches.defaultRadius);
+			minimalRect = minimalRect.union(minimalBounds);
+			feelsCramped = feelsCramped || (userSize && (userSize.x > bounds.width || userSize.y > bounds.height));
+			groups.set(item, { bounds, hidden: item.hidden });
+			applied.set(item, { bounds: new Rect(bounds), userSize: userSize && new Point(userSize) });
+		}
+		minimalRect.left = 0;
+		minimalRect.top = 0;
+		let anchor = { pageBounds: new Rect(pageBounds), itemBounds, minimalRect, feelsCramped, groups, write: 0 };
+
+		if(reset) {
+			state = this._classicResize = { anchors: [anchor], applied, groupCount: items.length, lastWrite: 0 };
+		} else {
+			// Automatic resize results never become anchors; only settled manual layouts add alternatives.
+			anchor.write = ++state.lastWrite;
+			let index = state.anchors.findIndex(candidate => candidate.pageBounds.width == pageBounds.width
+				&& candidate.pageBounds.height == pageBounds.height);
+			if(index < 0 && state.anchors.length < 3) {
+				state.anchors.push(anchor);
+			} else {
+				if(index < 0) { index = state.anchors[1].write <= state.anchors[2].write ? 1 : 2; }
+				state.anchors[index] = anchor;
+			}
+			state.applied = applied;
+		}
+		return state;
+	},
+
 	// Update the TabView UI contents in response to a window size change. Won't do anything if it doesn't deem the resize necessary.
 	// Parameters:
 	//   force - true to update even when "unnecessary"; default false
-	_resize: function(force) {
+	//   validateClassic - true to validate a classic layout even when the page size is unchanged
+	_resize: function(force, validateClassic) {
 		if(!this._pageBounds) { return; }
 
 		// Here are reasons why we *won't* resize:
@@ -1975,7 +2043,7 @@ this.UI = {
 
 		let oldPageBounds = this.getPageBounds();
 		let newPageBounds = this.getPageBounds(true);
-		if(newPageBounds.equals(oldPageBounds)) { return; }
+		if(newPageBounds.equals(oldPageBounds) && !validateClassic) { return; }
 
 		// Check to see if the viewport ratio also changed, in which case we also need to update the thumbs ratio.
 		this.updateViewportRatio();
@@ -2001,65 +2069,145 @@ this.UI = {
 
 		// Classic mode...
 
-		if(!this.shouldResizeItems(newPageBounds)) {
-			this._pageBounds = newPageBounds;
-			this._save();
-			return;
+		if(DraggingGroup) { return; }
+
+		let items = [...GroupItems];
+		let state = this._updateClassicLayout(false, items);
+		let anchor = state.anchors[0];
+		let distance = Infinity;
+		let larger = false;
+		for(let candidate of state.anchors) {
+			let candidateDistance = Math.abs(candidate.pageBounds.width - newPageBounds.width) / newPageBounds.width
+				+ Math.abs(candidate.pageBounds.height - newPageBounds.height) / newPageBounds.height;
+			let candidateLarger = candidate.pageBounds.width >= newPageBounds.width && candidate.pageBounds.height >= newPageBounds.height;
+			if(candidateDistance < distance || candidateDistance == distance && (candidateLarger && !larger
+				|| candidateLarger == larger && candidate.write > anchor.write)) {
+				anchor = candidate;
+				distance = candidateDistance;
+				larger = candidateLarger;
+			}
 		}
 
-		// compute itemBounds: the union of all the top-level items' bounds.
-		let itemBounds = new Rect(this._pageBounds);
-		// We start with pageBounds so that we respect the empty space the user has left on the page.
-		itemBounds.width = 1;
-		itemBounds.height = 1;
-		for(let item of GroupItems) {
-			let bounds = item.getBounds();
-			itemBounds = (itemBounds ? itemBounds.union(bounds) : new Rect(bounds));
+		let layoutChanged = !newPageBounds.equals(anchor.pageBounds);
+		let scaleBounds;
+		let scale;
+		if(layoutChanged && (anchor.minimalRect.width > newPageBounds.width
+			|| anchor.minimalRect.height > newPageBounds.height || anchor.feelsCramped)) {
+			scaleBounds = new Rect(newPageBounds);
+			if(scaleBounds.width < anchor.pageBounds.width && scaleBounds.width > anchor.itemBounds.width) { scaleBounds.width = anchor.pageBounds.width; }
+			if(scaleBounds.height < anchor.pageBounds.height && scaleBounds.height > anchor.itemBounds.height) { scaleBounds.height = anchor.pageBounds.height; }
+
+			if(Math.abs(scaleBounds.width - anchor.pageBounds.width) > Math.abs(scaleBounds.height - anchor.pageBounds.height)) {
+				scale = Math.min(scaleBounds.height / anchor.itemBounds.height, scaleBounds.width / anchor.pageBounds.width);
+			} else {
+				scale = Math.min(scaleBounds.height / anchor.pageBounds.height, scaleBounds.width / anchor.itemBounds.width);
+			}
 		}
 
-		if(newPageBounds.width < this._pageBounds.width && newPageBounds.width > itemBounds.width) {
-			newPageBounds.width = this._pageBounds.width;
-		}
-		if(newPageBounds.height < this._pageBounds.height && newPageBounds.height > itemBounds.height) {
-			newPageBounds.height = this._pageBounds.height;
-		}
-
-		let wScale;
-		let hScale;
-		if(Math.abs(newPageBounds.width - this._pageBounds.width) > Math.abs(newPageBounds.height - this._pageBounds.height)) {
-			wScale = newPageBounds.width / this._pageBounds.width;
-			hScale = newPageBounds.height / itemBounds.height;
-		} else {
-			wScale = newPageBounds.width / itemBounds.width;
-			hScale = newPageBounds.height / this._pageBounds.height;
-		}
-
-		let scale = Math.min(hScale, wScale);
 		let pairs = [];
-		for(let item of GroupItems) {
-			let bounds = item.getBounds();
-			bounds.left += (RTL ? -1 : 1) * (newPageBounds.left - this._pageBounds.left);
-			bounds.left *= scale;
-			bounds.width *= scale;
+		let belowMinimum = false;
+		let canStrip = items.length > 1;
+		for(let item of items) {
+			let group = anchor.groups.get(item);
+			let bounds = new Rect(group.bounds);
+			if(scaleBounds) {
+				bounds.left += (RTL ? -1 : 1) * (scaleBounds.left - anchor.pageBounds.left);
+				bounds.left *= scale;
+				bounds.width *= scale;
 
-			bounds.top += newPageBounds.top - this._pageBounds.top;
-			bounds.top *= scale;
-			bounds.height *= scale;
+				bounds.top += scaleBounds.top - anchor.pageBounds.top;
+				bounds.top *= scale;
+				bounds.height *= scale;
 
-			pairs.push({
-				item: item,
-				bounds: bounds
-			});
+				if(bounds.right >= newPageBounds.right) { bounds.width = newPageBounds.right - bounds.left - 3; }
+				if(bounds.bottom >= newPageBounds.bottom) { bounds.height = newPageBounds.bottom - bounds.top - 3; }
+			}
+			belowMinimum = belowMinimum || bounds.width < GroupItems.minGroupWidth || bounds.height < GroupItems.minGroupHeight;
+			canStrip = canStrip && !item.hidden && !item.isDragging && !item.isResizing;
+			pairs.push({ item, group, bounds });
 		}
 
-		// GroupItems.unsquish(pairs);
+		let safeBounds = layoutChanged && belowMinimum ? GroupItems.getSafeWindowBounds(newPageBounds) : null;
+		if(canStrip && safeBounds) {
+			let horizontal = safeBounds.width * GroupItems.minGroupHeight >= safeBounds.height * GroupItems.minGroupWidth;
+			let gap = (items.length - 1) * GroupItems.defaultGutter;
+			let cross = 0;
+			let valid = Number.isFinite(safeBounds.left) && Number.isFinite(safeBounds.top) && Number.isFinite(safeBounds.width)
+				&& Number.isFinite(safeBounds.height) && safeBounds.width > 0 && safeBounds.height > 0;
+			for(let pair of pairs) {
+				let bounds = pair.group.bounds;
+				valid = valid && Number.isFinite(bounds.left) && Number.isFinite(bounds.top) && Number.isFinite(bounds.width)
+					&& Number.isFinite(bounds.height) && bounds.width > 0 && bounds.height > 0;
+				cross = Math.max(cross, horizontal ? bounds.height : bounds.width);
+			}
+			let safeMain = horizontal ? safeBounds.width : safeBounds.height;
+			let safeCross = horizontal ? safeBounds.height : safeBounds.width;
+			let mainMinimum = horizontal ? GroupItems.minGroupWidth : GroupItems.minGroupHeight;
+			let available = safeMain - gap;
+			let flexible = pairs.map(pair => horizontal ? pair.group.bounds.width : pair.group.bounds.height).sort((a, b) => a - b);
+			let total = flexible.reduce((sum, size) => sum + size, 0);
+			let crossCapacity = safeCross / cross;
+			let remaining = available;
+			let mainScale = 1;
+			let index = 0;
+			valid = valid && available >= items.length * mainMinimum
+				&& safeCross >= (horizontal ? GroupItems.minGroupHeight : GroupItems.minGroupWidth) && crossCapacity < available / total;
+			// A strip may squeeze its cross axis without wasting usable length on its long axis.
+			while(valid && index < flexible.length) {
+				mainScale = Math.min(1, remaining / total);
+				if(flexible[index] * mainScale >= mainMinimum) { break; }
+				remaining -= mainMinimum;
+				total -= flexible[index++];
+			}
+			let crossScale = Math.min(1, crossCapacity);
+			let stripMain = pairs.reduce((total, pair) => total + Math.max(mainMinimum,
+				horizontal ? pair.group.bounds.width * mainScale : pair.group.bounds.height * mainScale), 0);
+			let precision = Number.EPSILON * 16 * items.length * Math.max(1, safeBounds.width, safeBounds.height);
+			valid = valid && stripMain <= available + precision;
+			if(valid) {
+				let inset = (safeMain - stripMain - gap) / 2;
+				let offset = 0;
+				let planned = [];
+				let toleratedBounds = new Rect(safeBounds);
+				toleratedBounds.inset(-precision, -precision);
+				for(let pair of [...pairs].sort((a, b) => {
+					let delta = horizontal ? a.group.bounds.left + a.group.bounds.width / 2 - b.group.bounds.left - b.group.bounds.width / 2
+						: a.group.bounds.top + a.group.bounds.height / 2 - b.group.bounds.top - b.group.bounds.height / 2;
+					if(delta) { return delta; }
+					if(typeof a.item.id == 'number' && typeof b.item.id == 'number') {
+						return a.item.id < b.item.id ? -1 : a.item.id > b.item.id ? 1 : 0;
+					}
+					let aID = typeof a.item.id + ':' + String(a.item.id);
+					let bID = typeof b.item.id + ':' + String(b.item.id);
+					return aID < bID ? -1 : aID > bID ? 1 : 0;
+				})) {
+					let width = Math.max(GroupItems.minGroupWidth, pair.group.bounds.width * (horizontal ? mainScale : crossScale));
+					let height = Math.max(GroupItems.minGroupHeight, pair.group.bounds.height * (horizontal ? crossScale : mainScale));
+					let left = horizontal ? (RTL ? safeBounds.right - inset - offset - width : safeBounds.left + inset + offset)
+						: safeBounds.left + (safeBounds.width - width) / 2;
+					let top = horizontal ? safeBounds.top + (safeBounds.height - height) / 2 : safeBounds.top + inset + offset;
+					let bounds = new Rect(left, top, width, height);
+					let previous = planned[planned.length - 1]?.bounds;
+					valid = toleratedBounds.contains(bounds) && (!previous
+							|| (horizontal ? (RTL ? previous.left - bounds.right : bounds.left - previous.right)
+								: bounds.top - previous.bottom) >= GroupItems.defaultGutter - precision);
+					if(!valid) { break; }
+					planned.push({ item: pair.item, bounds });
+					offset += (horizontal ? width : height) + GroupItems.defaultGutter;
+				}
+				if(valid) { pairs = planned; }
+			}
+		}
 
 		for(let pair of pairs) {
-			if((pair.bounds.left + pair.bounds.width) >= (newPageBounds.left + newPageBounds.width)) pair.bounds.width = (newPageBounds.left + newPageBounds.width) - pair.bounds.left -  3;
-			if((pair.bounds.top + pair.bounds.height) >= (newPageBounds.top + newPageBounds.height)) pair.bounds.height = (newPageBounds.top + newPageBounds.height) - pair.bounds.top -  3;
-			
-			pair.item.setBounds(pair.bounds, true);
-			// pair.item.snap();
+			if(scaleBounds && (pair.bounds.width < GroupItems.minGroupWidth || pair.bounds.height < GroupItems.minGroupHeight)) {
+				pair.bounds.width = Math.max(pair.bounds.width, GroupItems.minGroupWidth);
+				pair.bounds.height = Math.max(pair.bounds.height, GroupItems.minGroupHeight);
+				pair.bounds.left = Math.max(safeBounds.left, Math.min(pair.bounds.left, safeBounds.right - pair.bounds.width));
+				pair.bounds.top = Math.max(safeBounds.top, Math.min(pair.bounds.top, safeBounds.bottom - pair.bounds.height));
+			}
+			let applied = state.applied.get(pair.item);
+			if(!applied.bounds.equals(pair.bounds)) { pair.item.setBounds(pair.bounds, true); applied.bounds.copy(pair.item.bounds); }
 		}
 
 		this._pageBounds = newPageBounds;
