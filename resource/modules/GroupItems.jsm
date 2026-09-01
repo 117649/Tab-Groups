@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.7.29
+// VERSION 1.7.30
 
 // Class: GroupItem - A single groupItem in the TabView window.
 // Parameters:
@@ -608,13 +608,14 @@ this.GroupItem.prototype = {
 	//  safeBounds - the safe bounds shared by the current layout operation
 	pushAway: function(immediately, safeBounds) {
 		// we need at least two top-level items to push something away
-		if(GroupItems.size < 2) { return; }
+		let items = [...GroupItems].filter(item => !item.hidden);
+		if(this.hidden || items.length < 2) { return; }
 		if(!safeBounds) { safeBounds = GroupItems.getSafeWindowBounds(); }
 
 		let buffer = Math.floor(GroupItems.defaultGutter / 2);
 
 		// setup each Item's pushAwayData attribute:
-		for(let item of GroupItems) {
+		for(let item of items) {
 			let data = {};
 			data.bounds = item.getBounds();
 			data.startBounds = new Rect(data.bounds);
@@ -645,7 +646,7 @@ this.GroupItem.prototype = {
 		};
 
 		let pushOthers = function(baseItem, bb, bbc, generation, currentGen) {
-			for(let item of GroupItems) {
+			for(let item of items) {
 				if(item == baseItem) { continue; }
 
 				let data = item.pushAwayData;
@@ -708,7 +709,7 @@ this.GroupItem.prototype = {
 		}
 
 		// ___ Squish!
-		for(let item of GroupItems) {
+		for(let item of items) {
 			let data = item.pushAwayData;
 			if(data.generation == 0) { continue; }
 
@@ -771,7 +772,7 @@ this.GroupItem.prototype = {
 
 		// ___ Unsquish
 		let pairs = [];
-		for(let item of GroupItems) {
+		for(let item of items) {
 			let data = item.pushAwayData;
 			pairs.push({
 				item: item,
@@ -782,7 +783,7 @@ this.GroupItem.prototype = {
 		GroupItems.unsquish(pairs, null, safeBounds);
 
 		// ___ Apply changes
-		for(let item of GroupItems) {
+		for(let item of items) {
 			let data = item.pushAwayData;
 			let bounds = data.bounds;
 			if(!bounds.equals(data.startBounds)) {
