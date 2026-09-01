@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.1.5
+// VERSION 1.1.6
 
 // Class: Trench - Class for drag-snapping regions; called "trenches" as they are long and narrow.
 // Parameters:
@@ -263,55 +263,46 @@ this.Trench.prototype = {
 			edgeToCheck = this.edge;
 		}
 
-		rect.adjustedEdge = edgeToCheck;
+		let range = edgeToCheck == 'left' || edgeToCheck == 'right' ? rect.yRange : rect.xRange;
+		if(!this.ruleOverlaps(rect[edgeToCheck], range)) { return false; }
 
+		rect = new Rect(rect);
+		rect.adjustedEdge = edgeToCheck;
 		switch(edgeToCheck) {
 			case "left":
-				if(this.ruleOverlaps(rect.left, rect.yRange)) {
-					if(stationaryCorner.indexOf('right') > -1) {
-						rect.width = rect.right - this.position;
-					}
-					rect.left = this.position;
-					return rect;
+				if(stationaryCorner.indexOf('right') > -1) {
+					rect.width = rect.right - this.position;
 				}
+				rect.left = this.position;
 				break;
 
 			case "right":
-				if(this.ruleOverlaps(rect.right, rect.yRange)) {
-					if(assumeConstantSize) {
-						rect.left = this.position - rect.width;
-					} else {
-						let newWidth = this.position - rect.left;
-						rect.width = newWidth;
-					}
-					return rect;
+				if(assumeConstantSize) {
+					rect.left = this.position - rect.width;
+				} else {
+					let newWidth = this.position - rect.left;
+					rect.width = newWidth;
 				}
 				break;
 
 			case "top":
-				if(this.ruleOverlaps(rect.top, rect.xRange)) {
-					if(stationaryCorner.indexOf('bottom') > -1) {
-						rect.height = rect.bottom - this.position;
-					}
-					rect.top = this.position;
-					return rect;
+				if(stationaryCorner.indexOf('bottom') > -1) {
+					rect.height = rect.bottom - this.position;
 				}
+				rect.top = this.position;
 				break;
 
 			case "bottom":
-				if(this.ruleOverlaps(rect.bottom, rect.xRange)) {
-					if(assumeConstantSize) {
-						rect.top = this.position - rect.height;
-					} else {
-						let newHeight = this.position - rect.top;
-						rect.height = newHeight;
-					}
-					return rect;
+				if(assumeConstantSize) {
+					rect.top = this.position - rect.height;
+				} else {
+					let newHeight = this.position - rect.top;
+					rect.height = newHeight;
 				}
 				break;
 		}
 
-		return false;
+		return rect;
 	},
 
 	// Computes whether the given "rule" (a line segment, essentially), given by the position and range arguments, overlaps with the current trench.
@@ -338,9 +329,9 @@ this.Trench.prototype = {
 			// 3. position >= minRange.min && position <= minRange.max
 
 			if(position < this.minRange.min) {
-				activeRange.min = Math.min(this.minRange.min,position);
+				activeRange.min = Math.max(activeRange.min, position);
 			} else if(position > this.minRange.max) {
-				activeRange.max = Math.max(this.minRange.max,position);
+				activeRange.max = Math.min(activeRange.max, position);
 			} else {
 				// this should be impossible because items can't overlap and we've already checked
 				// that the range intercepts.
@@ -352,7 +343,10 @@ this.Trench.prototype = {
 
 	// Computes and sets the <activeRange> for the trench, based on the <GroupItems> around.
 	// This makes it so trenches' active ranges don't extend through other groupItems.
-	calculateActiveRange: function() {
+	calculateActiveRange: function(pageBounds) {
+		if(pageBounds && this.type == 'guide') {
+			this.range = new Range(0, this.xory == 'x' ? pageBounds.height : pageBounds.width);
+		}
 		// set it to the default: just the range itself.
 		this.setActiveRange(this.range);
 
@@ -472,13 +466,16 @@ this.Trenches = {
 	// Activate all <Trench>es other than those projected by the current element.
 	// Parameters:
 	//   element - (DOMElement) the DOM element of the Item being dragged or resized.
-	activateOthersTrenches: function(element) {
+	//   pageBounds - the current page bounds used to limit guide ranges
+	activateOthersTrenches: function(element, pageBounds) {
 		for(let t of this.trenches.values()) {
-			if(t.el === element) { continue; }
-			if(t.parentItem && (t.parentItem.isAFauxItem || t.parentItem.isDragging || t.parentItem.isResizing)) { continue; }
-
-			t.active = true;
-			t.calculateActiveRange();
+			t.active = false;
+			t.showGuide = false;
+			if(t.el !== element && (!t.parentItem || (!t.parentItem.hidden && !t.parentItem.isAFauxItem
+			&& !t.parentItem.isDragging && !t.parentItem.isResizing))) {
+				t.active = true;
+				t.calculateActiveRange(pageBounds);
+			}
 			t.show(); // debug
 		}
 	},
@@ -500,6 +497,96 @@ this.Trenches = {
 		}
 	},
 
+	// Applies preselected candidates without depending on trench registration order.
+	_applySnapCandidates: function(rect, selected, stationaryCorner, assumeConstantSize) {
+		if(!assumeConstantSize && stationaryCorner != 'none') {
+			for(let edge of [ 'left', 'right', 'top', 'bottom' ]) {
+				if(stationaryCorner.indexOf(edge) > -1) { selected.delete(edge); }
+			}
+		}
+
+		if(assumeConstantSize) {
+			let x = selected.get('left');
+			let right = selected.get('right');
+			if(!x || right && (right.distance < x.distance || right.distance == x.distance && !this.preferLeft)) { x = right; }
+			let y = selected.get('top');
+			let bottom = selected.get('bottom');
+			if(!y || bottom && (bottom.distance < y.distance || bottom.distance == y.distance && !this.preferTop)) { y = bottom; }
+			selected.clear();
+			if(x) { selected.set(x.edge, x); }
+			if(y) { selected.set(y.edge, y); }
+		} else if(stationaryCorner == 'none') {
+			let left = selected.get('left');
+			let right = selected.get('right');
+			if(left && right && right.position <= left.position) {
+				let edge = left.distance < right.distance || left.distance == right.distance && this.preferLeft ? 'right' : 'left';
+				selected.delete(edge);
+			}
+			let top = selected.get('top');
+			let bottom = selected.get('bottom');
+			if(top && bottom && bottom.position <= top.position) {
+				let edge = top.distance < bottom.distance || top.distance == bottom.distance && this.preferTop ? 'bottom' : 'top';
+				selected.delete(edge);
+			}
+		}
+
+		if(!selected.size) { return false; }
+		let result = new Rect(rect);
+		for(let edge of [ 'left', 'right', 'top', 'bottom' ]) {
+			let candidate = selected.get(edge);
+			if(!candidate) { continue; }
+			switch(edge) {
+				case 'left': {
+					let right = result.right;
+					result.left = candidate.position;
+					if(!assumeConstantSize && stationaryCorner.indexOf('right') > -1) { result.right = right; }
+					break;
+				}
+				case 'right':
+					if(assumeConstantSize) { result.left = candidate.position - result.width; } else { result.right = candidate.position; }
+					break;
+				case 'top': {
+					let bottom = result.bottom;
+					result.top = candidate.position;
+					if(!assumeConstantSize && stationaryCorner.indexOf('bottom') > -1) { result.bottom = bottom; }
+					break;
+				}
+				case 'bottom':
+					if(assumeConstantSize) { result.top = candidate.position - result.height; } else { result.bottom = candidate.position; }
+					break;
+			}
+		}
+
+		let invalid = [];
+		for(let candidate of selected.values()) {
+			if(!candidate.trenches) { continue; }
+			let range = candidate.edge == 'left' || candidate.edge == 'right' ? result.yRange : result.xRange;
+			let trenches = candidate.trenches.filter(trench => trench.activeRange.overlaps(range));
+			if(!trenches.length) { invalid.push(candidate); continue; }
+			let overlap = trench => Math.min(trench.activeRange.max, range.max) - Math.max(trench.activeRange.min, range.min);
+			trenches.sort((a, b) => overlap(b) - overlap(a) || b.activeRange.extent - a.activeRange.extent
+				|| a.activeRange.min - b.activeRange.min || a.activeRange.max - b.activeRange.max);
+			candidate.trench = trenches[0];
+		}
+		if(invalid.length) {
+			let edgeOrder = [ 'left', 'right', 'top', 'bottom' ];
+			let compare = (a, b) => a.distance - b.distance || edgeOrder.indexOf(a.edge) - edgeOrder.indexOf(b.edge);
+			let candidate = invalid.sort(compare)[0];
+			let horizontal = candidate.edge == 'left' || candidate.edge == 'right';
+			let blockers = [...selected.values()].filter(other => horizontal != (other.edge == 'left' || other.edge == 'right')).sort(compare);
+			if(blockers.length && compare(candidate, blockers[0]) < 0) {
+				for(let blocker of blockers) { selected.delete(blocker.edge); }
+			} else {
+				selected.delete(candidate.edge);
+			}
+			return this._applySnapCandidates(rect, selected, stationaryCorner, assumeConstantSize);
+		}
+		let snappedTrenches = new Map();
+		for(let candidate of selected.values()) { snappedTrenches.set(candidate.edge, candidate.trench); }
+		result.snappedTrenches = snappedTrenches;
+		return result;
+	},
+
 	// Used to "snap" an object's bounds to active trenches and to the edge of the window.
 	// If the meta key is down (<Key.meta>), it will not snap but will still enforce the rect not leaving the safe bounds of the window.
 	// Parameters:
@@ -514,54 +601,25 @@ this.Trenches = {
 		// hide all the guide trenches, because the correct ones will be turned on later.
 		Trenches.hideGuides();
 
-		let updated = false;
-		let updatedX = false;
-		let updatedY = false;
-
-		let snappedTrenches = new Map();
+		let candidates = new Map();
 
 		for(let t of this.trenches.values()) {
 			if(!t.active) { continue; }
 
-			// newRect will be a new rect, or false
-			let newRect = t.rectOverlaps(rect, stationaryCorner, assumeConstantSize);
-
-			// if rectOverlaps returned an updated rect...
-			if(newRect) {
-				if(assumeConstantSize && updatedX && updatedY) { break; }
-
-				if(assumeConstantSize && updatedX && (newRect.adjustedEdge == "left" || newRect.adjustedEdge == "right")) { continue; }
-				if(assumeConstantSize && updatedY && (newRect.adjustedEdge == "top" || newRect.adjustedEdge == "bottom")) { continue; }
-
-				rect = newRect;
-				updated = true;
-
-				// register this trench as the "snapped trench" for the appropriate edge.
-				snappedTrenches.set(newRect.adjustedEdge, t);
-
-				// if updatedX, we don't need to update x any more.
-				if(newRect.adjustedEdge == "left" && this.preferLeft) {
-					updatedX = true;
-				}
-				if(newRect.adjustedEdge == "right" && !this.preferLeft) {
-					updatedX = true;
-				}
-
-				// if updatedY, we don't need to update x any more.
-				if(newRect.adjustedEdge == "top" && this.preferTop) {
-					updatedY = true;
-				}
-				if(newRect.adjustedEdge == "bottom" && !this.preferTop) {
-					updatedY = true;
-				}
+			let candidate = t.rectOverlaps(rect, stationaryCorner, assumeConstantSize);
+			if(!candidate) { continue; }
+			let edge = candidate.adjustedEdge;
+			let distance = Math.abs(rect[edge] - t.position);
+			let current = candidates.get(edge);
+			let preferLower = edge == 'left' || edge == 'right' ? this.preferLeft : this.preferTop;
+			if(!current || distance < current.distance
+			|| distance == current.distance && (preferLower ? t.position < current.position : t.position > current.position)) {
+				candidates.set(edge, { edge, position: t.position, distance, trenches: [t] });
 			}
+			else if(distance == current.distance && t.position == current.position) { current.trenches.push(t); }
 		}
 
-		if(updated) {
-			rect.snappedTrenches = snappedTrenches;
-			return rect;
-		}
-		return false;
+		return this._applySnapCandidates(rect, candidates, stationaryCorner, assumeConstantSize);
 	},
 
 	// <Trench.show> all <Trench>es.

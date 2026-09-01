@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 2.7.10
+// VERSION 2.7.11
 
 // This will be the GroupDrag object created when a group is dragged or resized.
 this.DraggingGroup = null;
@@ -252,9 +252,10 @@ this.GroupDrag.prototype = {
 
 		this.item.isDragging = true;
 
-		this.safeWindowBounds = GroupItems.getSafeWindowBounds();
+		let pageBounds = UI.getPageBounds(true);
+		this.safeWindowBounds = GroupItems.getSafeWindowBounds(pageBounds);
 
-		Trenches.activateOthersTrenches(this.container);
+		Trenches.activateOthersTrenches(this.container, pageBounds);
 	},
 
 	handleEvent: function(e) {
@@ -333,7 +334,7 @@ this.GroupDrag.prototype = {
 		if(!stationaryCorner) {
 			stationaryCorner = RTL ? 'topright' : 'topleft';
 		}
-		let update = false; // need to update
+		let original = new Rect(bounds);
 		let newRect;
 		let snappedTrenches = new Map();
 
@@ -344,7 +345,6 @@ this.GroupDrag.prototype = {
 			newRect = Trenches.snap(bounds, stationaryCorner, assumeConstantSize);
 			// might be false if no changes were made
 			if(newRect) {
-				update = true;
 				if(newRect.snappedTrenches) {
 					snappedTrenches = newRect.snappedTrenches;
 				}
@@ -355,10 +355,54 @@ this.GroupDrag.prototype = {
 		// make sure the bounds are in the window.
 		newRect = this.snapToEdge(bounds, stationaryCorner, assumeConstantSize);
 		if(newRect) {
-			update = true;
 			bounds = newRect;
 			for(let [ edge, trench ] of newRect.snappedTrenches) {
 				snappedTrenches.set(edge, trench);
+			}
+		}
+
+		let safeBounds = this.safeWindowBounds;
+		while(true) {
+			if(!this.item.isAFauxItem) {
+				let right = bounds.right;
+				let bottom = bounds.bottom;
+				let validSize = GroupItems.calcValidSize(bounds.size());
+				bounds.width = validSize.x;
+				bounds.height = validSize.y;
+				if(!assumeConstantSize && stationaryCorner.indexOf('right') > -1) { bounds.left = right - bounds.width; }
+				if(!assumeConstantSize && stationaryCorner.indexOf('bottom') > -1) { bounds.top = bottom - bounds.height; }
+			}
+
+			if(bounds.width <= safeBounds.width) {
+				bounds.left = Math.max(safeBounds.left, Math.min(bounds.left, safeBounds.right - bounds.width));
+			} else {
+				bounds.left = RTL ? safeBounds.right - bounds.width : safeBounds.left;
+			}
+			if(bounds.height <= safeBounds.height) {
+				bounds.top = Math.max(safeBounds.top, Math.min(bounds.top, safeBounds.bottom - bounds.height));
+			} else {
+				bounds.top = safeBounds.top;
+			}
+
+			let invalid = [];
+			for(let [ edge, trench ] of snappedTrenches) {
+				let position = typeof(trench) == 'object' ? trench.position : safeBounds[edge];
+				if(bounds[edge] != position) { snappedTrenches.delete(edge); continue; }
+				let range = edge == 'left' || edge == 'right' ? bounds.yRange : bounds.xRange;
+				if(typeof(trench) == 'object' && !trench.activeRange.overlaps(range)) { snappedTrenches.delete(edge); invalid.push(edge); }
+			}
+			if(!invalid.length) { break; }
+			if(invalid.some(edge => edge == 'left' || edge == 'right')) {
+				snappedTrenches.delete('left');
+				snappedTrenches.delete('right');
+				bounds.left = original.left;
+				bounds.width = original.width;
+			}
+			if(invalid.some(edge => edge == 'top' || edge == 'bottom')) {
+				snappedTrenches.delete('top');
+				snappedTrenches.delete('bottom');
+				bounds.top = original.top;
+				bounds.height = original.height;
 			}
 		}
 
@@ -370,7 +414,7 @@ this.GroupDrag.prototype = {
 			}
 		}
 
-		return update ? bounds : false;
+		return snappedTrenches.size || !bounds.equals(original) ? bounds : false;
 	},
 
 	// Called when a drag or mousemove occurs. Set the bounds based on the mouse move first, then call snap and it will adjust the item's bounds if appropriate.
@@ -405,64 +449,27 @@ this.GroupDrag.prototype = {
 	//                        "topleft", "bottomleft", "topright", "bottomright"
 	//   assumeConstantSize - (boolean) whether the rect's dimensions are sacred or not
 	snapToEdge: function(rect, stationaryCorner, assumeConstantSize) {
-		let swb = this.safeWindowBounds;
-		let update = false;
-		let updateX = false;
-		let updateY = false;
-		let snappedTrenches = new Map();
-
+		let safeBounds = this.safeWindowBounds;
 		let snapRadius = (Keys.meta ? 0 : Trenches.defaultRadius);
-		if(rect.left < swb.left + snapRadius ) {
-			if(stationaryCorner.indexOf('right') > -1 && !assumeConstantSize) {
-				rect.width = rect.right - swb.left;
-			}
-			rect.left = swb.left;
-			update = true;
-			updateX = true;
-			snappedTrenches.set('left', 'edge');
+		let candidates = new Map();
+		if(rect.left < safeBounds.left + snapRadius) {
+			candidates.set('left', { edge: 'left', position: safeBounds.left,
+				distance: Math.abs(rect.left - safeBounds.left), trench: 'edge' });
+		}
+		if(rect.right > safeBounds.right - snapRadius) {
+			candidates.set('right', { edge: 'right', position: safeBounds.right,
+				distance: Math.abs(rect.right - safeBounds.right), trench: 'edge' });
+		}
+		if(rect.top < safeBounds.top + snapRadius) {
+			candidates.set('top', { edge: 'top', position: safeBounds.top,
+				distance: Math.abs(rect.top - safeBounds.top), trench: 'edge' });
+		}
+		if(rect.bottom > safeBounds.bottom - snapRadius) {
+			candidates.set('bottom', { edge: 'bottom', position: safeBounds.bottom,
+				distance: Math.abs(rect.bottom - safeBounds.bottom), trench: 'edge' });
 		}
 
-		if(rect.right > swb.right - snapRadius) {
-			if(updateX || !assumeConstantSize) {
-				let newWidth = swb.right - rect.left;
-				rect.width = newWidth;
-				update = true;
-			}
-			else if(!updateX || !Trenches.preferLeft) {
-				rect.left = swb.right - rect.width;
-				update = true;
-			}
-			snappedTrenches.set('right', 'edge');
-			snappedTrenches.delete('left');
-		}
-		if(rect.top < swb.top + snapRadius) {
-			if(stationaryCorner.indexOf('bottom') > -1 && !assumeConstantSize) {
-				rect.height = rect.bottom - swb.top;
-			}
-			rect.top = swb.top;
-			update = true;
-			updateY = true;
-			snappedTrenches.set('top', 'edge');
-		}
-		if(rect.bottom > swb.bottom - snapRadius) {
-			if(updateY || !assumeConstantSize) {
-				let newHeight = swb.bottom - rect.top;
-				rect.height = newHeight;
-				update = true;
-			}
-			else if(!updateY || !Trenches.preferTop) {
-				rect.top = swb.bottom - rect.height;
-				update = true;
-			}
-			snappedTrenches.set('top', 'edge');
-			snappedTrenches.delete('bottom');
-		}
-
-		if(update) {
-			rect.snappedTrenches = snappedTrenches;
-			return rect;
-		}
-		return false;
+		return Trenches._applySnapCandidates(rect, candidates, stationaryCorner, assumeConstantSize);
 	},
 
 	getStationaryCorner: function(coords, box) {
@@ -517,13 +524,16 @@ this.GroupDrag.prototype = {
 		Listeners.remove(gWindow, 'mousemove', this);
 		Listeners.remove(gWindow, 'mouseup', this);
 
+		if(!this.item.isResizing && !this.started) {
+			this.end();
+			return;
+		}
+		let pageBounds = UI.getPageBounds(true);
+		this.safeWindowBounds = GroupItems.getSafeWindowBounds(pageBounds);
+		Trenches.activateOthersTrenches(this.container, pageBounds);
+
 		// We only snap the groups to a trench when it's finished dragging.
 		if(!this.item.isResizing) {
-			if(!this.started) {
-				this.end();
-				return;
-			}
-
 			if(this.item.isAFauxItem) {
 				let box = this.item.getBounds();
 				let stationaryCorner = this.getStationaryCorner(this.startMouse, box);
@@ -542,8 +552,6 @@ this.GroupDrag.prototype = {
 			// Remembers the current size as one the user has chosen.
 			this.item.userSize = new Point(this.item.bounds.width, this.item.bounds.height);
 			this.item.save();
-
-			this.item.pushAway();
 		}
 
 		Trenches.hideGuides();
@@ -552,7 +560,7 @@ this.GroupDrag.prototype = {
 		this.container.classList.remove('dragging');
 		this.container.classList.remove('resizing');
 
-		this.item.pushAway(immediately);
+		this.item.pushAway(immediately, this.safeWindowBounds);
 
 		Trenches.disactivate();
 

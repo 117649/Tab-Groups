@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.3.69
+// VERSION 1.3.70
 
 // Used to scroll groups automatically, for instance when dragging a tab over a group's overflown edges.
 this.Synthesizer = {
@@ -866,8 +866,9 @@ this.UI = {
 
 			// Make sure groups created outside classic mode don't overlap others.
 			if(UI.classic) {
-				let groups = [...GroupItems].filter(item => !this._classicResize?.applied.has(item));
-				if(groups.length) { GroupItems.resnap(groups); }
+				let groups = [...GroupItems];
+				let state = this._classicResize;
+				if(!state || state.groupCount != groups.length || groups.some(item => !state.applied.has(item))) { GroupItems.resnap(); }
 				this._resize(true, true);
 			}
 		}
@@ -1183,6 +1184,7 @@ this.UI = {
 			window.focus();
 
 			gBrowser.updateTitlebar();
+			this._resize(true);
 
 			// Trick to make Ctrl+F4 and Ctrl+Shift+PageUp/PageDown shortcuts behave as expected in TabView,
 			// we need to remove the gBrowser as a listener for these, otherwise it would consume these events and they would never reach our handler.
@@ -1202,8 +1204,6 @@ this.UI = {
 					}
 
 					this.setActive(item);
-
-					this._resize(true);
 				}
 				else if(!currentTab._tabViewTabItem) {
 					this.clearActiveTab();
@@ -1321,10 +1321,15 @@ this.UI = {
 		if(!this._storageBusy) { return; }
 		this._storageBusy = false;
 
+		let data = Storage.readUIData(gWindow) || {};
+		this.storageSanity(data);
+		this._pageBounds = data.pageBounds || this.getPageBounds(true);
+		this._classicResize = null;
 		let hasGroupItemsData = GroupItems.load();
 		if(!hasGroupItemsData) {
 			this.reset();
 		}
+		this._resize(true, true);
 
 		TabItems.resumeReconnecting();
 		GroupItems._updateTabBar();
@@ -1970,21 +1975,15 @@ this.UI = {
 		let state = this._classicResize;
 		let reset = !state || state.groupCount != items.length;
 		let boundsChanged = false;
-		let userSizeChanged = false;
 		if(!reset) {
 			for(let item of items) {
 				let group = state.anchors[0].groups.get(item);
 				let applied = state.applied.get(item);
 				if(!group || group.hidden != item.hidden || !applied) { reset = true; break; }
-				boundsChanged = boundsChanged || !applied.bounds.equals(item.bounds);
-				userSizeChanged = userSizeChanged || applied.userSize?.x != item.userSize?.x || applied.userSize?.y != item.userSize?.y;
+				boundsChanged = boundsChanged || !applied.equals(item.bounds);
 			}
 		}
-		if(!reset && !boundsChanged && !userSizeChanged) { return state; }
-		if(manual && !reset && !boundsChanged) {
-			for(let item of items) { state.applied.get(item).userSize = item.userSize && new Point(item.userSize); }
-			return state;
-		}
+		if(!reset && !boundsChanged) { return state; }
 		reset = reset || !manual;
 
 		let pageBounds = manual ? this.getPageBounds(true) : this.getPageBounds();
@@ -1994,21 +1993,18 @@ this.UI = {
 		itemBounds.width = 1;
 		itemBounds.height = 1;
 		let minimalRect = new Rect(0, 0, 1, 1);
-		let feelsCramped = false;
 		for(let item of items) {
 			let bounds = item.getBounds();
-			let userSize = item.userSize;
 			itemBounds = itemBounds.union(bounds);
 			let minimalBounds = new Rect(bounds);
 			minimalBounds.inset(-Trenches.defaultRadius, -Trenches.defaultRadius);
 			minimalRect = minimalRect.union(minimalBounds);
-			feelsCramped = feelsCramped || (userSize && (userSize.x > bounds.width || userSize.y > bounds.height));
 			groups.set(item, { bounds, hidden: item.hidden });
-			applied.set(item, { bounds: new Rect(bounds), userSize: userSize && new Point(userSize) });
+			applied.set(item, new Rect(bounds));
 		}
 		minimalRect.left = 0;
 		minimalRect.top = 0;
-		let anchor = { pageBounds: new Rect(pageBounds), itemBounds, minimalRect, feelsCramped, groups, write: 0 };
+		let anchor = { pageBounds: new Rect(pageBounds), itemBounds, minimalRect, groups, write: 0 };
 
 		if(reset) {
 			state = this._classicResize = { anchors: [anchor], applied, groupCount: items.length, lastWrite: 0 };
@@ -2089,10 +2085,14 @@ this.UI = {
 		}
 
 		let layoutChanged = !newPageBounds.equals(anchor.pageBounds);
+		let feelsCramped = layoutChanged && items.some(item => {
+			let group = anchor.groups.get(item);
+			return item.userSize && (item.userSize.x > group.bounds.width || item.userSize.y > group.bounds.height);
+		});
 		let scaleBounds;
 		let scale;
 		if(layoutChanged && (anchor.minimalRect.width > newPageBounds.width
-			|| anchor.minimalRect.height > newPageBounds.height || anchor.feelsCramped)) {
+			|| anchor.minimalRect.height > newPageBounds.height || feelsCramped)) {
 			scaleBounds = new Rect(newPageBounds);
 			if(scaleBounds.width < anchor.pageBounds.width && scaleBounds.width > anchor.itemBounds.width) { scaleBounds.width = anchor.pageBounds.width; }
 			if(scaleBounds.height < anchor.pageBounds.height && scaleBounds.height > anchor.itemBounds.height) { scaleBounds.height = anchor.pageBounds.height; }
@@ -2123,7 +2123,7 @@ this.UI = {
 				if(bounds.bottom >= newPageBounds.bottom) { bounds.height = newPageBounds.bottom - bounds.top - 3; }
 			}
 			belowMinimum = belowMinimum || bounds.width < GroupItems.minGroupWidth || bounds.height < GroupItems.minGroupHeight;
-			canStrip = canStrip && !item.hidden && !item.isDragging && !item.isResizing;
+			canStrip = canStrip && !item.isDragging && !item.isResizing;
 			pairs.push({ item, group, bounds });
 		}
 
@@ -2207,7 +2207,7 @@ this.UI = {
 				pair.bounds.top = Math.max(safeBounds.top, Math.min(pair.bounds.top, safeBounds.bottom - pair.bounds.height));
 			}
 			let applied = state.applied.get(pair.item);
-			if(!applied.bounds.equals(pair.bounds)) { pair.item.setBounds(pair.bounds, true); applied.bounds.copy(pair.item.bounds); }
+			if(!applied.equals(pair.bounds)) { pair.item.setBounds(pair.bounds, true); applied.copy(pair.item.bounds); }
 		}
 
 		this._pageBounds = newPageBounds;

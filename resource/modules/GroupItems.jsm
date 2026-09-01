@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.7.28
+// VERSION 1.7.29
 
 // Class: GroupItem - A single groupItem in the TabView window.
 // Parameters:
@@ -13,6 +13,7 @@
 //   userSize - see <Item.userSize>; default is null
 //   bounds - a <Rect>; otherwise based on the locations of the provided elements
 //   container - a DOM element to use as the container for this groupItem; otherwise will create
+//   dontSnap - true to keep restored bounds unchanged
 //   title - the title for the groupItem; otherwise blank
 //   focusTitle - focus the title's input field after creation
 //   immediately - true if we want all placement immediately, not with animation
@@ -201,7 +202,7 @@ this.GroupItem = function(listOfEls, options = {}) {
 		this.setBounds(this.bounds, true, true);
 
 		// Calling snap will also trigger pushAway
-		this.snap(options.immediately);
+		if(!options.dontSnap) { this.snap(options.immediately); }
 	}
 
 	if(!options.immediately && listOfEls.length) {
@@ -604,9 +605,11 @@ this.GroupItem.prototype = {
 	// Called by the drag handler in classic mdoe.
 	// Parameters:
 	//  immediately - boolean for doing the pushAway without animation
-	pushAway: function(immediately) {
+	//  safeBounds - the safe bounds shared by the current layout operation
+	pushAway: function(immediately, safeBounds) {
 		// we need at least two top-level items to push something away
 		if(GroupItems.size < 2) { return; }
+		if(!safeBounds) { safeBounds = GroupItems.getSafeWindowBounds(); }
 
 		let buffer = Math.floor(GroupItems.defaultGutter / 2);
 
@@ -705,7 +708,6 @@ this.GroupItem.prototype = {
 		}
 
 		// ___ Squish!
-		let pageBounds = GroupItems.getSafeWindowBounds();
 		for(let item of GroupItems) {
 			let data = item.pushAwayData;
 			if(data.generation == 0) { continue; }
@@ -740,23 +742,23 @@ this.GroupItem.prototype = {
 			let posStep2 = new Point();
 			let sizeStep = new Point();
 
-			if(bounds.left < pageBounds.left) {
-				posStep.x = pageBounds.left - bounds.left;
+			if(bounds.left < safeBounds.left) {
+				posStep.x = safeBounds.left - bounds.left;
 				sizeStep.x = posStep.x / data.generation;
 				posStep2.x = -sizeStep.x;
-			} else if(bounds.right > pageBounds.right) { // this may be less of a problem post-601534
-				posStep.x = pageBounds.right - bounds.right;
+			} else if(bounds.right > safeBounds.right) { // this may be less of a problem post-601534
+				posStep.x = safeBounds.right - bounds.right;
 				sizeStep.x = -posStep.x / data.generation;
 				posStep.x += sizeStep.x;
 				posStep2.x = sizeStep.x;
 			}
 
-			if(bounds.top < pageBounds.top) {
-				posStep.y = pageBounds.top - bounds.top;
+			if(bounds.top < safeBounds.top) {
+				posStep.y = safeBounds.top - bounds.top;
 				sizeStep.y = posStep.y / data.generation;
 				posStep2.y = -sizeStep.y;
-			} else if(bounds.bottom > pageBounds.bottom) { // this may be less of a problem post-601534
-				posStep.y = pageBounds.bottom - bounds.bottom;
+			} else if(bounds.bottom > safeBounds.bottom) { // this may be less of a problem post-601534
+				posStep.y = safeBounds.bottom - bounds.bottom;
 				sizeStep.y = -posStep.y / data.generation;
 				posStep.y += sizeStep.y;
 				posStep2.y = sizeStep.y;
@@ -777,7 +779,7 @@ this.GroupItem.prototype = {
 			});
 		}
 
-		GroupItems.unsquish(pairs);
+		GroupItems.unsquish(pairs, null, safeBounds);
 
 		// ___ Apply changes
 		for(let item of GroupItems) {
@@ -791,6 +793,7 @@ this.GroupItem.prototype = {
 
 	// Sets up/moves the trenches for snapping to this item.
 	setTrenches: function(rect) {
+		if(this.hidden) { return; }
 		if(!this.borderTrenches) {
 			this.borderTrenches = Trenches.registerWithItem(this, "border");
 		}
@@ -2558,16 +2561,15 @@ this.GroupItems = {
 							groupItem.catchOnce = data.catchOnce;
 							groupItem.catchRules = data.catchRules;
 							groupItem._setDisplayID(data.displayID || data.id);
+							if(UI.classic) { groupItem.setBounds(data.bounds, true); }
+							else { groupItem.bounds = new Rect(data.bounds); }
 							groupItem.setTitle(data.title);
-							groupItem.setBounds(data.bounds, true);
 							toggleAttribute(groupItem.container, 'draggable', UI.grid);
 
 							toClose.delete(groupItem);
 						} else {
-							// we always push when first appending the group, in case new groups (from other add-ons, or imported in prefs)
-							// overlap existing groups
-							data.immediately = true;
-							new GroupItem([], data);
+							// Keep initial session bounds exact, but snap groups imported after initialization.
+							new GroupItem([], { ...data, immediately: true, dontSnap: !this._inited });
 						}
 					}
 				}
@@ -3098,9 +3100,11 @@ this.GroupItems = {
 	//   pairs - an array of objects, each with two properties: item and bounds. The bounds are modified as appropriate, but the items are not changed.
 	//     If pairs is null, the operation is performed directly on all of the top level items.
 	//   ignore - an <Item> to not include in calculations (because it's about to be closed, for instance)
-	unsquish: function(pairs, ignore) {
+	//   safeBounds - the safe bounds shared by the current layout operation
+	unsquish: function(pairs, ignore, safeBounds) {
 		// Only meant for classic mode.
 		if(!UI.classic) { return; }
+		if(!safeBounds) { safeBounds = this.getSafeWindowBounds(); }
 
 		let pairsProvided = (pairs ? true : false);
 		if(!pairsProvided) {
@@ -3113,7 +3117,6 @@ this.GroupItems = {
 			}
 		}
 
-		let pageBounds = this.getSafeWindowBounds();
 		for(let pair of pairs) {
 			let item = pair.item;
 			if(item == ignore) { continue; }
@@ -3128,23 +3131,23 @@ this.GroupItems = {
 				newSize = this.calcValidSize(new Point(this.minGroupWidth, -1));
 			}
 
-			newBounds.width = Math.max(newBounds.width, newSize.x);
-			newBounds.height = Math.max(newBounds.height, newSize.y);
+			newBounds.width = Math.min(safeBounds.width, Math.max(newBounds.width, newSize.x));
+			newBounds.height = Math.min(safeBounds.height, Math.max(newBounds.height, newSize.y));
 
 			newBounds.left -= (newBounds.width - bounds.width) / 2;
 			newBounds.top -= (newBounds.height - bounds.height) / 2;
 
 			let offset = new Point();
-			if(newBounds.left < pageBounds.left) {
-				offset.x = pageBounds.left - newBounds.left;
-			} else if(newBounds.right > pageBounds.right) {
-				offset.x = pageBounds.right - newBounds.right;
+			if(newBounds.left < safeBounds.left) {
+				offset.x = safeBounds.left - newBounds.left;
+			} else if(newBounds.right > safeBounds.right) {
+				offset.x = safeBounds.right - newBounds.right;
 			}
 
-			if(newBounds.top < pageBounds.top) {
-				offset.y = pageBounds.top - newBounds.top;
-			} else if(newBounds.bottom > pageBounds.bottom) {
-				offset.y = pageBounds.bottom - newBounds.bottom;
+			if(newBounds.top < safeBounds.top) {
+				offset.y = safeBounds.top - newBounds.top;
+			} else if(newBounds.bottom > safeBounds.bottom) {
+				offset.y = safeBounds.bottom - newBounds.bottom;
 			}
 
 			newBounds.offset(offset);
@@ -3173,8 +3176,8 @@ this.GroupItems = {
 		}
 	},
 
-	// Reposition the provided groups, defaulting to all, to make sure none overlap.
-	resnap: function(groups = this) {
+	// Reposition all groups, to make sure none overlap.
+	resnap: function() {
 		// Stop at an early iteration, just in case there are too many groups, which would cause the browser to seem like it hanged
 		// (even though it'd still actually work, it's just not good UX).
 		let i;
@@ -3193,7 +3196,7 @@ this.GroupItems = {
 			resnap = false;
 			i--;
 
-			for(let group of groups) {
+			for(let group of this) {
 				group.snap(this);
 			}
 
