@@ -4,6 +4,10 @@ on:
   push:
     branches: [ master ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   CHANGELOG_EXIST: false
   PREVIOUS_TAG: ''
@@ -17,7 +21,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: master
 
       - name: Set version in install.rdf
         run: |
@@ -35,19 +38,12 @@ jobs:
           rm pack.ps1
           zip -rq /tmp/${{ env.XPI_NAME }}.xpi *
 
-      - name: Update dev-build tag
-        run: |
-          if [ $(git rev-parse dev-build) != $(git rev-parse HEAD) ]; then
-            git tag -d dev-build && git tag dev-build $(git rev-parse HEAD)
-            git push origin -f dev-build
-          fi
-
       - name: Create CHANGELOG
         if: env.CHANGELOG_EXIST == 'true'
         uses: requarks/changelog-action@v1.10.1
         with:
           token: ${{ github.token }}
-          fromTag: 'dev-build'
+          fromTag: ${{ github.sha }}
           toTag: ${{ env.PREVIOUS_TAG }}
           excludeTypes: ''
           includeInvalidCommits: true
@@ -75,8 +71,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          git fetch --no-tags origin "$GITHUB_REF_NAME"
+          if [ "$(git rev-parse FETCH_HEAD)" != "$GITHUB_SHA" ]; then
+            echo "Skipping stale run for $GITHUB_SHA; master is now $(git rev-parse FETCH_HEAD)"
+            exit 0
+          fi
+          gh release upload dev-build /tmp/${{ env.XPI_NAME }}.xpi --clobber
+          git tag -f dev-build HEAD
+          git push origin -f dev-build
           if [ "$CHANGELOG_EXIST" = true ]; then
-            cat CHANGELOG.md | sed 's/dev-Build/dev-build/g' > CHANGELOG_FIXED.md
+            sed -e 's/dev-Build/dev-build/g' -e 's/${{ github.sha }}/dev-build/g' CHANGELOG.md > CHANGELOG_FIXED.md
             gh release edit dev-build --draft=false --notes-file=CHANGELOG_FIXED.md
           else
             url=https://github.com/117649/Tab-Groups/releases/tag/${{ env.PREVIOUS_TAG }}
@@ -85,8 +89,7 @@ jobs:
           fi
           ASSETS=$(gh release view dev-build --json assets -q '.assets[].name')
           for ASSET_NAME in $ASSETS; do
-            if [[ $ASSET_NAME == *.xpi ]]; then
+            if [[ $ASSET_NAME == *.xpi && $ASSET_NAME != "${{ env.XPI_NAME }}.xpi" ]]; then
               gh release delete-asset dev-build $ASSET_NAME --yes
             fi
           done
-          gh release upload dev-build /tmp/${{ env.XPI_NAME }}.xpi --clobber

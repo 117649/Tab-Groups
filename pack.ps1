@@ -1,3 +1,5 @@
-Remove-Item -Path .\addon.xpi
-Get-ChildItem -Path .\ -Exclude .git,.github,.vscode,pack.ps1,debug.log,*.xpi,*.gitignore,*.gitattributes | Compress-Archive -CompressionLevel NoCompression -DestinationPath addon
-Rename-Item -Path .\addon.zip -NewName addon.xpi
+Remove-Item -LiteralPath "$PSScriptRoot\addon.xpi" -ErrorAction SilentlyContinue
+Get-ChildItem -LiteralPath $PSScriptRoot -Exclude .git,.github,.vscode,pack.ps1,debug.log,*.xpi,*.gitignore,*.gitattributes |
+	Select-Object -ExpandProperty FullName |
+	Compress-Archive -CompressionLevel NoCompression -DestinationPath "$PSScriptRoot\addon.zip"
+Rename-Item -LiteralPath "$PSScriptRoot\addon.zip" -NewName addon.xpi
