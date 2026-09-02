@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.1.6
+// VERSION 1.1.7
 
 // Class: Trench - Class for drag-snapping regions; called "trenches" as they are long and narrow.
 // Parameters:
@@ -355,7 +355,7 @@ this.Trench.prototype = {
 
 		for(let groupItem of GroupItems) {
 			// floating groupItems don't block trenches
-			if(groupItem.isDragging || groupItem.isResizing) { continue; }
+			if(groupItem.hidden || groupItem.isDragging || groupItem.isResizing) { continue; }
 
 			// groupItems don't block their own trenches
 			if(this.el == groupItem.container) { continue; }

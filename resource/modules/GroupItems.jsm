@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.7.30
+// VERSION 1.7.31
 
 // Class: GroupItem - A single groupItem in the TabView window.
 // Parameters:
@@ -210,6 +210,7 @@ this.GroupItem = function(listOfEls, options = {}) {
 	}
 
 	this._inited = true;
+	if(UI.classic && GroupItems._inited) { UI._updateClassicLayout(true); }
 
 	this.setTitle(options.title); // calls this.save() for us
 	if(options.focusTitle) {
@@ -248,7 +249,7 @@ this.GroupItem.prototype = {
 	// Returns all of the info worth storing about this groupItem.
 	getStorageData: function() {
 		let data = {
-			bounds: this.getBounds({ classic: true }),
+			bounds: new Rect(UI._classicResize?.storageAnchor?.groups.get(this)?.bounds || this.bounds),
 			slot: this.slot,
 			displayID: this.displayID,
 			userSize: null,
@@ -562,6 +563,11 @@ this.GroupItem.prototype = {
 		if(Utils.isEmptyObject(css)) { return; }
 		this.bounds = new Rect(rect);
 		this._userBounds = true;
+		if(this.hidden && this.undoContainer) {
+			let $undoContainer = iQ(this.undoContainer);
+			$undoContainer.css({ left: rect.left + rect.width / 2 - $undoContainer.width() / 2,
+				top: rect.top + rect.height / 2 - $undoContainer.height() / 2 });
+		}
 
 		// ___ Update our representation
 		if(immediately) {
@@ -1019,6 +1025,7 @@ this.GroupItem.prototype = {
 		let destroyGroup = () => {
 			this.destroy();
 			GroupItems.unsquish();
+			if(UI.classic) { UI._updateClassicLayout(true); }
 			this._sendToSubscribers("close");
 		};
 
@@ -1109,6 +1116,10 @@ this.GroupItem.prototype = {
 		this.closing = false;
 		this.destroyUndoButton();
 		this.setTrenches(this.bounds);
+		if(UI.classic) {
+			this.pushAway(options.immediately);
+			UI._updateClassicLayout(true);
+		}
 
 		let finalize = () => {
 			UI.setActive(this);
@@ -2701,6 +2712,7 @@ this.GroupItems = {
 		this._items.set(groupItem.id, groupItem);
 
 		this._lastActiveList.append(groupItem);
+		this._save();
 		this.arrange(true);
 		Storage._prepWindowToRestoreInto(gWindow);
 		UI.updateTabButton();
@@ -2721,6 +2733,7 @@ this.GroupItems = {
 		this._lastActiveList.remove(groupItem);
 		this._thumbsNeedingUpdate.remove(groupItem);
 		this._arrangesPending.delete(groupItem);
+		this._save();
 		this.arrange(true);
 
 		Storage._prepWindowToRestoreInto(gWindow);
@@ -3111,6 +3124,7 @@ this.GroupItems = {
 		if(!pairsProvided) {
 			pairs = [];
 			for(let item of this) {
+				if(item.hidden) { continue; }
 				pairs.push({
 					item: item,
 					bounds: item.getBounds()

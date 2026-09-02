@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.3.71
+// VERSION 1.3.72
 
 // Used to scroll groups automatically, for instance when dragging a tab over a group's overflown edges.
 this.Synthesizer = {
@@ -664,6 +664,7 @@ this.UI = {
 			GroupItems.init();
 			GroupItems.pauseArrange();
 			let hasGroupItemsData = GroupItems.load();
+			if(this._pageBounds && hasGroupItemsData && !UI.classic) { this._updateClassicLayout(false); }
 			PinnedItems.init();
 			TabItems.pausePainting();
 			TabItems.init();
@@ -1994,17 +1995,20 @@ this.UI = {
 		itemBounds.height = 1;
 		let minimalRect = new Rect(0, 0, 1, 1);
 		for(let item of items) {
-			let bounds = item.getBounds();
+			let bounds = item.getBounds({ classic: true });
+			groups.set(item, { bounds, hidden: item.hidden });
+			applied.set(item, new Rect(bounds));
+			if(item.hidden) { continue; }
 			itemBounds = itemBounds.union(bounds);
 			let minimalBounds = new Rect(bounds);
 			minimalBounds.inset(-Trenches.defaultRadius, -Trenches.defaultRadius);
 			minimalRect = minimalRect.union(minimalBounds);
-			groups.set(item, { bounds, hidden: item.hidden });
-			applied.set(item, new Rect(bounds));
 		}
 		minimalRect.left = 0;
 		minimalRect.top = 0;
 		let anchor = { pageBounds: new Rect(pageBounds), itemBounds, minimalRect, groups, write: 0 };
+		anchor.pageBounds.realTop = pageBounds.realTop;
+		anchor.pageBounds.realLeft = pageBounds.realLeft;
 
 		if(reset) {
 			state = this._classicResize = { anchors: [anchor], applied, groupCount: items.length, lastWrite: 0 };
@@ -2021,6 +2025,9 @@ this.UI = {
 			}
 			state.applied = applied;
 		}
+		state.storageAnchor = anchor;
+		Storage.saveGroupItems(gWindow, items.map(item => item.getStorageData()));
+		this._save();
 		return state;
 	},
 
@@ -2086,6 +2093,7 @@ this.UI = {
 
 		let layoutChanged = !newPageBounds.equals(anchor.pageBounds);
 		let feelsCramped = layoutChanged && items.some(item => {
+			if(item.hidden) { return false; }
 			let group = anchor.groups.get(item);
 			return item.userSize && (item.userSize.x > group.bounds.width || item.userSize.y > group.bounds.height);
 		});
@@ -2106,7 +2114,6 @@ this.UI = {
 
 		let pairs = [];
 		let belowMinimum = false;
-		let canRearrange = items.length > 1;
 		for(let item of items) {
 			let group = anchor.groups.get(item);
 			let bounds = new Rect(group.bounds);
@@ -2122,19 +2129,21 @@ this.UI = {
 				if(bounds.right >= newPageBounds.right) { bounds.width = newPageBounds.right - bounds.left - 3; }
 				if(bounds.bottom >= newPageBounds.bottom) { bounds.height = newPageBounds.bottom - bounds.top - 3; }
 			}
-			belowMinimum = belowMinimum || bounds.width < GroupItems.minGroupWidth || bounds.height < GroupItems.minGroupHeight;
-			canRearrange = canRearrange && !item.isDragging && !item.isResizing;
+			let tooSmall = bounds.width < GroupItems.minGroupWidth || bounds.height < GroupItems.minGroupHeight;
+			belowMinimum = belowMinimum || !item.hidden && tooSmall;
 			pairs.push({ item, group, bounds });
 		}
+		let visiblePairs = pairs.filter(pair => !pair.item.hidden);
+		let canRearrange = visiblePairs.length > 1 && visiblePairs.every(pair => !pair.item.isDragging && !pair.item.isResizing);
 
 		let safeBounds = layoutChanged && belowMinimum ? GroupItems.getSafeWindowBounds(newPageBounds) : null;
 		if(canRearrange && safeBounds) {
 			let horizontal = safeBounds.width * GroupItems.minGroupHeight >= safeBounds.height * GroupItems.minGroupWidth;
-			let gap = (items.length - 1) * GroupItems.defaultGutter;
+			let gap = (visiblePairs.length - 1) * GroupItems.defaultGutter;
 			let cross = 0;
 			let valid = Number.isFinite(safeBounds.left) && Number.isFinite(safeBounds.top) && Number.isFinite(safeBounds.width)
 				&& Number.isFinite(safeBounds.height) && safeBounds.width > 0 && safeBounds.height > 0;
-			for(let pair of pairs) {
+			for(let pair of visiblePairs) {
 				let bounds = pair.group.bounds;
 				valid = valid && Number.isFinite(bounds.left) && Number.isFinite(bounds.top) && Number.isFinite(bounds.width)
 					&& Number.isFinite(bounds.height) && bounds.width > 0 && bounds.height > 0;
@@ -2144,13 +2153,13 @@ this.UI = {
 			let safeCross = horizontal ? safeBounds.height : safeBounds.width;
 			let mainMinimum = horizontal ? GroupItems.minGroupWidth : GroupItems.minGroupHeight;
 			let available = safeMain - gap;
-			let flexible = pairs.map(pair => horizontal ? pair.group.bounds.width : pair.group.bounds.height).sort((a, b) => a - b);
+			let flexible = visiblePairs.map(pair => horizontal ? pair.group.bounds.width : pair.group.bounds.height).sort((a, b) => a - b);
 			let total = flexible.reduce((sum, size) => sum + size, 0);
 			let crossCapacity = safeCross / cross;
 			let remaining = available;
 			let mainScale = 1;
 			let index = 0;
-			valid = valid && available >= items.length * mainMinimum
+			valid = valid && available >= visiblePairs.length * mainMinimum
 				&& safeCross >= (horizontal ? GroupItems.minGroupHeight : GroupItems.minGroupWidth)
 				&& (crossCapacity < available / total || crossCapacity >= 1 && available >= total);
 			// A strip may squeeze only its cross axis or preserve every group's original size.
@@ -2161,9 +2170,9 @@ this.UI = {
 				total -= flexible[index++];
 			}
 			let crossScale = Math.min(1, crossCapacity);
-			let stripMain = pairs.reduce((total, pair) => total + Math.max(mainMinimum,
+			let stripMain = visiblePairs.reduce((total, pair) => total + Math.max(mainMinimum,
 				horizontal ? pair.group.bounds.width * mainScale : pair.group.bounds.height * mainScale), 0);
-			let precision = Number.EPSILON * 16 * items.length * Math.max(1, safeBounds.width, safeBounds.height);
+			let precision = Number.EPSILON * 16 * visiblePairs.length * Math.max(1, safeBounds.width, safeBounds.height);
 			valid = valid && stripMain <= available + precision;
 			if(valid) {
 				let inset = (safeMain - stripMain - gap) / 2;
@@ -2171,10 +2180,10 @@ this.UI = {
 				let planned = [];
 				let toleratedBounds = new Rect(safeBounds);
 				toleratedBounds.inset(-precision, -precision);
-				for(let pair of [...pairs].sort((a, b) => {
+				for(let pair of [...visiblePairs].sort((a, b) => {
 					let delta = horizontal ? a.group.bounds.left + a.group.bounds.width / 2 - b.group.bounds.left - b.group.bounds.width / 2
 						: a.group.bounds.top + a.group.bounds.height / 2 - b.group.bounds.top - b.group.bounds.height / 2;
-					if(delta) { return delta; }
+					if(delta) { return horizontal && RTL ? -delta : delta; }
 					if(typeof a.item.id == 'number' && typeof b.item.id == 'number') {
 						return a.item.id < b.item.id ? -1 : a.item.id > b.item.id ? 1 : 0;
 					}
@@ -2193,15 +2202,18 @@ this.UI = {
 							|| (horizontal ? (RTL ? previous.left - bounds.right : bounds.left - previous.right)
 								: bounds.top - previous.bottom) >= GroupItems.defaultGutter - precision);
 					if(!valid) { break; }
-					planned.push({ item: pair.item, bounds });
+					planned.push({ item: pair.item, group: pair.group, bounds });
 					offset += (horizontal ? width : height) + GroupItems.defaultGutter;
 				}
-				if(valid) { pairs = planned; }
+				if(valid) {
+					visiblePairs = planned;
+					pairs = pairs.filter(pair => pair.item.hidden).concat(visiblePairs);
+				}
 			}
 		}
 
 		if(scaleBounds && safeBounds) {
-			for(let pair of pairs) {
+			for(let pair of visiblePairs) {
 				if(pair.bounds.width >= GroupItems.minGroupWidth && pair.bounds.height >= GroupItems.minGroupHeight) { continue; }
 				pair.bounds.width = Math.max(pair.bounds.width, GroupItems.minGroupWidth);
 				pair.bounds.height = Math.max(pair.bounds.height, GroupItems.minGroupHeight);
@@ -2211,21 +2223,21 @@ this.UI = {
 			let gutter = GroupItems.defaultGutter;
 			let maxColumns = Math.floor((safeBounds.width + gutter) / (GroupItems.minGroupWidth + gutter));
 			let maxRows = Math.floor((safeBounds.height + gutter) / (GroupItems.minGroupHeight + gutter));
-			if(canRearrange && maxColumns * maxRows >= pairs.length
-				&& pairs.some((pair, index) => pairs.slice(index + 1).some(other => pair.bounds.intersects(other.bounds)))) {
-				let columns = Math.round(Math.sqrt(pairs.length * safeBounds.width * GroupItems.minGroupHeight
+			if(canRearrange && maxColumns * maxRows >= visiblePairs.length
+				&& visiblePairs.some((pair, index) => visiblePairs.slice(index + 1).some(other => pair.bounds.intersects(other.bounds)))) {
+				let columns = Math.round(Math.sqrt(visiblePairs.length * safeBounds.width * GroupItems.minGroupHeight
 					/ safeBounds.height / GroupItems.minGroupWidth));
-				columns = Math.max(Math.ceil(pairs.length / maxRows), Math.min(pairs.length, maxColumns, columns));
-				let rows = Math.ceil(pairs.length / columns);
+				columns = Math.max(Math.ceil(visiblePairs.length / maxRows), Math.min(visiblePairs.length, maxColumns, columns));
+				let rows = Math.ceil(visiblePairs.length / columns);
 				let cellWidth = (safeBounds.width - (columns - 1) * gutter) / columns;
 				let cellHeight = (safeBounds.height - (rows - 1) * gutter) / rows;
 				// Preserve reading order while giving minimum-sized groups a non-overlapping compact grid.
-				pairs = pairs.sort((a, b) => {
+				visiblePairs = visiblePairs.sort((a, b) => {
 					let delta = a.group.bounds.top - b.group.bounds.top;
 					return delta || (RTL ? -1 : 1) * (a.group.bounds.left - b.group.bounds.left);
 				}).map((pair, index) => {
 					let row = Math.floor(index / columns);
-					let rowItems = Math.min(columns, pairs.length - row * columns);
+					let rowItems = Math.min(columns, visiblePairs.length - row * columns);
 					let width = Math.max(GroupItems.minGroupWidth, Math.min(pair.group.bounds.width, cellWidth));
 					let height = Math.max(GroupItems.minGroupHeight, Math.min(pair.group.bounds.height, cellHeight));
 					return { item: pair.item, bounds: new Rect(
@@ -2233,6 +2245,14 @@ this.UI = {
 							+ (RTL ? rowItems - 1 - index % columns : index % columns) * (cellWidth + gutter) + (cellWidth - width) / 2,
 						safeBounds.top + row * (cellHeight + gutter) + (cellHeight - height) / 2, width, height) };
 				});
+				pairs = pairs.filter(pair => pair.item.hidden).concat(visiblePairs);
+			}
+		}
+		// Keep hidden groups recoverable without letting them affect visible layout.
+		if(layoutChanged) {
+			let hiddenSafeBounds = GroupItems.getSafeWindowBounds(newPageBounds);
+			for(let pair of pairs) {
+				if(pair.item.hidden) { GroupItems.unsquish([ pair ], null, hiddenSafeBounds); }
 			}
 		}
 
@@ -2386,7 +2406,7 @@ this.UI = {
 		if(!this._frameInitialized) { return; }
 
 		let data = {
-			pageBounds: this._pageBounds,
+			pageBounds: this._classicResize?.storageAnchor?.pageBounds || this._pageBounds,
 			searchPosition: Search._position
 		};
 
