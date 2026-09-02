@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.0.8
+// VERSION 1.0.9
 
 // Keep placement, cross-window adoption, validation, and rollback in one transaction.
 // Firefox creates replacement tab nodes, so split views stay atomic and the selected tab moves last.
@@ -15,6 +15,7 @@ this.ItemMove = {
 		|| !sourceFrame || sourceWindow == gWindow || PrivateBrowsing.isPrivate(sourceWindow) != PrivateBrowsing.isPrivate(gWindow)
 		|| tabs.some(tab => tab.ownerDocument.defaultView != sourceWindow || tab.splitview?.tabs.some(splitTab => !tabSet.has(splitTab)))) { return false; }
 		sourceFrame = Cu.waiveXrays(sourceFrame);
+		let applySelection = this._selection(sourceFrame.tabGroups.TabItems, tabs);
 
 		// Group options come from another TabView sandbox, so clone them into this one.
 		let options = Cu.cloneInto(sourceGroup.getStorageData(), window), adoptedTabs = new Array(tabs.length),
@@ -58,9 +59,11 @@ this.ItemMove = {
 			}
 			if(UI.classic) { targetBounds = new Map([...GroupItems].map(group => [ group, group.getBounds() ])); }
 			targetGroup = new GroupItem(items, options);
+			if(targetGroup.catchRules) { CatchRules.init(); }
 			if(selectedTab || activeIndex > -1) { targetGroup.setActiveTab(items[selectedTab ? selectedIndex : activeIndex]); }
 			for(let item of items) { item.save(); }
 			targetGroup.reorderTabsBasedOnTabItemOrder(adoptedTabs);
+			applySelection(TabItems, adoptedTabs);
 			if(!sourceWindow.closed && !sourceGroup.children.length) { sourceGroup.close({ immediately: true }); }
 		}
 		catch(ex) {
@@ -76,6 +79,7 @@ this.ItemMove = {
 			}
 			for(let group of shiftedGroups) { restore(() => group.slot--); }
 			if(shiftedGroups.length) { restore(() => Storage.saveGroupItems(gWindow, shiftedGroups.map(group => group.getStorageData()))); }
+			if(UI.classic) { restore(() => UI._updateClassicLayout(true)); }
 			// Rollback is the same adoption in reverse, using the replacement selected tab.
 			if(needsFallback) { restore(() => sourceFrame.tabGroups.UI._dontHideTabView = true); }
 			restore(() => restoredTabs = this._adopt(adoptedTabs, adoptedTabs[selectedIndex], sourceBrowser, restoredTabs));
@@ -104,6 +108,7 @@ this.ItemMove = {
 			}
 			restore(() => sourceGroup.reorderTabsBasedOnTabItemOrder());
 			restore(() => sourceGroup.arrange());
+			restore(() => applySelection(sourceFrame.tabGroups.TabItems, restoredTabs));
 			let recovered = restore(() => tabs.every((tab, index) => {
 				tab = restoredTabs[index];
 				return tab?.isConnected && tab.ownerDocument.defaultView == sourceWindow;
@@ -280,6 +285,7 @@ this.ItemMove = {
 			pinned: tab.pinned,
 			active: tab._tabViewTabItem?.parent?._activeTab == tab._tabViewTabItem
 		}));
+		let applySelection = this._selection(sourceFrame.tabGroups.TabItems, tabs);
 		let sourceGroups = new Set(sourceItems.map(item => item.parent).filter(Boolean)), nativeGroups = this._nativeGroups(tabs);
 		let sourceActiveTab = sourceFrame.tabGroups.UI.getActiveTab(),
 		sourceActiveGroup = sourceFrame.tabGroups.GroupItems.getActiveGroupItem(), sourceSelectedTab = sourceBrowser.selectedTab;
@@ -331,6 +337,7 @@ this.ItemMove = {
 				}
 				for(let tabItem of group.children) { tabItem.save(); }
 			}
+			applySelection(TabItems, adoptedTabs);
 		}
 		catch(ex) {
 			let restoredTabs = new Array(tabs.length);
@@ -362,6 +369,7 @@ this.ItemMove = {
 				});
 			}
 			for(let group of sourceGroups) { restore(() => group.reorderTabsBasedOnTabItemOrder()); restore(() => group.arrange()); }
+			restore(() => applySelection(sourceFrame.tabGroups.TabItems, restoredTabs));
 			let recovered = restore(() => tabs.every((tab, index) => {
 				tab = restoredTabs[index];
 				return tab?.isConnected && tab.ownerDocument.defaultView == sourceWindow;
@@ -390,6 +398,7 @@ this.ItemMove = {
 				if(state.active?.parent == group) { restore(() => group.setActiveTab(state.active)); }
 				if(state.bounds) { restore(() => { if(!group.getBounds().equals(state.bounds)) { group.setBounds(state.bounds, true, true); } }); }
 			}
+			if(UI.classic) { restore(() => UI._updateClassicLayout(true)); }
 			restore(() => {
 				if(destinationSelectedTab?.isConnected && destinationSelectedTab.ownerDocument.defaultView == gWindow) {
 					gBrowser.selectedTab = destinationSelectedTab;
@@ -418,6 +427,18 @@ this.ItemMove = {
 		return true;
 	},
 
+	// Adoption replaces TabItems; carry TabView selection to their replacements.
+	_selection: function(tabItems, tabs) {
+		let selected = tabs.map(tab => tabItems.selectedItems.has(tab._tabViewTabItem));
+		let anchor = tabs.indexOf(tabItems._selectionAnchor?.tab);
+		return (target, replacements) => {
+			for(let index of selected.keys()) {
+				if(selected[index]) { target._setSelected(replacements[index]?._tabViewTabItem, true); }
+			}
+			if(anchor >= 0) { target._selectionAnchor = replacements[anchor]?._tabViewTabItem || null; }
+		};
+	},
+
 	// GroupItems are rewrapped on return; carry their native tab node across the sandbox boundary instead.
 	_fallbackTab: function(sourceFrame, find) {
 		let tab = null;
@@ -433,7 +454,23 @@ this.ItemMove = {
 			if(tab.splitview && browser.adoptSplitView) {
 				let splitTabs = [...tab.splitview.tabs];
 				if(tab != selectedTab && (tab != splitTabs[0] || splitTabs.includes(selectedTab))) { return; }
-				let splitview = browser.adoptSplitView(tab.splitview, { tabIndex: browser.tabs.length, selectTab: select });
+				let sourceContainer = splitTabs[0].container, splitview;
+				let onClose = e => {
+					let adoptedIndex = indexes.get(e.target);
+					if(adoptedIndex !== undefined) { adopted[adoptedIndex] = e.detail.adoptedBy; }
+				};
+				Listeners.add(sourceContainer, "TabClose", onClose);
+				try {
+					splitview = browser.adoptSplitView(tab.splitview, { tabIndex: browser.tabs.length, selectTab: select });
+				} finally {
+					Listeners.remove(sourceContainer, "TabClose", onClose);
+					if(!splitview) {
+						for(let splitTab of splitTabs) {
+							if(splitTab.isConnected) { delete splitTab.removedByAdoption; }
+							delete adopted[indexes.get(splitTab)]?.addedByAdoption;
+						}
+					}
+				}
 				if(!splitview) { throw new Error(`Could not adopt ${tab == selectedTab ? "selected " : ""}split view`); }
 				for(let [i, splitTab] of splitTabs.entries()) { adopted[indexes.get(splitTab)] = splitview.tabs[i]; }
 			}
