@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.4.26
+// VERSION 1.4.27
 
 objName = 'tabGroups';
 objPathString = 'tabgroups';
@@ -90,6 +90,14 @@ function startAddon(window) {
 
 function stopAddon(window) {
 	window[objName].Modules.unload('TabView', window.gBrowserInit);
+	if(UNLOADED == ADDON_DISABLE || UNLOADED == ADDON_UNINSTALL) {
+		let activeGroupId = Storage.readGroupItemsData(window)?.activeGroupId;
+		for(let tab of window.gBrowser.tabs) {
+			let tabData = Storage.getTabData(tab);
+			if(tab.hidden && typeof tabData?.groupID == 'number'
+			&& (typeof activeGroupId != 'number' || tabData.groupID != activeGroupId)) { window.gBrowser.showTab(tab); }
+		}
+	}
 	removeObject(window);
 }
 
@@ -166,7 +174,7 @@ async function onStartup(aData) {
 	Services.prefs.addObserver("extensions." + objPathString + ".SessionSnapshotInterval", SSSIobs);
 	
 	AddonManager.getAddonByID(aData.id).then(addon => {
-		Services.prefs.getBoolPref("extensions." + objPathString + ".hide_warning") ?
+		Services.prefs.getBoolPref("extensions." + objPathString + ".hide_warning", false) ?
 			addon.__AddonInternal__.signedState = AddonManager.SIGNEDSTATE_NOT_REQUIRED
 			: addon.__AddonInternal__.signedState = AddonManager.SIGNEDSTATE_MISSING;
 	}).catch(e => { Cu.reportError(e); });

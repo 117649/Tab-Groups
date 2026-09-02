@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.8.10
+// VERSION 1.8.11
 
 // This looks for file defaults.js in resource folder, expects:
 //	objName - (string) main object name for the add-on, to be added to window element
@@ -265,9 +265,9 @@ function callOnLoad(aSubject, aCallback, beforeComplete) {
 }
 
 function disable() {
-	AddonManager.getAddonByID(AddonData.id, function(addon) {
+	AddonManager.getAddonByID(AddonData.id).then(function(addon) {
 		addon.userDisabled = true;
-	});
+	}, Cu.reportError);
 }
 
 function continueStartup(aReason) {
@@ -301,10 +301,9 @@ async function startup(aData, aReason) {
 	AddonData.initTime = new Date().getTime();
 
 	// This includes the optionsURL property
-	AddonManager.getAddonByID(AddonData.id, function(addon) {
-		if(typeof(UNLOADED) == 'undefined' || UNLOADED) { return; }
-		Addon = addon;
-	});
+	AddonManager.getAddonByID(AddonData.id).then(addon => {
+		if(!UNLOADED) { Addon = addon; }
+	}, Cu.reportError);
 
 	// Set the default strings for the add-on
 	loadDefaults(aData);

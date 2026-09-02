@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.7.5
+// VERSION 1.7.6
 Modules.UTILS = true;
 
 // Keysets - handles editable keysets for the add-on
@@ -321,7 +321,7 @@ this.Keysets = {
 			if(!deinitializing) {
 				this._flushing.add('adblockplus');
 			}
-			AddonManager.getAddonByID('{d10d0bf8-f5b5-c8b4-a8b2-2b9879e08c5d}', (addon) => {
+			AddonManager.getAddonByID('{d10d0bf8-f5b5-c8b4-a8b2-2b9879e08c5d}').then((addon) => {
 				if(addon && addon.isActive) {
 					let result = {};
 					result.wrappedJSObject = result;
