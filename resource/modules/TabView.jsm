@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.2.7
+// VERSION 1.2.8
 
 this.__defineGetter__('gBrowser', function() { return window.gBrowser; });
 this.__defineGetter__('gTaskbarTabGroup', function() { return window.gTaskbarTabGroup; });
@@ -458,6 +458,7 @@ this.TabView = {
 	},
 
 	_deinitFrame: function() {
+		this._initFrameCallbacks = [];
 		// nothing to do
 		if(!this._window && !this._iframe) { return; }
 

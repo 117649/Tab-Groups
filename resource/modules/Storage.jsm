@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.2.6
+// VERSION 1.2.7
 
 this.Storage = {
 	kGroupIdentifier: "tabview-group",
@@ -141,10 +141,8 @@ Modules.LOADMODULE = function() {
 		// Step 1 of processing:
 		// Inspect extData for Tab Groups identifiers. If found, then we want to inspect further.
 		// If there is a single group, then we can use this window. If there are multiple groups then we won't use this window.
-		let groupsData = SessionStore.getCustomWindowValue(aWindow, Storage.kGroupsIdentifier);
+		let groupsData = Storage.readGroupItemsData(aWindow);
 		if(groupsData) {
-			groupsData = JSON.parse(groupsData);
-
 			// If there are multiple groups, we don't want to use this window.
 			if (groupsData.totalNumber > 1) {
 				if (aWindow.__SS_lastSessionWindowID) {

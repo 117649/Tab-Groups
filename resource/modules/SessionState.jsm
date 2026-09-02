@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.0.0
+// VERSION 1.0.1
 
 this.SessionState = (() => {
 	let clone = value => value === undefined ? undefined : JSON.parse(JSON.stringify(value));
@@ -38,12 +38,13 @@ this.SessionState = (() => {
 
 	function eraseTab(activeGroupId, tab) {
 		if(!tab.pinned && tab.hidden) {
-			if(!activeGroupId) { return false; }
 			let tabGroupId;
 			try { tabGroupId = JSON.parse(tab.extData[Storage.kTabIdentifier]).groupID; }
 			catch(ex) {}
-			if(!tabGroupId || tabGroupId != activeGroupId) { return false; }
-			tab.hidden = false;
+			if(tabGroupId) {
+				if(!activeGroupId || tabGroupId != activeGroupId) { return false; }
+				tab.hidden = false;
+			}
 		}
 		if(tab.extData) { delete tab.extData[Storage.kTabIdentifier]; }
 		return true;

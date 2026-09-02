@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// VERSION 1.1.20
+// VERSION 1.1.21
 
 this.paneSession = {
 	manualAction: false,
@@ -661,18 +661,25 @@ this.paneSession = {
 			Prefs.openTabNext = false;
 		}
 
-		// initialize window if necessary, just in case
-		Storage._scope.SessionStore.ensureInitialized(gWindow);
-		let plan = SessionState.prepareImport(treeView.data, Storage.readGroupItemsData(gWindow), this.sessionIds());
+		let oldGroupItemData;
+		try {
+			// initialize window if necessary, just in case
+			Storage._scope.SessionStore.ensureInitialized(gWindow);
+			oldGroupItemData = Storage.readGroupItemData(gWindow);
+			let plan = SessionState.prepareImport(treeView.data, Storage.readGroupItemsData(gWindow), this.sessionIds());
 
-		for(let group of plan.groups) { Storage.saveGroupItem(gWindow, group); }
+			for(let group of plan.groups) { Storage.saveGroupItem(gWindow, group); }
 
-		Storage._scope.SessionStore.setWindowState(gWindow, { windows: [ plan.windowState ] }, false);
-		Storage.saveGroupItemsData(gWindow, plan.groupItems);
-
-		// We can restore TMP's preferences now if it was flipped before.
-		if(restoreTMP) {
-			Prefs.openTabNext = true;
+			Storage._scope.SessionStore.setWindowState(gWindow, { windows: [ plan.windowState ] }, false);
+			Storage.saveGroupItemsData(gWindow, plan.groupItems);
+		}
+		catch(ex) {
+			if(oldGroupItemData !== undefined) { Storage.saveData(gWindow, Storage.kGroupIdentifier, oldGroupItemData); }
+			gWindow[objName].TabView._initFrame();
+			throw ex;
+		}
+		finally {
+			if(restoreTMP) { Prefs.openTabNext = true; }
 		}
 
 		this.autoloadedNotice.hidden = true;
