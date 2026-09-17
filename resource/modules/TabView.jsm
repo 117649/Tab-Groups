@@ -760,7 +760,8 @@ this.TabView = {
 	},
 
 	openTab: function(url) {
-		return gBrowser.loadOneTab(url, {triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal()});
+		// Preserve loadOneTab's background preference, including foreground ownership and selection.
+		return gBrowser.addTrustedTab(url, {inBackground: Services.prefs.getBoolPref("browser.tabs.loadInBackground")});
 	},
 
 	moveTabTo: function(tab, groupItemId, focusIfSelected) {
