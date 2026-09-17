@@ -131,7 +131,8 @@ Modules.LOADMODULE = function() {
 	self.SessionStore = Storage._scope.SessionStore;
 	Storage._migrationScope = Cu.Sandbox(Services.scriptSecurityManager.getSystemPrincipal(), {
 		sandboxPrototype: Storage,
-		wantGlobalProperties: ['ChromeUtils'],
+		// The copied migration module needs IOUtils; sandbox globals are not inherited automatically.
+		wantGlobalProperties: ['ChromeUtils', 'IOUtils'],
 		wantExportHelpers: true,
 	});
 
@@ -201,6 +202,8 @@ Modules.LOADMODULE = function() {
 			return;
 		var orig = SessionMigration.migrate;
 		Cu.evalInSandbox((await (await window.fetch(ESModSM)).text())
+			// evalInSandbox accepts scripts, not Firefox 157's static import; older module source passes through unchanged.
+			.replace(/^import (\{ XPCOMUtils \}) from ("[^"]+");/m, 'const $1 = ChromeUtils.importESModule($2);')
 			.replace(`return tab;`, `
         // The tabgroup info is in the extData, so we need to get it out.
 		if (oldTab.extData && ${JSON.stringify(Storage.kTabIdentifier)} in oldTab.extData) {
