@@ -281,7 +281,8 @@ this.TabItem.prototype = {
 					this.tabCanvas.destroying.resolve();
 				}
 
-				this.parent.updateThumb(true);
+				// Cached images can finish loading while the item is being reattached to a group.
+				this.parent?.updateThumb(true);
 				break;
 
 			case 'error':
@@ -401,11 +402,9 @@ this.TabItem.prototype = {
 
 		delete this.tab._tabViewTabItem;
 		this.tab = null;
-		if(this.tabCanvas) {
-			this.tabCanvas.tab = null;
-			this.tabCanvas.canvas.remove();
-			this.tabCanvas = null;
-		}
+		// Remove cached-image listeners and settle pending canvas work before dropping ownership.
+		this.hideCachedThumb();
+		if(this.tabCanvas) { this.tabCanvas.destroy(); }
 	},
 
 	getBounds: function() {
@@ -728,10 +727,9 @@ this.TabItem.prototype = {
 
 	// Turns the canvas into an image and shows that instead.
 	destroyCanvas: async function() {
-		if(this.tabCanvas) {
-			await this.tabCanvas.toImage();
-			this.tabCanvas.destroy();
-		}
+		// Conversion may outlive this canvas or a replacement; destroy only the canvas that completed successfully.
+		let canvas = this.tabCanvas;
+		if(canvas && await canvas.toImage() && this.tabCanvas == canvas) { canvas.destroy(); }
 	}
 };
 
@@ -1141,12 +1139,11 @@ this.TabItems = {
 	// Parameters:
 	//   tab - a xul tab to update
 	_update: async function(tab) {
+		let tabItem = tab._tabViewTabItem;
+		if(!tabItem) { return; }
 		try {
 			// ___ remove from waiting list now that we have no other early returns
 			this._tabsWaitingForUpdate.remove(tab);
-
-			// ___ get the TabItem
-			let tabItem = tab._tabViewTabItem;
 
 			// Even if the page hasn't loaded, display the favicon and title
 			tabItem.updateLabels();
@@ -1173,15 +1170,16 @@ this.TabItems = {
 			}
 
 			const isComplete = await this._isComplete(tab);
+			// Closing or reconnecting during the wait can remove or replace the original item.
+			if(tab._tabViewTabItem != tabItem) { return; }
 			if(isComplete) {
 				if(await tabItem.updateCanvas()) return;
 			}
-			this._tabsWaitingForUpdate.push(tab); 
 		}
 		catch(ex) {
-			this._tabsWaitingForUpdate.push(tab); // update failed push tab back to queue.
 			Cu.reportError(ex);
 		}
+		if(tab._tabViewTabItem == tabItem) { this._tabsWaitingForUpdate.push(tab); }
 	},
 
 	shouldDeferPainting: function() {
@@ -1685,13 +1683,15 @@ this.TabCanvas.prototype = {
 	},
 
 	getContentSize: function() {
+		// The reply may arrive after destroy() clears this.tab; retain the browser used to register the listener.
+		let browser = this.tab.linkedBrowser;
 		return new Promise((resolve, reject) => {
 			let receiver = (m) => {
-				Messenger.unlistenBrowser(this.tab.linkedBrowser, 'contentSize', receiver);
+				Messenger.unlistenBrowser(browser, 'contentSize', receiver);
 				resolve(m.data);
 			};
-			Messenger.listenBrowser(this.tab.linkedBrowser, 'contentSize', receiver);
-			Messenger.messageBrowser(this.tab.linkedBrowser, 'getContentSize');
+			Messenger.listenBrowser(browser, 'contentSize', receiver);
+			Messenger.messageBrowser(browser, 'getContentSize');
 		});
 	},
 
@@ -1796,7 +1796,9 @@ this.TabCanvas.prototype = {
 			let ctx = canvas.getContext('2d');
 
 			// We need to account for the size of the actual page when drawing its thumb, if it's smaller than the canvas we end up with black borders.
+			// Either wait below can outlive the item, so recheck ownership before touching the canvas.
 			let contentSize = await this.getContentSize();
+			if(!this.tabItem) { return false; }
 			let scaleX = 1;
 			let scaleY = 1;
 			if (size.x > contentSize.width && contentSize.width > 0) {
@@ -1810,6 +1812,7 @@ this.TabCanvas.prototype = {
 			}
 
 			await PageThumbs.captureTabPreviewThumbnail(browser, canvas);
+			if(!this.tabItem) { return false; }
 
 			ctx = this.canvas.getContext('2d');
 			let hasHadThumb = this.tabItem?._hasHadThumb;
@@ -1877,7 +1880,7 @@ this.TabCanvas.prototype = {
 
 	toImage: function() {
 		// This is the basis of this deferred object, with accessor methods for resolving and rejecting its promise.
-		this.destroying = {
+		let destroying = this.destroying = {
 			resolve: function() {
 				this._resolve();
 				this.finish();
@@ -1902,6 +1905,8 @@ this.TabCanvas.prototype = {
 
 			try {
 				this.canvas.toBlob((blob) => {
+					// Cancellation or a newer conversion makes this Blob callback obsolete.
+					if(this.destroying != destroying) { return; }
 					try {
 						if(this.tabItem._tempCanvasBlobURL) {
 							URL.revokeObjectURL(this.tabItem._tempCanvasBlobURL);
@@ -1911,21 +1916,23 @@ this.TabCanvas.prototype = {
 					}
 					catch(ex) {
 						Cu.reportError(ex);
-						this.destroying.reject(ex);
+						destroying.reject(ex);
 					}
 				});
 			}
 			catch(ex) {
 				Cu.reportError(ex);
-				this.destroying.reject(ex);
+				destroying.reject(ex);
 			}
-		}).catch(ex => {});
+		}).then(() => true, () => false);
 
 		return P;
 	},
 
 	destroy: function() {
 		this?.updating?.reject();
+		this.destroying?.reject();
+		this.tab = null;
 		this.canvas.remove();
 		this.tabItem.tabCanvas = null;
 		this.tabItem = null;
