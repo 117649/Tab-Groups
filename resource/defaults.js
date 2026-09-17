@@ -166,7 +166,10 @@ async function onStartup(aData) {
 	Styles.load('scrollbars', 'scrollbars', false, 'agent');
 
 	// Apply the add-on to every window opened and to be opened
-	Windows.callOnAll(startAddon, 'navigator:browser');
+	// An existing startup window may still be blank/untyped; callOnLoad must run before the browser type check.
+	Windows.callOnAll(window => {
+		if(window.document.documentElement.getAttribute('windowtype') == 'navigator:browser') { startAddon(window); }
+	});
 	Windows.register(startAddon, 'domwindowopened', 'navigator:browser');
 
 	SSSEobs();

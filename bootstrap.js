@@ -317,14 +317,16 @@ async function startup(aData, aReason) {
 	if(typeof(startConditions) != 'function' || startConditions(aReason)) {
 		if(aReason == APP_STARTUP) {
 			let promise = new Promise(resolve => {
+				// Other chrome documents can load before the first browser window is ready.
+				if([...Services.wm.getEnumerator('navigator:browser')].some(w => w.gBrowserInit?.delayedStartupFinished)) { resolve(); return; }
 				Services.obs.addObserver(function obs(subject, topic) {
-					if (subject.createXULElement) {
-						Services.obs.removeObserver(obs, topic);
-						resolve();
-					}
-				}, "chrome-document-loaded");
+					Services.obs.removeObserver(obs, topic);
+					resolve();
+				}, "browser-delayed-startup-finished");
 			});
 			await promise;
+			// Shutdown can run while the browser's delayed startup is pending.
+			if(UNLOADED) { return; }
 			continueStartup(aReason);
 		}
 		// In non-e10s, loadFrameScript from this startup can run load content script even before the previous sandboxed content module had a chance to shutdown.
