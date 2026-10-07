@@ -1094,7 +1094,7 @@ this.TabItems = {
 
 	// Checks wheteher a tab is pending.
 	_isPending: function(tab) {
-		return tab.hasAttribute("pending") || tab.hasAttribute("tabmix_pending");
+		return !tab.linkedBrowser.isConnected || tab.hasAttribute("pending") || tab.hasAttribute("tabmix_pending");
 	},
 
 	// Checks whether the xul:tab has fully loaded and resolves a promise with a boolean that indicates whether the tab is loaded or not.
