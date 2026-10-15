@@ -1811,7 +1811,10 @@ this.TabCanvas.prototype = {
 				ctx.scale(scaleX, scaleY);
 			}
 
-			await PageThumbs.captureTabPreviewThumbnail(browser, canvas);
+			if (await PageThumbs.captureTabPreviewThumbnail(browser, canvas) === false) {
+				if (scaleX != 1 || scaleY != 1) ctx.setTransform(1, 0, 0, 1, 0, 0);
+				return false;
+			}
 			if(!this.tabItem) { return false; }
 
 			ctx = this.canvas.getContext('2d');
