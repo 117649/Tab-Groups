@@ -359,6 +359,7 @@ this.TabView = {
 		Piggyback.revert('TabView', window, 'WindowIsClosing');
 		// Tab Mix Plus may remove this compatibility hook before update shutdown reaches us.
 		if (window.Tabmix && (window.SessionWindowUI ?? window)._undoCloseTab?.toLocaleString()?.includes('TMP_ClosedTabs') === false) {
+			let sandbox;
 			if (window.SessionWindowUI) {
 				const lazy = {};
 				const modules = {
@@ -368,7 +369,7 @@ this.TabView = {
 					TabMetrics: "moz-src:///browser/components/tabbrowser/TabMetrics.sys.mjs",
 				};
 				ChromeUtils.defineESModuleGetters(lazy, modules);
-				const sandbox = Tabmix.getSandbox(window.SessionWindowUI, { scope: { lazy, Tabmix } });
+				sandbox = window.Tabmix.getSandbox(window.SessionWindowUI, { scope: { lazy, Tabmix: window.Tabmix } });
 			}
 			window.Tabmix.changeCode(window.SessionWindowUI ?? window, "_undoCloseTab", window.SessionWindowUI ? { sandbox } : undefined)
 				._replace(
@@ -376,7 +377,7 @@ this.TabView = {
 						? /tab\s*=\s*lazy\.SessionStore\.undoCloseTab\([\s\S]*?\);\s*tabsRemoved\s*=\s*true;/
 						: /tab = SessionStore\.undoCloseTab.*\n.*true;/,
 					`tab = TMP_ClosedTabs._undoCloseTab(
-            ${Tabmix.isVersion(1170) ? "sourceWindow" : "window"},
+            ${window.Tabmix.isVersion(1170) ? "sourceWindow" : "window"},
             index,
             "original",
             !tab,
