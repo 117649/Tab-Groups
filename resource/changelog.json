@@ -1,6 +1,14 @@
 {
-	"current":"2.5.0",
+	"current":"2.5.1",
 	"releases": {
+		"2.5.1":{
+			"date":"November 12, 2026",
+			"notes":[
+				["bugfix","Keep TabView search focused on a remaining match when the selected result closes"],
+				["bugfix","Preserve the previous thumbnail when Firefox cannot capture a new preview"],
+				["bugfix","Restore the Tab Mix Plus undo-close-tab hook when Tab Groups shuts down"]
+			]
+		},
 		"2.5.0":{
 			"date":"October 8, 2026",
 			"notes":[
