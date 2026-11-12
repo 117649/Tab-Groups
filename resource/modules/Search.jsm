@@ -930,6 +930,10 @@ this.Search = {
 			let item = this.matches.get(tabItem);
 			item.container.remove();
 			this.matches.delete(tabItem);
+			this.ordered = this.ordered.filter(result => result != item);
+			if(this.currentItem == item) {
+				this.focusItem(this.ordered[0] || null);
+			}
 			if(tabItem.isATabItem) {
 				tabItem.removeSubscriber('tabRemoved', this);
 			}
